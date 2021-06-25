@@ -1021,6 +1021,7 @@ function (dojo, declare) {
         },
 
         proposeTrade: function(args) {
+            console.log('proposeTrade', args);
             var p1 = this.gamedatas.players[args.trade.current_player];
             var p2 = this.gamedatas.players[args.trade.other_player];
             this.showTradeDialog({
@@ -1043,6 +1044,7 @@ function (dojo, declare) {
         },
 
         connectTradeButtonHandlers: function(cards, from_stock, to_stock) {
+            console.log('connectTradeButtonHandlers', cards);
             dojo.connect( from_stock, 'onChangeSelection', this, function (control_name, item_id) {
                 var item = from_stock.getItemById(item_id);
                 var anim_from = from_stock.getItemDivId(item_id);
@@ -1054,6 +1056,7 @@ function (dojo, declare) {
         },
 
         confirmTrade: function(args) {
+            console.log('confirmTrade', args);
             var dialog = new ebg.popindialog();
             dialog.create( 'confirmTradeDialog' );
             dialog.setTitle( _("Confirm Trade") );
@@ -1109,6 +1112,7 @@ function (dojo, declare) {
         },
 
         takeCards: function(args) {
+            console.log('takeCards', args);
             var player = this.gamedatas.players[this.player_id];
             this.showTradeDialog({
                 l_cards: args.tile_cards,
@@ -1325,6 +1329,7 @@ function (dojo, declare) {
         */
 
         handleTileClick: function(evt, id) {
+            console.log('handleTileClick', evt, id);
             dojo.stopEvent(evt);
 
             if (this.gamedatas.gamestate.name == 'cardChoice' && this.checkAction('selectCardChoice')) {
@@ -1406,6 +1411,7 @@ function (dojo, declare) {
         },
 
         handleTakeCards: function(evt) {
+            console.log("handleTakeCards", evt);
             dojo.stopEvent(evt);
             if (this.checkAction('takeCards')) {
                 this.ajaxcall('/burglebros/burglebros/takeCards.html', { lock: true }, this, console.log, console.error);
@@ -1472,12 +1478,14 @@ function (dojo, declare) {
         },
 
         handleTileChoiceButton: function(selected) {
+            console.log("handleTileChoiceButton", selected);
             if (this.checkAction('selectTileChoice')) {
                 this.ajaxcall('/burglebros/burglebros/selectTileChoice.html', { lock: true, selected: selected }, this, console.log, console.error);
             }
         },
 
         handleCharacterAction: function() {
+            console.log("handleCharacterAction");
             if (this.checkAction('characterAction')) {
                 this.ajaxcall('/burglebros/burglebros/characterAction.html', { lock: true }, this, console.log, console.error);
             }
@@ -1574,6 +1582,7 @@ function (dojo, declare) {
         */
 
         notif_tokensPicked: function(notif) {
+            console.log('notif_tokensPicked', notif.args);
             var tokens = notif.args.tokens;
             for(var tokenId in tokens) {
                 var token = tokens[tokenId];
@@ -1588,6 +1597,7 @@ function (dojo, declare) {
                         this.createGenericToken(token);
                     }
                     if (token.floor) {
+                        console.log("notif_tokensPicked token.floor", token.floor);
                         this.showFloor(token.floor);
                     }
                     this.moveToken(type, token);
@@ -1658,11 +1668,13 @@ function (dojo, declare) {
 
         notif_safeDieIncreased: function(notif) {
             this.createSafeToken(notif.args.token, notif.args.die_num);
+            console.log("notif_safeDieIncreased", notif.args);
             this.showFloor(notif.args.floor);
         },
 
         notif_patrolDieIncreased: function(notif) {
             this.createPatrolToken(notif.args.token, notif.args.die_num);
+            console.log("notif_patrolDieIncreased", notif.args);
             this.showFloor(notif.args.floor);
         },
 
@@ -1676,6 +1688,7 @@ function (dojo, declare) {
         },
 
         notif_showFloor: function(notif) {
+            console.log("notif_showFloor", notif.args);
             this.showFloor(notif.args.floor);
         },
 
