@@ -420,7 +420,7 @@
     background-size: 70px 510px;
     width: 34px;
     height: 34px;
-    filter: drop-shadow(1px 1px 3px #FFF6CF);
+    filter: drop-shadow(3px 3px 3px #FFF6CF);
 }
 
 .token.loot, .token.tools {
