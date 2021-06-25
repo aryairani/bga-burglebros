@@ -829,15 +829,22 @@ SQL;
         return $this->moveGuard(intval($floor), intval($floor) + 1);
     }
 
-    function performGuardMovementEffects($guard_token, $tile_id) {
+    function performGuardMovementEffects($guard_token, $tile_id, $create_path = FALSE) {
         $tile = $this->tiles->getCard($tile_id);
         $floor = $tile['location'][5];
         $this->moveToken($guard_token['id'], 'tile', $tile_id, TRUE);
-        self::notifyAllPlayers('updateGuardPath', '', array(
-            'floor' => $floor,
-            'path' => $this->getPathByLocation($floor, null),
-            'position' => $tile['location_arg']
-        ));
+        if ($create_path) {
+            self::notifyAllPlayers('createGuardPath', '', array(
+                'floor' => $floor,
+                'path' => $this->getPathByLocation($floor, null)
+            ));
+        } else {
+            self::notifyAllPlayers('updateGuardPath', '', array(
+                'floor' => $floor,
+                'path' => $this->getPathByLocation($floor, null),
+                'position' => $tile['location_arg']
+            ));
+        }
         $this->checkCameras(array('guard_id'=>$guard_token['id']));
         $this->handleGuardSeesPlayerTile($tile);
         $this->clearTileTokens('alarm', $tile_id);
@@ -2097,6 +2104,8 @@ SQL;
                 $player_choice = 4;
                 self::setGameStateValue('playerChoiceArg', $shortest_path_length);
             }
+        } elseif ($type == 'throw-voice') {
+            $card_choice = TRUE;
         } else {
             // It will be handled in the appropriate place
             $this->cards->moveCard($card['id'], 'hand', $player_id);
@@ -2366,6 +2375,20 @@ SQL;
                 'new_value' => $new_value
             ]);
             $this->applyDieRoll();
+        } elseif ($type == 'throw-voice') {
+            $this->validateSelection('tile', $selected_type);
+            $tile = $this->tiles->getCard($selected_id);
+            $current_player_id = self::getCurrentPlayerId();
+            $player_token = $this->getPlayerToken($current_player_id);
+            $player_tile = $this->getPlayerTile($current_player_id, $player_token);
+            $floor = $player_tile['location'][5];
+            $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
+            $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+            if ($this->isTileAdjacent($tile, $guard_tile, null, 'guard')) {
+                $this->performGuardMovementEffects($guard_token, $selected_id, TRUE);
+            } else {
+                throw new BgaUserException(self::_("This tile is not adjacent"));
+            }
         }
         if ($card['type'] != 0) {
             if ($discard) {
