@@ -61,7 +61,9 @@
         <div class="patrols">
             <h3>Patrol</h3>
             <!-- BEGIN patrol -->
-            <div class="patrol" id="patrol{FLOOR}">
+            <div id="patrol_wrapper{FLOOR}" class="patrol_wrapper">
+                <div class="patrol" id="patrol{FLOOR}"></div>
+                <div class="patrol_counter" id="patrol_counter{FLOOR}"></div>
             </div>
             <!-- END patrol -->
             <div class="floor_preview_container">

@@ -154,6 +154,21 @@
 .patrol {
     top: 10px;
 }
+.patrol_counter {
+    position: absolute;
+    border-radius: 50%;
+    background-color: #3A5A6E;
+    width: 20px;
+    line-height: 20px;
+    font-weight: 500;
+    color: white;
+    font-size: 14px;
+    bottom: -2px;
+    left: 5px;
+}
+.patrol_wrapper {
+    position: relative;
+}
 
 .floor_preview_container {
     margin-top: 42.5px;

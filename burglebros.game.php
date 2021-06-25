@@ -287,9 +287,10 @@ class burglebros extends Table
         }
         $result['token_types'] = $tokens;
 
-        $result['floor1'] = $this->getTiles(1);
-        $result['floor2'] = $this->getTiles(2);
-        $result['floor3'] = $this->getTiles(3);
+        for ($i=1; $i <= 3; $i++) { 
+            $result["floor$i"] = $this->getTiles($i);
+            $result["patrol_counters"][$i] = $this->cards->countCardInLocation("patrol${i}_deck");
+        }
         $result['walls'] = $this->getWalls();
 
         $result['guard_tokens'] = $this->tokens->getCardsOfType('guard');
@@ -593,10 +594,9 @@ SQL;
                 self::notifyAllPlayers('nextPatrol', '', array(
                     'floor' => $floor,
                     'cards' => $this->cards->getCardsInLocation($patrol.'_discard'),
-                    'top' => $patrol_entrance
+                    'top' => $patrol_entrance,
+                    'deck_count' => $this->cards->countCardInLocation("patrol${floor}_deck")
                 ));
-                // var_dump($this->getPathByLocation($floor, null));
-                // die("stop");
                 $tile_id = $this->findTileOnFloor($floor, $patrol_entrance['type_arg'] - 1)['id'];
             } while($tile_id == $guard_token['location_arg']);
         }

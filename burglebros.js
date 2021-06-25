@@ -97,6 +97,7 @@ function (dojo, declare) {
                 this.createPlayerBoard(playerId);
             }
 
+            this.patrolCounters = {};
             for(var floor = 1; floor <= 3; floor++) {
                 var key = 'floor' + floor;
                 for ( var tileId in this.gamedatas[key]) {
@@ -124,6 +125,13 @@ function (dojo, declare) {
                 
                 var patrolTopKey = patrolKey + '_discard_top';
                 this.loadPatrolDiscard(floor, gamedatas[patrolTopKey]);
+
+                // Deck counter
+                this.patrolCounters[floor] = new ebg.counter();
+                this.patrolCounters[floor].create('patrol_counter' + floor);
+                this.patrolCounters[floor].toValue(gamedatas.patrol_counters[floor]);
+                this.addTooltip('patrol_counter' + floor, dojo.string.substitute(_("Remaining patrol cards on floor ${floor}"), {floor: floor}), '');
+
                 dojo.connect( $('floor' + floor.toString() + '_preview'), 'onclick', dojo.hitch(this, 'showFloor', floor));
 
                 // Guard path
@@ -848,7 +856,7 @@ function (dojo, declare) {
             this.selected_floor = floorNum;
             for (var floor = 1; floor <= 3; floor++) {
                 var floorId = 'floor' + floor.toString() + '_tiles';
-                var patrolId = 'patrol' + floor.toString();
+                var patrolId = 'patrol_wrapper' + floor.toString();
                 var previewId = 'floor' + floor.toString() + '_preview';
                 if (floor == floorNum) {
                     dojo.removeClass(floorId, 'hidden');
@@ -1624,6 +1632,7 @@ function (dojo, declare) {
             console.log('notif next patrol', notif.args);
             this.showFloor(floor);
             this.loadPatrolDiscard(floor, notif.args.top);
+            this.patrolCounters[floor].toValue(notif.args.deck_count);
         },
 
         notif_createGuardPath: function(notif) {
