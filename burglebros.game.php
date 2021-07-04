@@ -679,7 +679,9 @@ SQL;
         $pcol = $pindex % 4;
 
         $same_floor = $tile['location'] == $other_tile['location'];
-        $adjacent = ($trow == $prow && abs($tcol - $pcol) == 1) || ($tcol == $pcol && abs($trow - $prow) == 1);
+        // Check row or column adjency and same floor
+        $adjacent = (($trow == $prow && abs($tcol - $pcol) == 1) || ($tcol == $pcol && abs($trow - $prow) == 1)) && 
+            $tile['location'][5] == $other_tile['location'][5];
         $blocked = false;
         foreach ($walls as $wall) {
             if($wall['floor'] == $tile['location'][5]) {
@@ -730,7 +732,7 @@ SQL;
             // Check destination tile is flipped to avoid disclosing the other service duct card
             // Check tiles are not "standard" adjacent
             $flipped = $this->getFlippedTiles($tile['location'][5]);
-            $service_duct = $tile['type'] == 'service-duct' && $other_tile['type'] == 'service-duct' && $tile['id'] != $other_tile['id'] && isset($flipped[$tile['id']]) && !$adjacent;
+            $service_duct = $tile['type'] == 'service-duct' && $other_tile['type'] == 'service-duct' && $tile['id'] != $other_tile['id'] && isset($flipped[$tile['id']]) && !($adjacent && !$blocked) ;
             $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
             if ($painting && (($secret_door && $blocked) || $service_duct)) {
                 throw new BgaUserException(self::_('Cannot move this way while holding the Painting'));
