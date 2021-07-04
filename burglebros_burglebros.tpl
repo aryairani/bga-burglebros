@@ -218,7 +218,7 @@ var jstpl_draw_tools_dialog = '<div id="draw_tools_dialog" class="dialog">\n' +
 var jstpl_die = '<div class="icon_die icon_die_${die_value}" id="${die_id}"></div>';
 
 var jstpl_path_line = '<line id="path_preview_floor${floor}_position${position}" class="path_in" x1=${x1} y1=${y1} x2=${x2} y2=${y2} />';
-var jstpl_path_circle = '<circle id="guard_preview_floor${floor}" cx=${cx} cy=${cy} />';
+var jstpl_path_circle = '<circle id="guard_preview_floor${floor}" cx=${cx} cy=${cy} r="5" />';
 // var jstpl_path_circle = '<circle cx=${cx} cy=${cy}><animate attributeName="x2" attributeType="XML" from="10" to="90" dur="4s" repeatCount="indefinite"/></circle>';
 </script>  
 
