@@ -486,6 +486,9 @@
     background-size: 70px 500px;
     filter: drop-shadow(1px 1px 3px #000000);
 }
+#generalactions .meeple {
+    display: inline-block;
+}
 
 .player-zone {
     margin: 5px 0;

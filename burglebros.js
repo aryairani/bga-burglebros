@@ -385,6 +385,26 @@ function (dojo, declare) {
                         }
                         break;
                     case 'playerChoice':
+                        // Add players to the action bar so active player can choose
+                        var players = this.gamedatas.players;
+                        var player_tokens = this.gamedatas.player_tokens;
+                        for (i in player_tokens) {
+                            var token = player_tokens[i];
+                            var player_id = token.type_arg;
+                            var player = players[player_id];
+                            var character_type = player.character.type_arg - 1;
+                            this.addActionButton('button_player_' + player_id, ' ' + player.name + '\r\n(' + _(this.gamedatas.card_info[0][character_type]['title']) + ')', dojo.hitch(this, 'handlePlayerChoice', token['id']) );
+                            $('button_player_' + player_id).innerHTML = '<span style="white-space: pre;line-height: 25px;margin-left: 5px;">' + $('button_player_' + player_id).innerHTML + '</span>';
+                            dojo.style('button_player_' + player_id, 'display', 'inline-flex');
+                            var bg_col = character_type % 2,
+                                bg_row = Math.floor(character_type / 2);
+                            dojo.place(this.format_block('jstpl_meeple', {
+                                meeple_id : 'action_bar_' + token['id'],
+                                meeple_background : g_gamethemeurl + '/img/meeples.png',
+                                meeple_bg_pos : -(bg_col * 35) + 'px ' + -(bg_row * 50) + 'px',
+                                player_color: this.gamedatas.players[player_id].color
+                            }), 'button_player_' + player_id, 'first');
+                        }
                         if (args.context !== "squeak")  // cannot cancel Squeak event
                             this.addActionButton('button_cancel', _('Cancel'), 'handleCancelPlayerChoice');
                         break;
@@ -1496,6 +1516,13 @@ function (dojo, declare) {
             console.log("handleCharacterAction");
             if (this.checkAction('characterAction')) {
                 this.ajaxcall('/burglebros/burglebros/characterAction.html', { lock: true }, this, console.log, console.error);
+            }
+        },
+
+        handlePlayerChoice: function(player_id) {
+            console.log("handlePlayerChoice", player_id);
+            if (this.checkAction('selectPlayerChoice')) {
+                this.ajaxcall('/burglebros/burglebros/selectPlayerChoice.html', { lock: true, selected: player_id }, this, console.log, console.error);
             }
         },
 
