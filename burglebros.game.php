@@ -3505,8 +3505,9 @@ SQL;
         $current_player_id = self::getCurrentPlayerId();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
-        if (!$this->canEscape($player_tile)) {
-            throw new BgaUserException(self::_('All safes have not been opened yet'));
+        // if (!$this->canEscape($player_tile)) {
+        if (!$this->checkWin()) {
+            throw new BgaUserException(self::_('You must open all the safes and get all the loots before you escape (especially the Persian Kitty)'));
         }
         $this->moveToken($player_token['id'], 'roof');
         self::notifyAllPlayers('message', clienttranslate('${player_name} escaped to the roof'), [
