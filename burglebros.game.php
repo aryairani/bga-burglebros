@@ -191,7 +191,7 @@ class burglebros extends Table
         $tokens [] = array('type' => 'hack', 'type_arg' => 0, 'nbr' => 19);
         $tokens [] = array('type' => 'safe', 'type_arg' => 0, 'nbr' => 22); # when a tile is validated by a safe roll
         // $tokens [] = array('type' => 'die', 'type_arg' => 0, 'nbr' => 21);  # store die values when rolling (handle stethoscope)
-        $tokens [] = array('type' => 'stealth', 'type_arg' => 0, 'nbr' => 22);
+        $tokens [] = array('type' => 'stealth', 'type_arg' => 0, 'nbr' => 50);
         $tokens [] = array('type' => 'alarm', 'type_arg' => 0, 'nbr' => 9);
         $tokens [] = array('type' => 'open', 'type_arg' => 0, 'nbr' => 6);  # when a safe or keypad tile is opened
         $tokens [] = array('type' => 'keypad', 'type_arg' => 0, 'nbr' => 3);
