@@ -894,18 +894,23 @@ SQL;
         self::DbQuery("UPDATE player SET player_stealth_tokens = player_stealth_tokens - $amount WHERE player_id = '$player_id'");
         $players = self::loadPlayersBasicInfos();
         $player_stealth = $this->tokens->getCardsOfTypeInLocation('stealth', null, 'player', $player_id);
+        $result['player_tokens'] = $this->tokens->getCardsOfType('player');
         if ($amount > 0) {
             if (count($player_stealth) > 0) {
                 $this->moveToken(array_keys($player_stealth)[0], 'deck', TRUE);
             } else {
                 self::setGameStateValue('stealthDepleted', 1);
             }
+            $action = 'decrementStealth';
+            $token_id = key($this->tokens->getCardsOfType('player', $player_id));
         } else if($amount < 0) {
             $this->pickTokens('stealth', 'player', $player_id, -$amount);
+            $action = 'message';
         }
-        self::notifyAllPlayers('message', clienttranslate( '${player_name} ${action} one stealth' ), array(
+        self::notifyAllPlayers($action, clienttranslate( '${player_name} ${action} one stealth' ), array(
             'action' => $amount < 0 ? clienttranslate('gains') : clienttranslate('loses'),
-            'player_name' => $players[$player_id]['player_name']
+            'player_name' => $players[$player_id]['player_name'],
+            'meeple_id' => $token_id
         ));
     }
 

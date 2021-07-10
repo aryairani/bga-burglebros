@@ -67,6 +67,35 @@
     }
 */
 
+/* Utilities */
+/* Animate a meeple when losing Stealth */
+.ripple {
+    animation: ripple 3s linear;
+}
+.ripple::before,
+.ripple::after{
+    content:"";
+    animation:inherit;
+    animation-delay:0.5s;
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+}
+.ripple::after {
+    animation-delay:1s;
+}
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 .7rem rgba(255,255,255, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 6rem rgba(255,255,255, 0);
+  }
+}
+
+/* Board game CSS */
 .stockitem {
     background-size: 480px;
     border-radius: 8px;

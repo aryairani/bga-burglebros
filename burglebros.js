@@ -1586,6 +1586,7 @@ function (dojo, declare) {
             dojo.subscribe('tokensPicked', this, 'notif_tokensPicked');
             dojo.subscribe('tokensPickedSync', this, 'notif_tokensPicked');
             this.notifqueue.setSynchronous( 'tokensPickedSync', 750 );
+            dojo.subscribe('decrementStealth', this, 'notif_decrementStealth');
             dojo.subscribe('tileFlipped', this, 'notif_tileFlipped');
             dojo.subscribe('nextPatrol', this, 'notif_nextPatrol');
             dojo.subscribe('createGuardPath', this, 'notif_createGuardPath');
@@ -1619,12 +1620,12 @@ function (dojo, declare) {
         notif_tokensPicked: function(notif) {
             console.log('notif_tokensPicked', notif.args);
             var tokens = notif.args.tokens;
-            for(var tokenId in tokens) {
+            for (var tokenId in tokens) {
                 var token = tokens[tokenId];
                 var isGeneric = this.nonGenericTokenTypes.indexOf(token.type) == -1;
                 var type = isGeneric ? 'generic' : token.type;
                 this.removeToken(type, tokenId);
-                if(isGeneric) {
+                if (isGeneric) {
                     delete this.gamedatas.generic_tokens[tokenId];
                 }
                 if (this.canMoveToken(token)) {
@@ -1639,6 +1640,16 @@ function (dojo, declare) {
                     this.gamedatas[type + '_tokens'][tokenId] = token;
                 }
             }
+        },
+
+        notif_decrementStealth: function(notif) {
+            console.log('notif_decrementStealth', notif.args);
+            var meeple_id = notif.args.meeple_id;
+            // Display animation on meeple when gaining or losing Stealth token
+            dojo.addClass('meeple_' + meeple_id, 'ripple');
+            setTimeout(function () {
+                dojo.removeClass('meeple_' + meeple_id, 'ripple');
+            }, 3000)
         },
 
         notif_tileFlipped: function(notif) {
