@@ -2383,6 +2383,7 @@ SQL;
                 'new_value' => $new_value
             ]);
             $this->applyDieRoll();
+            self::incGameStateValue('actionsRemaining', -1);
         } elseif ($type == 'throw-voice') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
