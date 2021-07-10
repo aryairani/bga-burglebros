@@ -1726,6 +1726,7 @@ SQL;
                 $cancel_move = true;
                 $this->performPeek($lower_tile['id'], 'effect');
                 $this->moveToken($player_token['id'], 'tile', $lower_tile['id']);
+                $this->handlePlayerEnteredGuardSight($lower_tile);
                 $this->notifyMovement($player_id, $lower_tile, 'walkway');
             }
         } elseif ($type == 'thermo' && $this->getPlayerLoot('isotope', $player_id)) {
