@@ -1321,43 +1321,10 @@ function (dojo, declare) {
             _ make a call to the game server
         
         */
-        
-        /* Example:
-        
-        onMyMethodToCall1: function( evt )
-        {
-            console.log( 'onMyMethodToCall1' );
-            
-            // Preventing default browser reaction
-            dojo.stopEvent( evt );
-
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if( ! this.checkAction( 'myAction' ) )
-            {   return; }
-
-            this.ajaxcall( "/burglebros/burglebros/myAction.html", { 
-                                                                    lock: true, 
-                                                                    myArgument1: arg1, 
-                                                                    myArgument2: arg2,
-                                                                    ...
-                                                                 }, 
-                         this, function( result ) {
-                            
-                            // What to do after the server call if it succeeded
-                            // (most of the time: nothing)
-                            
-                         }, function( is_error) {
-
-                            // What to do after the server call in anyway (success or failure)
-                            // (most of the time: nothing)
-
-                         } );        
-        },        
-        
-        */
 
         handleTileClick: function(evt, id) {
             console.log('handleTileClick', evt, id);
+            console.log("this.gamedatas.gamestate.name", this.gamedatas.gamestate.name);
             dojo.stopEvent(evt);
 
             if (this.gamedatas.gamestate.name == 'cardChoice' && this.checkAction('selectCardChoice')) {
@@ -1373,6 +1340,10 @@ function (dojo, declare) {
                 var player_id = evt.target.id.substring(evt.target.id.lastIndexOf('_') + 1);
                 this.ajaxcall('/burglebros/burglebros/selectPlayerChoice.html', { lock: true, selected: player_id }, this, console.log, console.error);
             } else if(this.gamedatas.gamestate.name == 'specialChoice' && dojo.hasClass(evt.target, 'tile') && this.checkAction('selectSpecialChoice')) {
+                this.ajaxcall('/burglebros/burglebros/selectSpecialChoice.html', { lock: true, selected: id }, this, console.log, console.error);
+            } else if(this.gamedatas.gamestate.name == 'specialChoice' && dojo.hasClass(evt.target, 'tile-meeples') && this.checkAction('selectSpecialChoice')) {
+                // Handle front edge case when player clicks on meeple zone instead of tile zone, find the tile div
+                id = $(evt.target.id).parentNode.querySelectorAll('.tile')[0].id.split('_')[1];
                 this.ajaxcall('/burglebros/burglebros/selectSpecialChoice.html', { lock: true, selected: id }, this, console.log, console.error);
             } else {
                 var intent = this.intent || 'move';
