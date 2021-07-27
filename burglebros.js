@@ -1352,7 +1352,9 @@ function (dojo, declare) {
                     this.ajaxcall(url, { lock: true, id: id }, this, function() {
                         console.log(arguments);
                         // location.reload();
-                    }, console.error);
+                    }, function() {
+                        this.intent = intent == 'peek' ? intent : 'move';
+                    });
                     this.intent = 'move';
                 }
             }
