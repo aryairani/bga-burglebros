@@ -92,7 +92,7 @@ $this->card_info = array(
     array('name'=>'jury-rig', 'title' => clienttranslate('Jury-rig'), 'tooltip' => clienttranslate('Draw a tool.')),
     array('name'=>'keycode-change', 'title' => clienttranslate('Keycode change'), 'tooltip' => clienttranslate('Any open keypad tiles are now locked again. Roll a 6 to enter and re-open.')),
     array('name'=>'lampshade', 'title' => clienttranslate('Lampshade'), 'tooltip' => clienttranslate('Gain a Stealth.')),
-    array('name'=>'lost-grip', 'title' => clienttranslate('Lost grip'), 'tooltip' => clienttranslate('Gall one floor. This does not count as entering a tile.')),
+    array('name'=>'lost-grip', 'title' => clienttranslate('Lost grip'), 'tooltip' => clienttranslate('Fall one floor. This does not count as entering a tile.')),
     array('name'=>'peekhole', 'choice_description' => self::_('an adjacent tile (also through a wall or up/down floors) to peek'), 'title' => clienttranslate('Peekhole'), 'tooltip' => clienttranslate('You may peek at one adjacent tile, even through a wall or up/down floors. Resolve immediately.')),
     array('name'=>'reboot', 'title' => clienttranslate('Reboot'), 'tooltip' => clienttranslate('Set Hacks on any computer rooms to one token.')),
     array('name'=>'shift-change', 'title' => clienttranslate('Shift change'), 'tooltip' => clienttranslate('Guard does not move on your floor. Instead, Guards on the other floors move this turn (if revealed).')),
