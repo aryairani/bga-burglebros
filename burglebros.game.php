@@ -1737,7 +1737,8 @@ SQL;
         }
 
         if (!$cancel_move) {
-            // Guarantee this is set up if it wasn't already
+            // Guarantee this is set up if it wasn't already but refresh guard token if already drawn from deck
+            $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
             $this->setupGuardToken($guard_token, $floor);
 
             // Handle exit
@@ -2502,7 +2503,7 @@ SQL;
             throw new BgaUserException(self::_("Tile is not adjacent"));
         }
 
-        if($context == 'acrobat1') {
+        if ($context == 'acrobat1') {
             if ($guard_token['location'] != 'tile' || $guard_token['location_arg'] != $tile_id) {
                 throw new BgaUserException(self::_("Tile does not contain a guard"));
             }
