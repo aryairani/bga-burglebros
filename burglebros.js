@@ -1350,10 +1350,14 @@ function (dojo, declare) {
                 if (this.checkAction(intent)) {
                     var url = '/burglebros/burglebros/' + intent + '.html';
                     this.ajaxcall(url, { lock: true, id: id }, this, function() {
-                        console.log(arguments);
+                        console.log('success', arguments);
                         // location.reload();
                     }, function() {
-                        this.intent = intent == 'peek' ? intent : 'move';
+                        console.log('error', arguments);
+                        if (intent == 'peek' && arguments[0]) {
+                            // console.log('reset intent to Peek after error');
+                            this.intent = 'peek';
+                        }
                     });
                     this.intent = 'move';
                 }
