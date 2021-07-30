@@ -1807,9 +1807,9 @@ SQL;
         }
     }
 
-    function triggerAlarm($tile, $skip_token_checks=FALSE) {
+    function triggerAlarm($tile, $skip_token_checks=FALSE, $skip_hacker_checks=FALSE) {
         if (!$skip_token_checks) {
-            if($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || $this->hackerDoesNotTrigger($tile) || self::getGameStateValue('empPlayer') != 0) {
+            if ($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || self::getGameStateValue('empPlayer') != 0 && (!$skip_hacker_checks && $this->hackerDoesNotTrigger($tile))) {
                 return;
             }
         }
@@ -2356,7 +2356,7 @@ SQL;
                 $other_tile = $this->findTileOnFloor($selected_id, $tile['location_arg']);
                 $this->pickTokensForTile('thermal', $other_tile['id']);
             }
-            $this->triggerAlarm($tile);
+            $this->triggerAlarm($tile, FALSE, TRUE);
         } elseif ($type == 'virus') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
