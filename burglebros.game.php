@@ -2697,6 +2697,8 @@ SQL;
                 $this->endAction();
             }
             self::setGameStateValue('characterAbilityUsed', 1);
+            $current_player_id = self::getCurrentPlayerId();
+            self::incStat(1, 'special_ability_use', $current_player_id);
         } else if ($type == 'rigger') {
             $tool = $this->cards->getCard($choice_arg);
         }
@@ -2891,6 +2893,10 @@ SQL;
             'tile' => $this->findTileOnFloor($floor_2, $location_arg_2),
             'floor' => $floor_2
         ));
+    }
+
+    function getStatDebug($stat_name, $player_id = null) {
+         var_dump($this->getStat($stat_name, $player_id));
     }
 
     public function loadDebug() {
@@ -3112,6 +3118,8 @@ SQL;
                     'player_name' => self::getCurrentPlayerName()
                 ]);
                 self::setGameStateValue('characterAbilityUsed', 1);
+                $current_player_id = self::getCurrentPlayerId();
+                self::incStat(1, 'special_ability_use', $current_player_id);
                 if (in_array($type, array('hacker2', 'spotter1', 'spotter2'))) {
                     $this->endAction(); // Spent action
                 } else if($type == 'peterman2') {
@@ -3215,6 +3223,7 @@ SQL;
                 $this->nextPatrol($player_tile['location'][5]);
             }
             self::setGameStateValue('characterAbilityUsed', 1);
+            self::incStat(1, 'special_ability_use', $current_player_id);
             self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
