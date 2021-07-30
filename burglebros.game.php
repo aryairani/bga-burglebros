@@ -3522,7 +3522,8 @@ SQL;
             throw new BgaUserException(self::_('You must open all the safes and get all the loots before you escape (especially the Persian Kitty)'));
         }
         $this->moveToken($player_token['id'], 'roof');
-        self::notifyAllPlayers('message', clienttranslate('${player_name} escaped to the roof'), [
+        self::notifyAllPlayers('playerEscape', clienttranslate('${player_name} escaped to the roof'), [
+            'player_id' => $current_player_id,
             'player_name' => self::getActivePlayerName()
         ]);
 

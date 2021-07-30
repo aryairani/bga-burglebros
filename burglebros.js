@@ -54,7 +54,7 @@ function (dojo, declare) {
         
         setup: function( gamedatas )
         {
-            console.log( "Starting game setup", gamedatas );
+            console.log( "Starting game setup", "gamedatas: ", gamedatas, "gamestate.args: ", this.gamedatas.gamestate.args );
             
             // Set up your game interface here, according to "gamedatas"
             window.gamedatas = gamedatas;
@@ -1580,6 +1580,7 @@ function (dojo, declare) {
             dojo.subscribe('tileCards', this, 'notif_tileCards');
             dojo.subscribe('showFloor', this, 'notif_showFloor');
             dojo.subscribe('removeWall', this, 'notif_removeWall');
+            dojo.subscribe('playerEscape', this, 'notif_playerEscape');
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
