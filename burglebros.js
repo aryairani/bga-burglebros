@@ -708,13 +708,14 @@ function (dojo, declare) {
         },
 
         updateGuardPath: function(floor, guard_path, position) {
+            // Delete current path
+            if (($('path_preview_floor'+floor+'_position'+position)))
+                this.fadeOutAndDestroy('path_preview_floor'+floor+'_position'+position);
             // Update guard position
             var cx = this.path_x_offset + this.path_tile_offset * this.calcSvgPosX(guard_path[0]);
             var cy = this.path_y_offset + this.path_tile_offset * this.calcSvgPosY(guard_path[0]);
             dojo.style('guard_preview_floor' + floor, 'cx', cx);
             dojo.style('guard_preview_floor' + floor, 'cy', cy);
-            // Delete current path
-            this.fadeOutAndDestroy('path_preview_floor'+floor+'_position'+position);
         },
         createGuardPreviewHTML: function(floor, guard_path) {
             var x = this.calcSvgPosX(guard_path[0]);
