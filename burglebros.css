@@ -523,6 +523,10 @@
     margin: 5px 0;
     min-height: 24px;
 }
+.player-zone.escaped {
+    display: inline-block;
+    font-style: italic;
+}
 
 #trade_dialog, #spotter_dialog, .dialog {
     display: flex;
@@ -586,6 +590,12 @@
 
 #draw_tools_stock .stockitem_selected {
     border-color: red !important;
+}
+
+/* Player boards */
+.player-board.escaped {
+    background-color: #BBB !important;
+    transition: all 1s ease-in;
 }
 
 /* Dice */

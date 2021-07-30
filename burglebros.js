@@ -673,10 +673,14 @@ function (dojo, declare) {
             zone.create( this, zoneId, 24, 24 );
             zone.setPattern( 'grid' );
             this.zones[zoneId] = zone;
+
+            dojo.place(this.format_block('jstpl_player_escaped', {
+                id : id,
+            }), 'player_board_' + id);
         },
 
         createGuardPath: function(floor, guard_path) {
-            console.log('guard_path', guard_path);
+            // console.log('guard_path', guard_path);
             if (guard_path === null)
                 return false;
             // Create a SVG path preview on the floor preview zone
@@ -1721,5 +1725,25 @@ function (dojo, declare) {
             this.fadeOutAndDestroy($("wall_" + notif.args.wall_id));
         },
 
+        notif_playerEscape: function(notif) {
+            console.log('notif_playerEscape', notif.args);
+            var player_id = notif.args.player_id;
+            dojo.addClass("overall_player_board_" + player_id, 'escaped');
+            dojo.removeClass("player_" + player_id + "_escaped", 'hidden');
+            dojo.addClass("player_" + player_id + "_escaped", 'escaped');
+            // Place token and escape text
+            var token = { 'type':'open', 'letter':'O' };
+            var tokenType = this.gamedatas.token_types[token.type];
+            $('player_' + player_id + '_escaped').innerHTML = '   ' + _('Player escaped');
+            dojo.place(this.format_block('jstpl_generic_token', {
+                token_id : 'player_' + player_id + '_escaped',
+                token_color : tokenType.color,
+                token_type : token.type,
+                token_background : g_gamethemeurl + '/img/tokens.jpg',
+                token_bg_pos : (tokenType.id * -32) - 4,
+                token_letter : token.letter
+            }), 'player_' + player_id + '_escaped', 'first');
+            dojo.style('generic_token_player_' + player_id + '_escaped', 'display', 'inline-block');
+        },
    });             
 });
