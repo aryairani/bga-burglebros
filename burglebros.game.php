@@ -939,12 +939,14 @@ SQL;
 
     function atriumGuards($tile) {
         $player_floor = $tile['location'];
+        $player_lower_floor = --$player_floor;
+        $player_upper_floor = ++$player_floor;
         $player_location_arg = $tile['location_arg'];
         $sql = <<<SQL
             SELECT count(*) > 0 as seen
             FROM tile
             INNER JOIN token ON token.card_location_arg = tile.card_id
-            WHERE tile.card_location != '$player_floor'
+            WHERE (tile.card_location = '$player_lower_floor' OR tile.card_location = '$player_upper_floor')
                 AND tile.card_location_arg = '$player_location_arg'
                 AND token.card_location = 'tile'
                 AND token.card_type = 'guard'
