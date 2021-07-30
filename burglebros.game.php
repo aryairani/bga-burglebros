@@ -2862,8 +2862,12 @@ SQL;
     /* DEBUG */
     function flipTilesDebug($floor = null, $location_arg = null) {
         // Can flip tiles 1 at a time or (withou arguments) all the tiles of the game
-        if ($floor) {
+        if ($location_arg) {
             $this->flipTile($floor, $location_arg);
+        } else if ($floor) {
+            for ($i=0; $i <= 15 ; $i++) { 
+                $this->flipTile($floor, $i);
+            }
         } else {
             $tiles = self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM tile WHERE flipped=0");
             foreach ($tiles as $id => $tile) {
