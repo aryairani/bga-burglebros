@@ -267,6 +267,8 @@ class burglebros extends Table
         foreach ($result['players'] as $player_id => &$player) {
             $player['hand'] = $this->cards->getPlayerHand($player_id);
             $player['character'] = $this->getPlayerCharacter($player_id);
+            $player_token = $this->getPlayerToken($player_id);
+            $player['escaped'] = $player_token['location'] == 'roof';
         }
   
         $result = array_merge($result, $this->gatherCardData('card', $this->card_types, $this->card_info));
