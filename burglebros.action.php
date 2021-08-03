@@ -61,7 +61,8 @@
       self::setAjaxMode();
       
       $tile_id = self::getArg( "id", AT_posint, true );
-      $this->game->move($tile_id);
+      $context = self::getArg( "context", AT_alphanum, true );
+      $this->game->move($tile_id, $context);
 
       self::ajaxResponse();
     }

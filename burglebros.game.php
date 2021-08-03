@@ -2509,7 +2509,6 @@ SQL;
         if (!$this->isTileAdjacent($to_move, $player_tile, null, $context)) {
             throw new BgaUserException(self::_("Tile is not adjacent"));
         }
-
         if ($context == 'acrobat1') {
             if ($guard_token['location'] != 'tile' || $guard_token['location_arg'] != $tile_id) {
                 throw new BgaUserException(self::_("Tile does not contain a guard"));
@@ -2958,20 +2957,30 @@ SQL;
         $this->endAction();
     }
 
-    function move( $tile_id ) {
+    function move( $tile_id, $context='action' ) {
         self::checkAction('move');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
-        if ($actions_remaining < 1) {
+        $tile_choice = FALSE;
+        if ($context == 'acrobat1') {
+            $current_player_id = self::getCurrentPlayerId();
+            $character = $this->getPlayerCharacter($current_player_id);
+            if ($this->getCardType($character) != 'acrobat1')
+                throw new BgaUserException(self::_("You are not the Acrobat"));
+            self::setGameStateValue('cardChoice', $character['id']);
+            $this->selectCardChoice('tile', [$tile_id], FALSE);
+            $this->endAction(0);
+        } elseif ($actions_remaining < 1) {
             throw new BgaUserException(self::_("You have no actions remaining"));
-        }
-        $tile_choice = $this->performMove($tile_id);
-        if (self::getGameStateValue('stealthDepleted')) {
-            $this->gamestate->nextState('gameOver');
-        } else if ($tile_choice) {
-            self::setGameStateValue('tileChoice', $tile_choice);
-            $this->gamestate->nextState('tileChoice');
         } else {
-            $this->endAction();
+            $tile_choice = $this->performMove($tile_id, $context);
+            if (self::getGameStateValue('stealthDepleted')) {
+                $this->gamestate->nextState('gameOver');
+            } else if ($tile_choice) {
+                self::setGameStateValue('tileChoice', $tile_choice);
+                $this->gamestate->nextState('tileChoice');
+            } else {
+                $this->endAction();
+            }
         }
     }
 
@@ -3089,8 +3098,9 @@ SQL;
         }
     }
 
-    function selectCardChoice($type, $id) {
-        self::checkAction('selectCardChoice');
+    function selectCardChoice($type, $id, $check_action = TRUE) {
+        if ($check_action)
+            self::checkAction('selectCardChoice');
         $card_choice = self::getGameStateValue('cardChoice');
         $card = $card_choice > 0 ? $this->cards->getCard($card_choice) : null;
         $tile_choice = $this->handleSelectCardChoice($card, $type, $id);
@@ -3527,7 +3537,8 @@ SQL;
         $this->moveToken($player_token['id'], 'roof');
         self::notifyAllPlayers('playerEscape', clienttranslate('${player_name} escaped to the roof'), [
             'player_id' => $current_player_id,
-            'player_name' => self::getActivePlayerName()
+            'player_name' => self::getActivePlayerName(),
+            'token_id' => $player_token['id'],
         ]);
 
         if ($this->allPlayersEscaped()) {

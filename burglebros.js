@@ -1383,16 +1383,29 @@ function (dojo, declare) {
                 var intent = this.intent || 'move';
                 if (this.checkAction(intent)) {
                     var url = '/burglebros/burglebros/' + intent + '.html';
-                    this.ajaxcall(url, { lock: true, id: id }, this, function() {
-                        console.log('success', arguments);
-                        // location.reload();
-                    }, function() {
-                        console.log('error', arguments);
-                        if (intent == 'peek' && arguments[0]) {
-                            // Reset intent to Peek after error
-                            this.intent = 'peek';
-                        }
-                    });
+                    var context = 'action';
+                    // If acrobat is moving onto a guard, ask if player wants to use the special ability
+                    var tile_has_guard = $(evt.target.id).parentNode.querySelectorAll('.token.guard').length > 0;
+                    if (intent == 'move' && this.gamedatas.gamestate.args.character.name == 'acrobat1' && tile_has_guard) {
+                        this.multipleChoiceDialog(
+                          _('Do you want to use your Acrobat ability?'), [_('Yes'), _('No')], 
+                            dojo.hitch(this, function(choice) {
+                                context = choice == 0 ? 'acrobat1' : context;
+                                this.ajaxcall( url, { lock: true, id: id, context: context }, this, function( result ) {} );
+                        }));
+                    } else {
+                        // Normal move
+                        this.ajaxcall(url, { lock: true, id: id, context: context }, this, function() {
+                            console.log('success', arguments);
+                            // location.reload();
+                        }, function() {
+                            console.log('error', arguments);
+                            if (intent == 'peek' && arguments[0]) {
+                                // Reset intent to Peek after error
+                                this.intent = 'peek';
+                            }
+                        });
+                    }
                     this.intent = 'move';
                 }
             }
