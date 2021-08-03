@@ -593,6 +593,8 @@ function (dojo, declare) {
                     var zoneId = token.location + '_' + token.location_arg + '_tokens';
                     this.zones[zoneId].removeFromZone(token_type + '_token_' + id, token_type === 'generic' || token.location === 'deck');
                 }
+            } else if (token && token.location === 'roof') {
+                this.fadeOutAndDestroy('meeple_' + token.id);
             }
         },
 
@@ -1604,36 +1606,23 @@ function (dojo, declare) {
             dojo.subscribe('showFloor', this, 'notif_showFloor');
             dojo.subscribe('removeWall', this, 'notif_removeWall');
             dojo.subscribe('playerEscape', this, 'notif_playerEscape');
-        },  
-        
-        // TODO: from this point and below, you can write your game notifications handling methods
-        
-        /*
-        Example:
-        
-        notif_cardPlayed: function( notif )
-        {
-            console.log( 'notif_cardPlayed' );
-            console.log( notif );
-            
-            // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
-            
-            // TODO: play the card in the user interface.
-        },    
-        
-        */
+        },
 
         notif_tokensPicked: function(notif) {
-            console.log('notif_tokensPicked', notif.args);
+            console.log('** notif_tokensPicked', notif.args);
             var tokens = notif.args.tokens;
             for (var tokenId in tokens) {
                 var token = tokens[tokenId];
                 var isGeneric = this.nonGenericTokenTypes.indexOf(token.type) == -1;
                 var type = isGeneric ? 'generic' : token.type;
+                // Force refresh of gamedatas (at least needed for escaped player token)
+                // this.gamedatas[type + '_tokens'][tokenId] = token;
+                console.log("type", type);
                 this.removeToken(type, tokenId);
                 if (isGeneric) {
                     delete this.gamedatas.generic_tokens[tokenId];
                 }
+                console.log('this.canMoveToken(token)', this.canMoveToken(token));
                 if (this.canMoveToken(token)) {
                     if (isGeneric) {
                         this.createGenericToken(token);
@@ -1753,6 +1742,7 @@ function (dojo, declare) {
             console.log('notif_playerEscape', notif.args);
             var player_id = notif.args.player_id;
             this.playerEscaped(player_id);
+            this.fadeOutAndDestroy('meeple_' + notif.args.token_id);
         },
    });             
 });
