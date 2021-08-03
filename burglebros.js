@@ -723,8 +723,8 @@ function (dojo, declare) {
             // Update guard position
             var cx = this.path_x_offset + this.path_tile_offset * this.calcSvgPosX(guard_path[0]);
             var cy = this.path_y_offset + this.path_tile_offset * this.calcSvgPosY(guard_path[0]);
-            dojo.style('guard_preview_floor' + floor, 'cx', cx);
-            dojo.style('guard_preview_floor' + floor, 'cy', cy);
+            $('guard_preview_floor' + floor).setAttribute("cx", cx);
+            $('guard_preview_floor' + floor).setAttribute("cy", cy);
         },
         createGuardPreviewHTML: function(floor, guard_path) {
             var x = this.calcSvgPosX(guard_path[0]);
