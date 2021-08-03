@@ -58,12 +58,18 @@ $game_options = array(
                         'name' => totranslate('Random, no advanced'),
                         'description' => totranslate('Random character assignment, no advanced versions')
                     ),
-
-                    // A simple value for this option.
-                    // If this value is chosen, the value of "tmdisplay" is displayed in the game lobby
                     2 => array(
                         'name' => totranslate('Random, w/advanced'),
                         'description' => totranslate('Random character assignment, including advanced versions, each player can choose either basic or advanced side')
+                    ),
+
+                    3 => array(
+                        'name' => totranslate('Player choice, no advanced'),
+                        'description' => totranslate('Each player can choose a character, no advanced versions')
+                    ),
+                    4 => array(
+                        'name' => totranslate('Player choice, w/advanced'),
+                        'description' => totranslate('Each player can choose a character, including advanced versions, each player can choose either basic or advanced side')
                     ),
 
                     // Another value, with other options:

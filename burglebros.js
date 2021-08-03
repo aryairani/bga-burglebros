@@ -148,9 +148,11 @@ function (dojo, declare) {
 
             for (var token_id in gamedatas.player_tokens) {
                 var token = gamedatas.player_tokens[token_id];
-                this.createPlayerToken(token_id, token.type_arg);
-                if (this.canMoveToken(token)) {
-                    this.moveToken('player', token);
+                if (token.location != 'hand') {
+                    this.createPlayerToken(token_id, token.type_arg);
+                    if (this.canMoveToken(token)) {
+                        this.moveToken('player', token);
+                    }                    
                 }
             }
 
@@ -220,7 +222,9 @@ function (dojo, declare) {
             case 'tileChoice':
                 this.showFloor(this.currentFloor());
                 break;
-            
+            case 'chooseCharacter':
+                this.loadPlayerHand(this.myHand, args.args.cards, [], false);
+                break;
             case 'cardChoice':
                 if (args.args.spotter_card && (this.isCardChoice('spotter1') || this.isCardChoice('spotter2'))) {
                     var card = args.args.spotter_card;
@@ -1385,7 +1389,7 @@ function (dojo, declare) {
                     }, function() {
                         console.log('error', arguments);
                         if (intent == 'peek' && arguments[0]) {
-                            // console.log('reset intent to Peek after error');
+                            // Reset intent to Peek after error
                             this.intent = 'peek';
                         }
                     });
@@ -1617,18 +1621,17 @@ function (dojo, declare) {
                 var type = isGeneric ? 'generic' : token.type;
                 // Force refresh of gamedatas (at least needed for escaped player token)
                 // this.gamedatas[type + '_tokens'][tokenId] = token;
-                console.log("type", type);
                 this.removeToken(type, tokenId);
                 if (isGeneric) {
                     delete this.gamedatas.generic_tokens[tokenId];
                 }
-                console.log('this.canMoveToken(token)', this.canMoveToken(token));
+                // console.log('this.canMoveToken(token)', this.canMoveToken(token));
                 if (this.canMoveToken(token)) {
                     if (isGeneric) {
                         this.createGenericToken(token);
                     }
                     if (token.floor) {
-                        console.log("notif_tokensPicked token.floor", token.floor);
+                        // console.log("notif_tokensPicked token.floor", token.floor);
                         this.showFloor(token.floor);
                     }
                     this.moveToken(type, token);

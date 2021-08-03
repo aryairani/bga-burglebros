@@ -64,8 +64,8 @@ $machinestates = array(
     // Note: ID=2 => your first state
     7 => array(
         'name' => 'chooseCharacter',
-        'description' => clienttranslate('Other players must choose a character side'),
-        'descriptionmyturn' => clienttranslate('${you} must click on the character card you want to keep'),
+        'description' => clienttranslate('Other players must choose a character'),
+        'descriptionmyturn' => clienttranslate('${you} must choose a character'),
         'type' => 'multipleactiveplayer',
         'action' => 'stChooseCharacter',
         'args' => 'argChooseCharacter',

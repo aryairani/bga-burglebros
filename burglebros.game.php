@@ -151,7 +151,8 @@ class burglebros extends Table
         self::initStat( "player", "trade_confirmed", 0 );
         self::initStat( "player", "special_ability_use", 0 );
 
-        $option_characters_advanced = $options[100] == 2;
+        $option_character = $options[100];
+        $option_characters_advanced = $option_character == 2 || $option_character == 4;
         $option_level = $options[101];
         switch ($option_level) {
             case 1:
@@ -216,20 +217,22 @@ class burglebros extends Table
         foreach ($players as $player_id => $player) {
             $player_token = array('type' => 'player', 'type_arg' => $player_id, 'nbr' => 1);
             $this->tokens->createCards(array($player_token), 'hand', $player_id);
-            $character = $this->cards->pickCard('characters_deck', $player_id);
-            $type = $this->getCardType($character);
-            $name = substr($type, 0, -1);
-            $nbr = substr($type, -1);
-            // $this->moveCardsOutOfPlay('characters', $name.($nbr == 1 ? 2 : 1));
-            if ($option_characters_advanced) {
-                // Move advanced card to player hand so they can choose on the next state
-                $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
-                $advanced_character_id = key($this->cards->getCardsOfType(0, $type_arg));
-                $this->cards->moveCard($advanced_character_id, 'hand', $player_id);
-            } elseif ($this->getCardType($character) == 'rigger1') {
-                $type_arg = $this->getCardTypeForName(1, 'dynamite');
-                $dynamite = array_values($this->cards->getCardsOfType(1, $type_arg))[0];
-                $this->cards->moveCard($dynamite['id'], 'hand', $player_id);
+            if ($option_character == 1 || $option_character == 2) {
+                $character = $this->cards->pickCard('characters_deck', $player_id);
+                // $type = $this->getCardType($character);
+                // $name = substr($type, 0, -1);
+                // $nbr = substr($type, -1);
+                // $this->moveCardsOutOfPlay('characters', $name.($nbr == 1 ? 2 : 1));
+                if ($option_character == 2) {
+                    // Move advanced card to player hand so they can choose on the next state
+                    $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
+                    $advanced_character_id = key($this->cards->getCardsOfType(0, $type_arg));
+                    $this->cards->moveCard($advanced_character_id, 'hand', $player_id);
+                } elseif ($this->getCardType($character) == 'rigger1') {
+                    $type_arg = $this->getCardTypeForName(1, 'dynamite');
+                    $dynamite = array_values($this->cards->getCardsOfType(1, $type_arg))[0];
+                    $this->cards->moveCard($dynamite['id'], 'hand', $player_id);
+                }
             }
 
             $this->pickTokens('stealth', 'player', $player_id, $option_stealth_count);
@@ -2945,32 +2948,6 @@ SQL;
         (note: each method below must match an input method in burglebros.action.php)
     */
 
-    /*
-    
-    Example:
-
-    function playCard( $card_id )
-    {
-        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
-        self::checkAction( 'playCard' ); 
-        
-        $player_id = self::getActivePlayerId();
-        
-        // Add your game logic to play a card there 
-        ...
-        
-        // Notify all players about the card played
-        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'card_name' => $card_name,
-            'card_id' => $card_id
-        ) );
-          
-    }
-    
-    */
-
     function peek( $tile_id ) {
         self::checkAction('peek');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
@@ -3054,23 +3031,34 @@ SQL;
 
         $current_player_id = self::getCurrentPlayerId();
         $card = $this->cards->getCard($card_id);
-        if ($card['location'] != 'hand' || $card['location_arg'] != $current_player_id) {
+        if ($this->gamestate->state()['name'] == 'chooseCharacter') {
+            if ($card['location'] == 'hand' || $card['location'] == 'characters_oop')
+                throw new BgaUserException(self::_("This character is already taken by another player"));
+        } elseif ($card['location'] != 'hand' || $card['location_arg'] != $current_player_id) {
             throw new BgaUserException(self::_("Card is not in your hand"));
         }
 
         if ($card['type'] == 0) {
-            // Advanced characters, player chose a side
+            // Character choice, player chose a character
             $character = $this->cards->getCard($card_id);
             $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
             $other_side_id = key($this->cards->getCardsOfType(0, $type_arg));
-            $this->cards->moveCard($other_side_id, 'characters_deck');
+            $this->cards->moveCard($card_id, 'hand', $current_player_id);
+            $this->cards->moveCard($other_side_id, 'characters_oop');
             if ($this->getCardType($character) == 'rigger1') {
                 $type_arg = $this->getCardTypeForName(1, 'dynamite');
                 $dynamite = array_values($this->cards->getCardsOfType(1, $type_arg))[0];
                 $this->cards->moveCard($dynamite['id'], 'hand', $current_player_id);
             }
             // Update player hand and discard the other character card
-            $this->notifyPlayerHand($current_player_id, array($other_side_id));
+            $discard_ids = array_keys($this->cards->getCardsInLocation('characters_deck'));
+            $this->notifyPlayerHand($current_player_id, array_merge($discard_ids, array($other_side_id)));
+            // Remove chosen character from the other player hands
+            $players = $this->loadPlayersBasicInfos();
+            foreach ($players as $player_id => $player) {
+                if ($player_id != $current_player_id)
+                    $this->notifyPlayerHand($player_id,  array($card_id, $other_side_id));
+            }
             $this->gamestate->setPlayerNonMultiactive($current_player_id, 'chooseCharacter');
         } else {
             // Player wants to use a tool
@@ -3564,8 +3552,19 @@ SQL;
     */
 
     function argChooseCharacter() {
-        // Return both side of each characters for each player
-        $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand');
+        // Return basic (and if relevant advanced side) of each player character
+        // self::getCurrentPlayerId() may raise an exception error because this is the first state called by game setup, so wrap it into a try / catch
+        try {
+            $current_player_id = self::getCurrentPlayerId();
+            $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand', $current_player_id);
+        } catch (Exception $e) {
+            // No one has chosen a character yet (game not started)
+            $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand');
+        }
+        // If hand is empty, player can choose any available character
+        if (count($cards) == 0) {
+            $cards = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg FROM card WHERE card_location='characters_deck'");
+        }
         return array(
             'cards' => $cards,
             'floor' => 1
