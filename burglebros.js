@@ -575,9 +575,18 @@ function (dojo, declare) {
         },
 
         moveToken: function(token_type, token) {
+            console.log('moveToken', token);
             if (token_type === 'player') {
                 var meepleZoneId = 'tile_' + token.location_arg + '_meeples';
-                this.zones[meepleZoneId].placeInZone('meeple_' + token.id);
+                // Guarantee meeple token is created
+                if ($('meeple_' + token.id)) {
+                    this.zones[meepleZoneId].placeInZone('meeple_' + token.id);
+                } else {
+                    this.createPlayerToken(token.id, token.type_arg);
+                    if (this.canMoveToken(token)) {
+                        this.moveToken('player', token);
+                    } 
+                }
             } else {
                 var zoneId = token.location + '_' + token.location_arg + '_tokens';
                 if (this.zones[zoneId]) {
@@ -1616,6 +1625,7 @@ function (dojo, declare) {
             // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
             // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
             // 
+            dojo.subscribe('characterChosen', this, 'notif_characterChosen');
             dojo.subscribe('tokensPicked', this, 'notif_tokensPicked');
             dojo.subscribe('tokensPickedSync', this, 'notif_tokensPicked');
             this.notifqueue.setSynchronous( 'tokensPickedSync', 750 );
@@ -1632,6 +1642,11 @@ function (dojo, declare) {
             dojo.subscribe('showFloor', this, 'notif_showFloor');
             dojo.subscribe('removeWall', this, 'notif_removeWall');
             dojo.subscribe('playerEscape', this, 'notif_playerEscape');
+        },
+
+        notif_characterChosen: function(notif) {
+            console.log('** notif_characterChosen', notif.args);
+            this.gamedatas.players[notif.args.player_id].character = notif.args.character;
         },
 
         notif_tokensPicked: function(notif) {

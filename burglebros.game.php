@@ -3075,11 +3075,17 @@ SQL;
             // Update player hand and discard the other character card
             $discard_ids = array_keys($this->cards->getCardsInLocation('characters_deck'));
             $this->notifyPlayerHand($current_player_id, array_merge($discard_ids, array($other_side_id)));
+            self::notifyAllPlayers('characterChosen', clienttranslate('${player_name} chooses to play ${character_name}'), [
+                'player_name' => self::getCurrentPlayerName(),
+                'player_id' => $current_player_id,
+                'character' => $character,
+                'character_name' => $this->getDisplayedCardName($this->getCardType($card)),
+            ]);
             // Remove chosen character from the other player hands
             $players = $this->loadPlayersBasicInfos();
             foreach ($players as $player_id => $player) {
                 if ($player_id != $current_player_id)
-                    $this->notifyPlayerHand($player_id,  array($card_id, $other_side_id));
+                    $this->notifyPlayerHand($player_id, array($card_id, $other_side_id));
             }
             $this->gamestate->setPlayerNonMultiactive($current_player_id, 'chooseCharacter');
         } else {
