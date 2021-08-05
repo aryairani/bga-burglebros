@@ -206,6 +206,12 @@
       self::ajaxResponse();
     }
 
+    public function restartTurn() {
+      self::setAjaxMode();
+      $this->game->restartTurn();
+      self::ajaxResponse();
+    }
+
     public function pass() {
       self::setAjaxMode();
       $this->game->pass();

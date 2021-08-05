@@ -88,10 +88,11 @@ $machinestates = array(
         'description' => clienttranslate('${actplayer} may do ${actions_description} or pass'),
         'descriptionmyturn' => clienttranslate('${you} may do ${actions_description} or pass'),
         'type' => 'activeplayer',
+        // 'action' => 'stPlayerTurn',
         'args' => 'argPlayerTurn',
         'updateGameProgression' => true,
-        'possibleactions' => array( 'hack', 'move', 'peek', 'addSafeDie', 'rollSafeDice', 'playCard', 'characterAction', 'trade', 'pickUpCat', 'takeCards', 'pass', 'escape' ),
-        'transitions' => array( 'endAction' => 21, 'endTurn' => 10, 'nextPlayer' => 12, 'cardChoice' => 13, 'tileChoice' => 14, 'playerChoice' => 15, 'proposeTrade' => 16, 'takeCards' => 24, 'specialChoice' => 20, 'gameOver' => 90 )
+        'possibleactions' => array( 'hack', 'move', 'peek', 'addSafeDie', 'rollSafeDice', 'playCard', 'characterAction', 'trade', 'pickUpCat', 'takeCards', 'pass', 'escape', 'restartTurn' ),
+        'transitions' => array( 'endAction' => 21, 'endTurn' => 10, 'nextPlayer' => 12, 'cardChoice' => 13, 'tileChoice' => 14, 'playerChoice' => 15, 'proposeTrade' => 16, 'takeCards' => 24, 'specialChoice' => 20, 'restartTurn' => 9, 'gameOver' => 90 )
     ),    
 
     10 => array(
@@ -128,8 +129,8 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argCardChoice',
         'updateGameProgression' => true,
-        'possibleactions' => array( 'selectCardChoice', 'cancelCardChoice' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'endTurn' => 10, 'tileChoice' => 14, 'gameOver' => 90 )
+        'possibleactions' => array( 'selectCardChoice', 'cancelCardChoice', 'restartTurn' ),
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'endTurn' => 10, 'tileChoice' => 14, 'restartTurn' => 9, 'gameOver' => 90 )
     ),
 
     14 => array(
@@ -138,8 +139,8 @@ $machinestates = array(
         'descriptionmyturn' => clienttranslate('${tile_name}: ${you} must choose an option'),
         'type' => 'activeplayer',
         'args' => 'argTileChoice',
-        'possibleactions' => array( 'selectTileChoice' ),
-        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'endTurn' => 10 )
+        'possibleactions' => array( 'selectTileChoice', 'restartTurn' ),
+        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10 )
     ),
 
     15 => array(
@@ -148,8 +149,8 @@ $machinestates = array(
         'descriptionmyturn' => clienttranslate('${you} must choose a player'),
         'type' => 'activeplayer',
         'args' => 'argPlayerChoice',
-        'possibleactions' => array( 'selectPlayerChoice', 'cancelPlayerChoice' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'proposeTrade' => 16, 'specialChoice' => 20 )
+        'possibleactions' => array( 'selectPlayerChoice', 'cancelPlayerChoice', 'restartTurn' ),
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'proposeTrade' => 16, 'specialChoice' => 20, 'restartTurn' => 9 )
     ),
 
     16 => array(
@@ -213,8 +214,8 @@ $machinestates = array(
         'descriptionmyturn' => clienttranslate('${you} must choose a tool to discard'),
         'type' => 'activeplayer',
         'args' => 'argDrawToolsAndDiscard',
-        'possibleactions' => array( 'discardTool' ),
-        'transitions' => array( 'drawToolsOtherPlayer' => 23, 'nextAction' => 9, 'endTurn' => 10 )
+        'possibleactions' => array( 'discardTool', 'restartTurn' ),
+        'transitions' => array( 'drawToolsOtherPlayer' => 23, 'nextAction' => 9, 'endTurn' => 10, 'restartTurn' => 9 )
     ),
 
     23 => array(
@@ -235,28 +236,6 @@ $machinestates = array(
         'transitions' => array( 'endAction' => 21, 'nextAction' => 9 )
     ),
     
-/*
-    Examples:
-    
-    2 => array(
-        'name' => 'nextPlayer',
-        'description' => '',
-        'type' => 'game',
-        'action' => 'stNextPlayer',
-        'updateGameProgression' => true,   
-        'transitions' => array( 'endGame' => 99, 'nextPlayer' => 10 )
-    ),
-    
-    10 => array(
-        'name' => 'playerTurn',
-        'description' => clienttranslate('${actplayer} must play a card or pass'),
-        'descriptionmyturn' => clienttranslate('${you} must play a card or pass'),
-        'type' => 'activeplayer',
-        'possibleactions' => array( 'playCard', 'pass' ),
-        'transitions' => array( 'playCard' => 2, 'pass' => 2 )
-    ), 
-
-*/  
     90 => array(
         'name' => 'gameOver',
         'description' => clienttranslate('End of game'),

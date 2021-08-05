@@ -60,6 +60,7 @@ class burglebros extends Table
             'stealthDepleted' => 33,
             'playerPass' => 34,
             'dropLoot' => 35,
+            'undoAllowed' => 36,
 
             // Options
             'characterAssignment' => 100,
@@ -136,6 +137,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'stealthDepleted', 0 );
         self::setGameStateInitialValue( 'playerPass', 0 );
         self::setGameStateInitialValue( 'dropLoot', 0 );
+        self::setGameStateInitialValue( 'undoAllowed', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -320,6 +322,7 @@ class burglebros extends Table
         }
         $result['patrol_tokens'] = $patrol_tokens;
         $result['guard_paths'] = $guard_paths;
+        $result['undo_allowed'] = self::getGameStateValue('undoAllowed');
   
         return $result;
     }
@@ -374,6 +377,10 @@ class burglebros extends Table
         $this->pickTokensForTile('stairs', $tile_id);
 
         $this->nextPatrol(1);
+
+        // Save the first undo restore point
+        $this->undoSavepoint();
+        $this->setGameStateValue('undoAllowed', 1);
 
         $this->gamestate->nextState();
     }
@@ -474,6 +481,7 @@ class burglebros extends Table
             'floor' => $player_tile['location'][5],
             'actions_remaining' => $actions_remaining,
             'actions_description' => $actions_description,
+            'undo_allowed' => self::getGameStateValue('undoAllowed'),
         );
     }
 
@@ -660,7 +668,8 @@ SQL;
         self::DbQuery("UPDATE tile SET flipped=1 WHERE card_location='floor$floor' and card_location_arg=$location_arg");
         self::notifyAllPlayers('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor, $location_arg),
-            'floor' => $floor
+            'floor' => $floor,
+            'undo_allowed' => self::getGameStateValue('undoAllowed'),
         ));
     }
 
@@ -1479,6 +1488,7 @@ SQL;
     }
 
     function rollDice($dice_count) {
+        self::setGameStateValue('undoAllowed', 0);
         $rolls = array();
         for ($i=0; $i < $dice_count; $i++) { 
             $result = bga_rand(1, 6);
@@ -1617,6 +1627,7 @@ SQL;
         } elseif ($type == 'lavatory') {
             $this->pickTokensForTile('stealth', $tile['id'], 3);
         }
+        self::setGameStateValue('undoAllowed', 0);
     }
 
     function setTileBit($state_name, $tile_id) {
@@ -2891,11 +2902,13 @@ SQL;
 
         self::notifyAllPlayers('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor_1, $location_arg_1),
-            'floor' => $floor_1
+            'floor' => $floor_1,
+            'undo_allowed' => self::getGameStateValue('undoAllowed'),
         ));
         self::notifyAllPlayers('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor_2, $location_arg_2),
-            'floor' => $floor_2
+            'floor' => $floor_2,
+            'undo_allowed' => self::getGameStateValue('undoAllowed'),
         ));
     }
 
@@ -3520,6 +3533,15 @@ SQL;
         }
     }
 
+    function restartTurn() {
+        // Restart turn by restoring save point
+        self::checkAction('restartTurn');
+        if ($this->getGameStateValue('undoAllowed') == 0)
+            throw new BgaUserException(self::_("You are not allowed to restart your turn (you uncovered some info or triggered some random events)"));
+        $this->undoRestorePoint();
+        $this->gamestate->nextState('restartTurn');
+    }
+
     function escape() {
         self::checkAction('escape');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
@@ -3902,8 +3924,11 @@ SQL;
             'floor' => $player_tile['location'][5]
         ]);
 
-        self::incStat( 1, 'turns_number' );
-        self::incStat( 1, 'turns_number', $player_id );
+        self::incStat(1, 'turns_number');
+        self::incStat(1, 'turns_number', $player_id);
+
+        $this->undoSavepoint();
+        $this->setGameStateValue('undoAllowed', 1);
 
         $this->gamestate->nextState( 'playerTurn' );
     }

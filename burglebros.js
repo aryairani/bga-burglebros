@@ -208,16 +208,9 @@ function (dojo, declare) {
             
             switch( stateName )
             {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Show some HTML block at this game state
-                dojo.style( 'my_html_block_id', 'display', 'block' );
-                
+            case 'playerTurn':
+                this.gamedatas.undo_allowed = args.args.undo_allowed;
                 break;
-           */
             case 'endTurn':
             case 'tileChoice':
                 this.showFloor(this.currentFloor());
@@ -422,6 +415,13 @@ function (dojo, declare) {
                     case 'specialChoice':
                         this.addActionButton('button_cancel', _('Cancel'), 'handleCancelSpecialChoice');
                         break;
+                }
+                if ('undo_allowed' in args) {
+                    this.gamedatas.undo_allowed = args.undo_allowed;
+                }
+                if (this.gamedatas.undo_allowed == 1) {
+                    this.addActionButton('button_undo', _('Restart turn'), 'handleRestartTurnClick', null, false, 'red');
+                    this.addTooltip('button_undo', _("You can restart your turn if you did not reveal any hidden information nor did not triggered any random event (die roll...)"), '');
                 }
             }
         },
@@ -1494,6 +1494,15 @@ function (dojo, declare) {
             }
         },
 
+        handleRestartTurnClick: function(evt)  {
+            dojo.stopEvent(evt);
+            if (this.checkAction('restartTurn')) {
+                this.ajaxcall('/burglebros/burglebros/restartTurn.html', { lock: true }, this, function() {
+                    console.log(arguments);
+                }, console.error);
+            }
+        },
+
         handleCardSelected: function(control_name, card_id) {
             console.log("handleCardSelected", control_name, card_id);
             if (this.myHand.isSelected(card_id) && this.checkAction('playCard')) {
@@ -1664,13 +1673,19 @@ function (dojo, declare) {
         },
 
         notif_tileFlipped: function(notif) {
+            console.log("notif_tileFlipped", notif.args);
             var tile = notif.args.tile,
                 floor = tile.location[5];
                 deck = 'floor' + floor;
             this.gamedatas[deck][tile.location_arg] = tile;
-            console.log("notif tile flipped, floor", floor);
             this.showFloor(floor);
             this.playTileOnTable(floor, tile);
+            this.undo_allowed = notif.args.undo_allowed;
+            console.log('undo', this.undo_allowed == 0, $('button_undo'));
+            if (this.undo_allowed == 0 && $('button_undo') != null) {
+                console.log("yes destroy");
+                this.fadeOutAndDestroy('button_undo');
+            }
         },
 
         notif_nextPatrol: function(notif) {
