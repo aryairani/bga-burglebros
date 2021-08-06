@@ -151,7 +151,7 @@ var jstpl_card_token = '<div id="card_token_${tile_id}" class="token ${card_type
 
 var jstpl_patrol_die = '<div id="patrol_token_${token_id}" class="token die patrol">${num_spaces}</div>';
 
-var jstpl_safe_die = '<div id="crack_token_${token_id}" class="token die safe">${die_num}</div>';
+var jstpl_safe_die = '<div id="crack_token_${token_id}" class="token die safe">x${die_num}</div>';
 
 var jstpl_event_card = '<div id="event_card_dialog${card_id}" class="card ${extra_classes}" style="background-image: url(${bg_image}); background-position: ${bg_position};"></div>'
 
