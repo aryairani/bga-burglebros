@@ -3282,6 +3282,7 @@ SQL;
                 throw new BgaUserException(self::_('Patrol deck is empty'));
             }
             self::setGameStateValue('cardChoice', $character['id']);
+            self::setGameStateValue('undoAllowed', 0);
             $this->gamestate->nextState('cardChoice');
         } else if($type == 'spotter2') {
             $top_card = $this->cards->getCardOnTop("events_deck");
@@ -3289,6 +3290,7 @@ SQL;
                 throw new BgaUserException(self::_('Event deck is empty'));
             }
             self::setGameStateValue('cardChoice', $character['id']);
+            self::setGameStateValue('undoAllowed', 0);
             $this->gamestate->nextState('cardChoice');
         } else if (in_array($type, array('acrobat1', 'hawk1', 'hawk2', 'juicer1', 'peterman2', 'raven1', 'spotter1', 'spotter2'))) {
             self::setGameStateValue('cardChoice', $character['id']);
