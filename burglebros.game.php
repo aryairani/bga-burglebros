@@ -1508,9 +1508,10 @@ SQL;
                 }
             }
         }
-        self::notifyAllPlayers('message', clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
+        self::notifyAllPlayers('diceRolled', clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
             'player_name' => self::getActivePlayerName(),
             'roll' => implode($roll_list, ','),
+            'rolls' => $roll_list,
             'for' => $for
         ));
     }

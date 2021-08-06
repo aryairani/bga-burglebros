@@ -111,7 +111,7 @@
     text-align: center; 
     overflow: hidden;
     max-height: 0px;
-    opacity: 0; /* handle whiteblock add and remove class with opacity transition */
+    /*opacity: 0;  handle whiteblock add and remove class with opacity transition */
     padding: 0px !important;
     margin: 0px !important;     /* reset whiteblock margin and padding */
     transition: all 0.8s;
@@ -600,40 +600,64 @@
 
 /* Dice */
 .icon_die {
-    top: 33%; /* center vertically */
-    left: 9%; /* center horizontally */
     background-image: url(img/dice.png);
     background-repeat: no-repeat;
     display: inline-block;
+    background-size: 300px; /*50px;*/
+}
+.rolled_dice .icon_die {
+    cursor: pointer;
+    top: 33%; /* center vertically */
+    left: 9%; /* center horizontally */
     width: 50px;
     height: 50px;
-    background-size: 50px;
+    margin: 5px;
 }
-#maintitlebar_content .icon_die {
-    cursor: pointer;
+.rolled_dice .token {
+    display: inline-block;
+    margin: 5px;
+    zoom: 1.6;
 }
 .icon_die.selected {
     filter: drop-shadow(2px 2px 0 lime) drop-shadow(-1px -1px 0 lime) drop-shadow(2px -2px 0 lime) drop-shadow(-2px 2px 0 lime);
 }
-.icon_die_3D {
+/*.icon_die_3D {
     background-position: 0% 0%;
-    /*filter: drop-shadow(3px 3px 0 lime) drop-shadow(-2px -2px 0 lime) drop-shadow(2px -2px 0 lime) drop-shadow(-2px 2px 0 lime);*/
+    filter: drop-shadow(3px 3px 0 lime) drop-shadow(-2px -2px 0 lime) drop-shadow(2px -2px 0 lime) drop-shadow(-2px 2px 0 lime);
+}*/
+.icon_die_red {
+    background-position-y: 0%;
+}
+.icon_die_yellow {
+    background-position-y: 20%;
+}
+.icon_die_green {
+    background-position-y: 40%;
+}
+.icon_die_blue {
+    background-position-y: 60%;
+}
+.icon_die_purple {
+    background-position-y: 80%;
+}
+.icon_die_grey {
+    background-position-y: 100%;
 }
 .icon_die_1 {
-    background-position: 0% 16.5%;
+    background-position-x: 0%;
 }
 .icon_die_2 {
-    background-position: 0% 33%;
+    background-position-x: 20%;
 }
 .icon_die_3 {
-    background-position: 0% 50%;
+    background-position-x: 40%;
 }
 .icon_die_4 {
-    background-position: 0% 66.5%;
+    background-position-x: 60%;
 }
 .icon_die_5 {
-    background-position: 0% 83%;
+    background-position-x: 80%;
 }
 .icon_die_6 {
-    background-position: 0% 99.6%;
+    background-position-x: 100%;
 }

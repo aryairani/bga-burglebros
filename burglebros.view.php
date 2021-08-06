@@ -105,6 +105,7 @@
         }
         // this will make our My Hand text translatable
         $this->tpl['MY_HAND'] = self::_("My hand");
+        $this->tpl['DICE_ROLLED_TITLE'] = self::_("Dice rolled");
         $this->tpl['CRYSTAL_BALL_TITLE'] = self::_("Reorder the 3 upcoming events (leftmost will be the first to happen). Click on a card to move it.");
         $this->tpl['SPOTTER_TITLE'] = self::_("Spotter: place the card back on top or bottom of the deck");
 

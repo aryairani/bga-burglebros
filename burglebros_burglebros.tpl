@@ -31,6 +31,10 @@
     </div>
 </div>
 <div id="temp_display" class="hidden_animated whiteblock">
+    <div id="rolled_dice_wrapper" class="hidden">
+        <h3>{DICE_ROLLED_TITLE}</h3>
+        <div id="rolled_dice"></div>
+    </div>
     <div id="spotter_card_wrapper" class="hidden">
         <h3>{SPOTTER_TITLE}</h3>
         <div id="spotter_card"></div>
@@ -216,7 +220,7 @@ var jstpl_draw_tools_dialog = '<div id="draw_tools_dialog" class="dialog">\n' +
 '    </div>\n' +
 '</div>';
 
-var jstpl_die = '<div class="icon_die icon_die_${die_value}" id="${die_id}"></div>';
+var jstpl_die = '<div class="icon_die icon_die_${die_value} icon_die_${die_color}" id="${die_id}"></div>';
 
 var jstpl_path_line = '<line id="path_preview_floor${floor}_position${position}" class="path_in" x1=${x1} y1=${y1} x2=${x2} y2=${y2} />';
 var jstpl_path_circle = '<circle id="guard_preview_floor${floor}" cx=${cx} cy=${cy} r="5" />';
