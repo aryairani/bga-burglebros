@@ -3058,7 +3058,8 @@ SQL;
         $current_player_id = self::getCurrentPlayerId();
         $card = $this->cards->getCard($card_id);
         if ($this->gamestate->state()['name'] == 'chooseCharacter') {
-            if ($card['location'] == 'hand' || $card['location'] == 'characters_oop')
+            if ( $this->gamestate->table_globals[100] !== '2' &&
+                ($card['location'] == 'hand' || $card['location'] == 'characters_oop') )
                 throw new BgaUserException(self::_("This character is already taken by another player"));
         } elseif ($card['location'] != 'hand' || $card['location_arg'] != $current_player_id) {
             throw new BgaUserException(self::_("Card is not in your hand"));
