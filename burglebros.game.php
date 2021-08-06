@@ -1873,6 +1873,9 @@ SQL;
             $this->pickTokensForTile('stealth', $tile['id'], 3);
         } elseif ($type == 'stethoscope') {
             throw new BgaUserException(self::_("You must roll dice before using the stethoscope"));
+        } elseif ($type == 'crystal-ball') {
+            self::setGameStateValue('undoAllowed', 0);
+            $choice = TRUE;
         } else {
             $choice = TRUE;
         }
