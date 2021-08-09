@@ -466,7 +466,7 @@ class burglebros extends Table
         $character['name'] = $this->getCardType($character);
         $actions_remaining = self::getGameStateValue('actionsRemaining'); 
         $actions_description = $actions_remaining > 0 ?
-            self::_("$actions_remaining actions, free actions,") :
+            self::_("${actions_remaining} actions, free actions,") :
             self::_('free actions');
         return array(
             'escape' => $this->canEscape($player_tile),
