@@ -98,6 +98,40 @@ $game_options = array(
 
                 ),
         'default' => 2,
+    ),
+
+    102 => array(
+        'name' => totranslate('Scenario'),    
+        'values' => array(
+                    1 => array(
+                        'name' => totranslate('The Bank Job'),
+                        'description' => totranslate('Standard layout (3 floors of 4x4 grid)')
+                    ),
+                    2 => array(
+                        'name' => totranslate('[ALPHA] The Office Job'),
+                        'description' => totranslate('Beginners\' layout (2 floors of 4x4 grid)')
+                    ),
+                    3 => array(
+                        'name' => totranslate('[ALPHA] The Fort Knox Job'),
+                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid')
+                    ),
+                ),
+        'default' => 1,
+    ),
+
+    103 => array(
+        'name' => totranslate('Walls'),    
+        'values' => array(
+                    1 => array(
+                        'name' => totranslate('Default walls'),
+                        // 'description' => totranslate('')
+                    ),
+                    2 => array(
+                        'name' => totranslate('[ALPHA] Random walls'),
+                        'description' => totranslate('Currently in dev, please report any issue')
+                    ),
+                ),
+        'default' => 1,
     )
 );
 

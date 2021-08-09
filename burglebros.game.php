@@ -18,6 +18,7 @@
 
 
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
+require_once("modules/BurgleBrosBoard.class.php");
 
 
 class burglebros extends Table
@@ -31,7 +32,7 @@ class burglebros extends Table
         //  the corresponding ID in gameoptions.inc.php.
         // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
         parent::__construct();
-        
+
         self::initGameStateLabels( array( 
             'actionsRemaining' => 10,
             'entranceTile' => 11,
@@ -64,8 +65,13 @@ class burglebros extends Table
 
             // Options
             'characterAssignment' => 100,
-            'level' => 101
+            'level' => 101,
+            'scenario' => 102,
+            'randomWalls' => 103
         ) ); 
+
+        // Initialize module classes
+        $this->board = new BurgleBrosBoard($this);
 
         $this->cards = self::getNew( "module.common.deck" );
         $this->cards->init( "card" );
@@ -89,7 +95,10 @@ class burglebros extends Table
         the game is ready to be played.
     */
     protected function setupNewGame( $players, $options = array() )
-    {    
+    {
+        // Setup board and walls
+        $this->board->setupNewGame($players, $options);
+
         // Set the colors of the players with HTML color code
         // The default below is red/green/blue/orange/brown
         // The number of colors defined here must correspond to the maximum number of players allowed for the gams
@@ -169,20 +178,6 @@ class burglebros extends Table
         }
         $this->createDecks($this->card_types, $this->card_info, $option_characters_advanced);
         $this->createDecks($this->patrol_types, $this->patrol_info);
-        
-        $index = 1;
-        $values = array();
-        foreach ( $this->tile_types as $type => $dice ) {
-            foreach ($dice as $die) {
-                $values [] = "('$type',$index,'deck',$die)";
-                $index++;
-            }
-        }
-        shuffle($values);
-        $sql = "INSERT INTO tile (card_type,card_type_arg,card_location,safe_die) VALUES ";
-        self::DbQuery($sql.implode($values, ','));
-
-        $this->setupTiles();
 
         // Guards
         $tokens = array ();
@@ -503,40 +498,6 @@ class burglebros extends Table
     function getCardChoiceDescription($card) {
         $info = $this->card_info[$card['type']];
         return $info[$card['type_arg'] - 1]['choice_description'];
-    }
-
-    function setupTiles() {
-        $safes = $this->tiles->getCardsOfType('safe');
-        $stairs = $this->tiles->getCardsOfType('stairs');
-        
-        // Grab a safe and stair for each floor, and move to the floor "deck"
-        for ($floor=1; $floor <= 3; $floor++) { 
-            $safe = array_shift($safes);
-            $stair = array_shift($stairs);
-            $card_ids = array($safe['id'], $stair['id']);
-            $this->tiles->moveCards($card_ids, "floor$floor");
-
-            $this->setupWalls($floor);
-        }
-        $this->tiles->shuffle('deck');
-        // Grab 14 more tiles per floor "deck" and shuffle
-        for ($floor=1; $floor <= 3; $floor++) { 
-            $this->tiles->pickCardsForLocation(14, 'deck', "floor$floor");
-            $this->tiles->shuffle("floor$floor");
-        }
-    }
-
-    function setupWalls($floor) {
-        foreach ($this->default_walls[$floor] as $dir => $positions) {
-            $sql = 'INSERT INTO wall (floor, vertical, position) VALUES ';
-            $values = array();
-            foreach ($positions as $position) {
-                $vertical = $dir == 'vertical' ? 1 : 0;
-                $values [] = "($floor,$vertical,$position)";
-            }
-            $sql .= implode($values, ',');
-            self::DbQuery($sql);
-        }
     }
 
     function getWalls() {

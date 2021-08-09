@@ -161,21 +161,6 @@ $this->tile_types = array(
   'walkway' => array(1, 2, 3),
 );
 
-$this->default_walls = array(
-  1 => array(
-    'vertical' => array(0, 5, 9, 10),
-    'horizontal' => array(1, 4, 6, 11)
-  ),
-  2 => array(
-    'vertical' => array(0, 1, 2, 9, 10, 11),
-    'horizontal' => array(4, 7)
-  ),
-  3 => array(
-    'vertical' => array(3, 5, 6, 7, 11),
-    'horizontal' => array(1, 6, 7)
-  )
-);
-
 $this->token_types = array(
   array('name' => 'alarm', 'color' => '#CE5638'),
   array('name' => 'cat', 'color' => '#8E8644'),
