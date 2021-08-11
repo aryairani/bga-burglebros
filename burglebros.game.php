@@ -349,6 +349,11 @@ class burglebros extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+
+    public function randomizeWalls() {
+        $this->board->randomizeWalls();
+    }
+
     function moveCardsOutOfPlay($deck, $name) {
         $type_id = $this->getDeckTypeForName($deck);
         $type_arg = $this->getCardTypeForName($type_id, $name);

@@ -113,7 +113,7 @@ $game_options = array(
                     ),
                     3 => array(
                         'name' => totranslate('[ALPHA] The Fort Knox Job'),
-                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid')
+                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid)')
                     ),
                 ),
         'default' => 1,
