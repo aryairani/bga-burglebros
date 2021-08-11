@@ -133,7 +133,7 @@ class BurgleBrosBoard extends APP_GameClass
 		$size_sq = $size * $size - 1;
 		$dec = $size - 1;
 		$expected_walls = $size === 4 ? 8 : 12;
-		$max_walls = 2 * $size * ($size - 1);
+		$max_walls = 2 * $size * ($size - 1) - 1;
 		$max_floor = $this->getFloorCount();
 		$shaft_walls = [];
 		$random_walls = [];

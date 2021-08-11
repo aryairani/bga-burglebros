@@ -352,6 +352,9 @@ class burglebros extends Table
 
     public function randomizeWalls() {
         $this->board->randomizeWalls();
+        self::notifyAllPlayers('updateWalls', clienttranslate("Updating walls"), [
+            'walls' => $this->getWalls(),
+        ]);
     }
 
     function moveCardsOutOfPlay($deck, $name) {

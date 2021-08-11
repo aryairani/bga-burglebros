@@ -1706,6 +1706,7 @@ function (dojo, declare) {
             dojo.subscribe('patrolDieIncreased', this, 'notif_patrolDieIncreased');
             dojo.subscribe('tileCards', this, 'notif_tileCards');
             dojo.subscribe('showFloor', this, 'notif_showFloor');
+            dojo.subscribe('updateWalls', this, 'notif_updateWalls');
             dojo.subscribe('removeWall', this, 'notif_removeWall');
             dojo.subscribe('playerEscape', this, 'notif_playerEscape');
         },
@@ -1861,6 +1862,15 @@ function (dojo, declare) {
         notif_showFloor: function(notif) {
             console.log("notif_showFloor", notif.args);
             this.showFloor(notif.args.floor);
+        },
+
+        notif_updateWalls: function(notif) {
+            console.log("notif_updateWalls", notif.args);
+            dojo.query('.floor .wall').forEach(dojo.destroy);
+            for (var wallIdx = 0; wallIdx < notif.args.walls.length; wallIdx++) {
+                var wall = notif.args.walls[wallIdx];
+                this.playWallOnTable(wall);
+            }
         },
 
         notif_removeWall: function(notif) {
