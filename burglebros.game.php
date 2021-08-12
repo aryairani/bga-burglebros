@@ -318,7 +318,8 @@ class burglebros extends Table
         $result['patrol_tokens'] = $patrol_tokens;
         $result['guard_paths'] = $guard_paths;
         $result['undo_allowed'] = self::getGameStateValue('undoAllowed');
-  
+        $result['floor_count'] = $this->getFloorCount();
+
         return $result;
     }
 
@@ -349,12 +350,13 @@ class burglebros extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
-
-    public function randomizeWalls() {
-        $this->board->randomizeWalls();
-        self::notifyAllPlayers('updateWalls', clienttranslate("Updating walls"), [
-            'walls' => $this->getWalls(),
-        ]);
+    public function getFloorCount() {
+        // Return the number of floors (3 for the Bank job, 2 otherwise)
+        if ($this->getGameStateValue('scenario') == 1) {
+            return 3;
+        } else {
+            return 2;
+        }
     }
 
     function moveCardsOutOfPlay($deck, $name) {
@@ -1809,6 +1811,10 @@ SQL;
         self::incStat(1, 'alarm_triggered');
     }
 
+    function getAdminPlayerID() {
+        return self::getUniqueValueFromDB( "SELECT global_value value FROM global WHERE global_id = 5" );
+    }
+
     function handleToolEffectDebug($name) {
         $current_player_id = self::getCurrentPlayerId();
         $type_arg = $this->getCardTypeForName(1, $name);
@@ -2932,6 +2938,22 @@ SQL;
         Each time a player is doing some game action, one of the methods below is called.
         (note: each method below must match an input method in burglebros.action.php)
     */
+    function randomizeWalls($floor) {
+        if ($floor === 'start') {
+            $this->gamestate->nextState('startGame');
+        } else {
+            $this->board->randomizeWalls($floor);
+            if ($floor === 'all') {
+                $msg = clienttranslate("New random walls are generated on every floor");
+            } else {
+                $msg = clienttranslate("New random walls are generated on floor $floor");
+            }
+            self::notifyAllPlayers('updateWalls', $msg, [
+                'floor' => $floor,
+                'walls' => $this->getWalls(),
+            ]);
+        }
+    }
 
     function peek( $tile_id ) {
         self::checkAction('peek');
@@ -3716,6 +3738,16 @@ SQL;
         $this->gamestate->nextState( 'some_gamestate_transition' );
     }    
     */
+    function stActivateAdmin() {
+        // Move on if the game use default walls
+        if ($this->gamestate->table_globals[103] == 1) {
+            $this->gamestate->nextState('');
+        }
+        // Activate table administrator to randomize walls if needed
+        $this->gamestate->changeActivePlayer( $this->getAdminPlayerID() );
+        $this->gamestate->nextState('');
+    }
+
     function stChooseCharacter() {
         // Move on if the game only use basic characters
         if ($this->gamestate->table_globals[100] == 1) {

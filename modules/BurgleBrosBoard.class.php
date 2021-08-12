@@ -69,7 +69,7 @@ class BurgleBrosBoard extends APP_GameClass
         $size = $this->getSquareSize();
         $size_sq = $size * $size - 1;
         $shaft_index = rand(0, $size_sq);
-        $max_floor = $this->getFloorCount();
+        $max_floor = $this->game->getFloorCount();
 
         // Grab a safe and stair for each floor, and move to the floor "deck"
         // Move all the stairs and safe to "remove" cards out of the deck even if only playing 2 floors
@@ -100,113 +100,112 @@ class BurgleBrosBoard extends APP_GameClass
         }
     }
 
-	function setupWalls($force_random = FALSE) {
+	public function randomizeWalls($floor = 'all') {
+		// Dump walls db and recreate all the walls
+		self::DbQuery("TRUNCATE wall");
+		$this->setupWalls(TRUE, $floor);
+	}
+
+	function setupWalls($force_random = FALSE, $floor = 'all') {
 		if (!$force_random && $this->game->getGameStateValue('randomWalls') == 1) {
 			$walls = $this->default_walls;
 		} else {
-			$walls = $this->randomWalls();
-			$this->game->dump('*** walls after random ***',$walls);
+			if ($floor === 'all') {
+				$walls = $this->randomWalls();
+			} else {
+				$walls = $this->generateWalls();
+			}
+			// $this->game->dump('*** walls after random ***',$walls);
 		}
 		// var_dump($walls);
-		$max_floor = $this->getFloorCount();
-		for ($floor=1; $floor <= $max_floor; $floor++) {
-			foreach ($walls[$floor] as $dir => $positions) {
-				$sql = 'INSERT INTO wall (floor, vertical, position) VALUES ';
-				$values = array();
-				foreach ($positions as $position) {
-					$vertical = $dir == 'vertical' ? 1 : 0;
-					$values [] = "($floor,$vertical,$position)";
-				}
-				$sql .= implode($values, ',');
-				self::DbQuery($sql);
-			}
+		if ($floor === 'all') {
+			$max_floor = $this->game->getFloorCount();
+			for ($floor=1; $floor <= $max_floor; $floor++) {
+				$this->updateWallsDb($walls[$floor], $floor);
+			}			
+		} else {
+			$this->updateWallsDb($walls, $floor);
 		}
 	}
 
-	public function randomizeWalls() {
-		// Dump walls db and recreate all the walls
-		self::DbQuery("TRUNCATE wall");
-		$this->setupWalls(TRUE);
+	function updateWallsDb($walls, $floor) {
+		foreach ($walls as $dir => $positions) {
+			$sql = 'INSERT INTO wall (floor, vertical, position) VALUES ';
+			$values = array();
+			foreach ($positions as $position) {
+				$vertical = $dir == 'vertical' ? 1 : 0;
+				$values [] = "($floor,$vertical,$position)";
+			}
+			$sql .= implode($values, ',');
+			self::DbQuery($sql);
+		}
 	}
 
 	function randomWalls() {
+		$max_floor = $this->game->getFloorCount();
+		$random_walls = [];
+
+		for ($floor=1; $floor <= $max_floor; $floor++) {
+			$random_walls[$floor] = $this->generateWalls();
+		}
+		return $random_walls;
+	}
+
+	function generateWalls() {
 		$size = $this->getSquareSize();
 		$size_sq = $size * $size - 1;
 		$dec = $size - 1;
 		$expected_walls = $size === 4 ? 8 : 12;
 		$max_walls = 2 * $size * ($size - 1) - 1;
-		$max_floor = $this->getFloorCount();
+		$security = 0;
+		$shaft = $this->getShaftPosition();
 		$shaft_walls = [];
 		$random_walls = [];
-		$security = 0;
-
+		if ($shaft) {
+			$shaft_walls = $this->getWalls($shaft);
+		}
 		// $walls = [1,2,3,10,17];
 		// $walls = [3,9,10,11,14,19,20,1]; // ,19,20,23
-
-		for ($floor=1; $floor <= $max_floor; $floor++) {
-			$shaft = $this->getShaftPosition($floor);
-			if ($shaft) {
-				$shaft_walls = $this->getWalls($shaft);
-			}
-			while (true) {
-				// Reset walls results on each while loop
-				$walls = $shaft_walls;
-				for ($w=0; $w < $expected_walls; $w++) { 
-					$n = rand(0, $max_walls);
-					if (isset($walls[$n])) {
-						$w--;
-					} else {
-						$walls[$n] = TRUE;
-					}
-				}
-				// $this->game->dump('*** walls ***',$walls);
-				// die("stop");
-				if ($security++ > 150) {
-					var_dump("Couldn't generate randomWalls()");
-					return $size === 5 ? $this->default_walls_size_5 : $this->default_walls;
-					break;
-				}
-				// $walls = [1,3,2,10,17];
-				if ($this->checkLayout($walls, $floor))
-					break;
-				// die("stop");
-			}
-			// Transform back the randomizer to the expected wall database format
-			// $walls = [1,2,3,10,17];
-			$this->game->dump('*** walls for Tim ***',$walls);
-			foreach ($walls as $w => $b) {
-				$offset = $w % ($size + $dec);	# consider the offset on two consecutive 'rows' of walls
-				$row = floor($w / ($size + $dec));
-				if ($offset < $dec) {
-					$random_walls[$floor]['vertical'][] = (int) $row * $dec + $offset;
+		while (true) {
+			// Reset walls results on each while loop
+			$walls = $shaft_walls;
+			for ($w=0; $w < $expected_walls; $w++) { 
+				$n = rand(0, $max_walls);
+				if (isset($walls[$n])) {
+					$w--;
 				} else {
-					$random_walls[$floor]['horizontal'][] = (int) $row + ($offset - $dec) * $dec ;
+					$walls[$n] = TRUE;
 				}
-				// $this->game->dump('*** wall index ***',$w);
-				// $this->game->dump('*** offset',$offset);
-				// $this->game->dump('*** size',$size);
-				// $this->game->dump('*** $offset < $size ***',$offset < $size);
-				// $this->game->dump('*** dec',$dec);
-				// $this->game->dump('*** vertical',$row * $dec + $offset);
-				// $this->game->dump('*** horizontal',(int) $row + ($offset - $dec) * $dec);
 			}
-			if ($shaft) {
-				$random_walls[$floor]['shaft'] = $shaft;
+			if ($security++ > 50) {
+				var_dump("Couldn't generate randomWalls()");
+				return $size === 5 ? $this->default_walls_size_5 : $this->default_walls;
+				break;
+			}
+			if ($this->checkLayout($walls))
+				break;
+		}
+		// Transform back the randomizer to the expected wall database format
+		// $this->game->dump('*** walls for Tim ***',$walls);
+		foreach ($walls as $w => $b) {
+			$offset = $w % ($size + $dec);	# consider the offset on two consecutive 'rows' of walls
+			$row = floor($w / ($size + $dec));
+			if ($offset < $dec) {
+				$random_walls['vertical'][] = (int) $row * $dec + $offset;
+			} else {
+				$random_walls['horizontal'][] = (int) $row + ($offset - $dec) * $dec ;
 			}
 		}
-		// $this->game->dump('*** random_walls',$random_walls);
+		if ($shaft) {
+			$random_walls['shaft'] = $shaft;
+		}
 		return $random_walls;
 	}
 
-	function checkLayout($walls, $floor) {
-		$shaft = $this->getShaftPosition($floor);
+	function checkLayout($walls) {
+		$shaft = $this->getShaftPosition();
 		$floor_tiles = $this->toFloor($walls);
-		// var_dump($floor_tiles);
-		// var_dump("walls");
-		// var_dump($walls);
-		$this->game->dump('*** floor_tiles ***', $floor_tiles);
-		// die("stop");
-		// $this->game->dump('*** walls ***', $walls);
+		// $this->game->dump('*** floor_tiles ***', $floor_tiles);
 		$size = $this->getSquareSize();
 		$total_tiles = $size * $size;
 		$visited = 0;
@@ -215,16 +214,10 @@ class BurgleBrosBoard extends APP_GameClass
 			$floor_tiles[$shaft]['v'] = TRUE;
 			$visited++;
 		}
-		// var_dump("just here:");
-		// var_dump($shaft);
-		// var_dump($floor_tiles[0]);
 		$check = [$shaft === 0 ? 1 : 0];
-		// var_dump($check);
 		// Try to visit every tile of the floor
-		// var_dump($floor_tiles);
 		while (count($check) > 0) {
 			$next = array_pop($check);
-			// var_dump($next);
 			if (isset($floor_tiles[$next])) {
 				$tile = $floor_tiles[$next];
 			} else {
@@ -261,34 +254,22 @@ class BurgleBrosBoard extends APP_GameClass
 		$dec = $size - 1;
 		$floor = [];
 		$i = 0;
-		// var_dump($walls[0]);
-		// var_dump($walls);
 		$this->game->dump('*** walls', $walls);
-		// var_dump($size);
-		// var_dump(in_array(3, $walls));
 		for ($y=0; $y < $size; $y++) { 
 			$this->game->dump('*** in toFloor i', $i);
 			for ($x=0; $x < $dec; $x++) { 
-				// if (!in_array($i, $walls)) {
 				if (!isset($walls[$i])) {
 					$floor[$y * $size + $x]['e'] = TRUE;
 					$floor[$y * $size + $x + 1]['w'] = TRUE;
 				}
-				// var_dump("x $i");
 				$i++;
 			}
 			if ($y < $size - 1) {
 				for ($x=0; $x < $size; $x++) {
-					$this->game->dump('*** i', "$i");
-					$this->game->dump('*** x y', "$x x $y");
-					$this->game->dump('*** in_array($i, $walls)', in_array($i, $walls));
-					// if (!in_array($i, $walls)) {
 					if (!isset($walls[$i])) {
-						// var_dump($i);
 						$floor[$y * $size + $x]['s'] = TRUE;
 						$floor[($y + 1) * $size + $x]['n'] = TRUE;
 					}
-					// var_dump("y $i");
 					$i++;
 				}
 			}
@@ -316,8 +297,9 @@ class BurgleBrosBoard extends APP_GameClass
 		return $res;
 	}
 
-	function getShaftPosition($floor) {
-		$shaft = $this->game->tiles->getCardsOfTypeInLocation('shaft', null, "floor$floor");
+	function getShaftPosition() {
+		// Return shaft position (on floor 1 because shaft is on the same position on each floor)
+		$shaft = $this->game->tiles->getCardsOfTypeInLocation('shaft', null, "floor1");
 		if ($shaft) {
 			return $shaft[0]['location_arg'];
 		} else {
@@ -331,15 +313,6 @@ class BurgleBrosBoard extends APP_GameClass
 			return 5;
 		} else {
 			return 4;
-		}
-	}
-
-	public function getFloorCount() {
-		// Return the number of floors (3 for the Bank job, 2 otherwise)
-		if ($this->game->getGameStateValue('scenario') == 1) {
-			return 3;
-		} else {
-			return 2;
 		}
 	}
 

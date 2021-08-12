@@ -327,6 +327,13 @@ function (dojo, declare) {
             {            
                 switch( stateName )
                 {
+                    case 'randomizeWalls':
+                        this.addActionButton( 'randomize_all', _('Randomize walls on all the floors'), dojo.hitch(this, 'randomizeWalls', 'all'), null, null, 'gray' );
+                        for (var i = 1; i <= this.gamedatas.floor_count; i++) {
+                            this.addActionButton( 'randomize_' + i, _('Randomize walls on floor ' + i), dojo.hitch(this, 'randomizeWalls', i), null, null, 'gray' );
+                        }
+                        this.addActionButton( 'confirm_walls', _('Start the game'), dojo.hitch(this, 'randomizeWalls', 'start') );
+                        break;
                     case 'playerTurn':
                         if (this.canEscape()) {
                             this.addActionButton( 'button_escape', _('Escape'), dojo.hitch(this, 'handleEscape') );
@@ -435,7 +442,7 @@ function (dojo, declare) {
                         this.addActionButton('button_cancel', _('Cancel'), 'handleCancelSpecialChoice');
                         break;
                 }
-                if ('undo_allowed' in args) {
+                if (args && 'undo_allowed' in args) {
                     this.gamedatas.undo_allowed = args.undo_allowed;
                 }
                 if (this.gamedatas.undo_allowed == 1) {
@@ -881,7 +888,11 @@ function (dojo, declare) {
         },
 
         currentFloor: function() {
-            return parseInt(this.gamedatas.gamestate.args.floor, 10);
+            if (this.gamedatas.gamestate.args) {
+                return parseInt(this.gamedatas.gamestate.args.floor, 10);
+            } else {
+                return 1;
+            }
         },
 
         actionsRemaining: function() {
@@ -1429,6 +1440,11 @@ function (dojo, declare) {
             _ make a call to the game server
         
         */
+        randomizeWalls: function(floor) {
+            if (this.checkAction('randomizeWalls')) {
+                this.ajaxcall('/burglebros/burglebros/randomizeWalls.html', { lock: true, floor: floor }, this, console.log, console.error);
+            }
+        },
 
         handleTileClick: function(evt, id) {
             console.log('handleTileClick', evt, id);
@@ -1866,7 +1882,12 @@ function (dojo, declare) {
 
         notif_updateWalls: function(notif) {
             console.log("notif_updateWalls", notif.args);
-            dojo.query('.floor .wall').forEach(dojo.destroy);
+            // Remove only selected floor
+            if (notif.args.floor === 'all') {
+                dojo.query('.floor .wall').forEach(dojo.destroy);
+            } else {
+                dojo.query('#floor' + notif.args.floor + ' .wall').forEach(dojo.destroy);
+            }
             for (var wallIdx = 0; wallIdx < notif.args.walls.length; wallIdx++) {
                 var wall = notif.args.walls[wallIdx];
                 this.playWallOnTable(wall);

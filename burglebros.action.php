@@ -39,6 +39,15 @@
       }
     } 
     
+    public function randomizeWalls() {
+      self::setAjaxMode();
+      
+      $floor = self::getArg( "floor", AT_alphanum, true );
+      $this->game->randomizeWalls($floor);
+
+      self::ajaxResponse();
+    }
+
     public function chooseStartingTile() {
       self::setAjaxMode();
       

@@ -58,10 +58,26 @@ $machinestates = array(
         'description' => '',
         'type' => 'manager',
         'action' => 'stGameSetup',
-        'transitions' => array( '' => 7 )
+        'transitions' => array( '' => 4 )
     ),
-    
-    // Note: ID=2 => your first state
+
+    // Need a type == game state to change active player to admin for randomize walls
+    4 => array(
+        'name' => 'activateAdmin',
+        'type' => 'game',
+        'action' => 'stActivateAdmin',
+        'transitions' => array( '' => 5 )
+    ),
+
+    5 => array(
+        'name' => 'randomizeWalls',
+        'description' => clienttranslate('The administrator of the table can generate new walls for this game'),
+        'descriptionmyturn' => clienttranslate('${you} can generate a new set of walls for this game'),
+        'type' => 'activeplayer',
+        'possibleactions' => array( 'randomizeWalls' ),
+        'transitions' => array( 'startGame' => 7 )
+    ),
+
     7 => array(
         'name' => 'chooseCharacter',
         'description' => clienttranslate('Other players must choose a character'),
