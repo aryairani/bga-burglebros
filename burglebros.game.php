@@ -181,7 +181,8 @@ class burglebros extends Table
 
         // Guards
         $tokens = array ();
-        for ($floor=1; $floor <= 3; $floor++) { 
+        $max_floor = $this->getFloorCount();
+        for ($floor=1; $floor <= $max_floor; $floor++) { 
             $tokens [] = array('type' => 'guard', 'type_arg' => $floor, 'nbr' => 1);
             $tokens [] = array('type' => 'patrol', 'type_arg' => $floor, 'nbr' => 1);
             $tokens [] = array('type' => 'crack', 'type_arg' => $floor, 'nbr' => 1);    # when a first die is added on the safe
@@ -289,7 +290,8 @@ class burglebros extends Table
         }
         $result['token_types'] = $tokens;
 
-        for ($i=1; $i <= 3; $i++) { 
+        $max_floor = $this->getFloorCount();
+        for ($i=1; $i <= $max_floor; $i++) { 
             $result["floor$i"] = $this->getTiles($i);
             $result["patrol_counters"][$i] = $this->cards->countCardInLocation("patrol${i}_deck");
         }
@@ -319,6 +321,7 @@ class burglebros extends Table
         $result['guard_paths'] = $guard_paths;
         $result['undo_allowed'] = self::getGameStateValue('undoAllowed');
         $result['floor_count'] = $this->getFloorCount();
+        $result['square_size'] = $this->getSquareSize();
 
         return $result;
     }
@@ -356,6 +359,15 @@ class burglebros extends Table
             return 3;
         } else {
             return 2;
+        }
+    }
+
+    public function getSquareSize() {
+        // Return the square size of the board (5 for Fort Knox scenario, 4 otherwise)
+        if ($this->getGameStateValue('scenario') == 3) {
+            return 5;
+        } else {
+            return 4;
         }
     }
 
@@ -430,7 +442,8 @@ class burglebros extends Table
     function getPeekableTiles($player_tile, $variant='peek') {
         $peekable = array();
         $walls = $this->getWalls();
-        for ($floor=1; $floor <= 3; $floor++) { 
+        $max_floor = $this->getFloorCount();
+        for ($floor=1; $floor <= $max_floor; $floor++) { 
             $tiles = $this->getTiles($floor);
             foreach ($tiles as $tile) {
                 if($tile['id'] != $player_tile['id'] && $tile['type'] == 'back' && $this->isTileAdjacent($tile, $player_tile, $walls, $variant)) {
@@ -456,12 +469,13 @@ class burglebros extends Table
 
     function canEscape($player_tile) {
         $thermal_to_roof = FALSE;
-        if ($player_tile['location'][5] == '3' && $this->tokensInTile('thermal', $player_tile['id'])) {
+        $max_floor = $this->getFloorCount();
+        if ($player_tile['location'][5] == $max_floor && $this->tokensInTile('thermal', $player_tile['id'])) {
             $tile_below = $this->findTileOnFloor(2, $player_tile['location_arg']);
             $thermal_to_roof = $this->tokensInTile('thermal', $tile_below['id']) == null;
         }
         return ($player_tile['type'] == 'stairs' || $thermal_to_roof) &&
-            $player_tile['location'][5] == '3' && $this->openSafes() == 3;
+            $player_tile['location'][5] == $max_floor && $this->openSafes() == $max_floor;
     }
 
     function gatherCurrentData($current_player_id) {
@@ -670,8 +684,10 @@ SQL;
         $blocked = false;
         foreach ($walls as $wall) {
             if($wall['floor'] == $tile['location'][5]) {
-                $wrow = $wall['vertical'] == 1 ? floor($wall['position'] / 3) : $wall['position'] % 3;
-                $wcol = $wall['vertical'] == 0 ? floor($wall['position'] / 3) : $wall['position'] % 3;
+                $size = $this->getSquareSize();
+                $dec = $size - 1;
+                $wrow = $wall['vertical'] == 1 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
+                $wcol = $wall['vertical'] == 0 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
                 $vertical = ($trow == $prow && $trow == $wrow && abs($tcol - $pcol) == 1) && min($tcol, $pcol) == $wcol;
                 $horizontal = ($tcol == $pcol && $tcol == $wcol && abs($trow - $prow) == 1) && min($trow, $prow) == $wrow;
                 if (($wall['vertical'] == 1 && $vertical) || ($wall['vertical'] == 0 && $horizontal)) {
@@ -791,7 +807,8 @@ SQL;
         $walls = $this->getWalls();
         $adjacent_flipped = array();
         $face_down = false;
-        for ($floor=1; $floor <= 3; $floor++) { 
+        $max_floor = $this->getFloorCount();
+        for ($floor=1; $floor <= $max_floor; $floor++) { 
             $tiles = $this->getTiles($floor);
             foreach ($tiles as $tile) {
                 if ($tile['id'] == $player_tile['id'] || ($tile['type'] != 'back' && $this->isTileAdjacent($tile, $player_tile, $walls))) {
@@ -1592,7 +1609,8 @@ SQL;
         $type = $tile['type'];
         if ($type == 'stairs') {
             $floor = $tile['location'][5];
-            if ($floor < 3) {
+            $max_floor = $this->getFloorCount();
+            if ($floor < $max_floor) {
                 $upper_tile = $this->findTileOnFloor($floor + 1, $tile['location_arg']);
                 $this->pickTokensForTile('stairs', $upper_tile['id']);
             }
@@ -1943,8 +1961,9 @@ SQL;
         $card_choice = FALSE;
         $tile_choice = FALSE;
         $player_choice = FALSE;
+        $max_floor = $this->getFloorCount();
         if ($type == 'brown-out') {
-            for ($floor=1; $floor <= 3; $floor++) { 
+            for ($floor=1; $floor <= $max_floor; $floor++) { 
                 $token_ids = $this->getTokensOnFloor('alarm', $floor);
                 $this->moveTokens($token_ids, 'deck');
                 foreach ($token_ids as $id) {
@@ -1975,7 +1994,7 @@ SQL;
             $player_token = $this->getPlayerToken($player_id);
             $tile = $this->getPlayerTile($player_id, $player_token);
             $floor = $tile['location'][5];
-            if ($floor < 3) {
+            if ($floor < $max_floor) {
                 $upper_tile = $this->findTileOnFloor($floor + 1, $tile['location_arg']);
                 $this->performPeek($upper_tile['id'], 'effect');
                 $this->moveToken($player_token['id'], 'tile', $upper_tile['id']);
@@ -2026,7 +2045,7 @@ SQL;
             } 
         } elseif ($type == 'reboot') {
             $types = array('fingerprint-computer', 'motion-computer', 'laser-computer');
-            for ($floor=1; $floor <= 3; $floor++) { 
+            for ($floor=1; $floor <= $max_floor; $floor++) { 
                 $tiles = $this->getTiles($floor);
                 foreach ($tiles as $tile_id => $tile) {
                     if (in_array($tile['type'], $types)) {
@@ -2247,12 +2266,14 @@ SQL;
 
             $wall = self::getObjectFromDB("SELECT * FROM wall WHERE id = '$selected_id'");
             $exit = FALSE;
+            $size = $this->getSquareSize();
+            $dec = $size - 1;
             for ($prow=$trow - 1; !$exit && $prow <= $trow + 1; $prow++) { 
-                for ($pcol=$tcol - 1; !$exit && $pcol <= $tcol + 1; $pcol++) { 
-                    if ($prow >= 0 && $pcol >= 0 && $prow <= 3 && $pcol <= 3 &&
+                for ($pcol=$tcol - 1; !$exit && $pcol <= $tcol + 1; $pcol++) {
+                    if ($prow >= 0 && $pcol >= 0 && $prow <= $dec && $pcol <= $dec &&
                             ($prow != $trow || $pcol != $tcol)) {
-                        $wrow = $wall['vertical'] == 1 ? floor($wall['position'] / 3) : $wall['position'] % 3;
-                        $wcol = $wall['vertical'] == 0 ? floor($wall['position'] / 3) : $wall['position'] % 3;
+                        $wrow = $wall['vertical'] == 1 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
+                        $wcol = $wall['vertical'] == 0 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
                         $vertical = ($trow == $prow && $trow == $wrow && abs($tcol - $pcol) == 1) && min($tcol, $pcol) == $wcol;
                         $horizontal = ($tcol == $pcol && $tcol == $wcol && abs($trow - $prow) == 1) && min($trow, $prow) == $wrow;
                         if (($wall['vertical'] == 1 && $vertical) || ($wall['vertical'] == 0 && $horizontal)) {
@@ -2530,7 +2551,8 @@ SQL;
     }
 
     function checkWin() {
-        $all_safes_opened = $this->openSafes() == 3;
+        $max_floor = $this->getFloorCount();
+        $all_safes_opened = $this->openSafes() == $max_floor;
         $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(2, null, 'tile')) == 0 &&
             count($this->tokens->getCardsOfTypeInLocation('cat', null, 'tile')) == 0;
         return $all_safes_opened && $all_loot_escaped;
@@ -2787,7 +2809,8 @@ SQL;
         } else if($type == 'peterman2') {
             $player_tile = $this->getPlayerTile($current_player_id);
             $found = FALSE;
-            for ($floor=1; $floor <= 3; $floor++) {
+            $max_floor = $this->getFloorCount();
+            for ($floor=1; $floor <= $max_floor; $floor++) {
                 if (abs($floor - $player_tile['location'][5]) == 1) {   
                     $tiles = $this->getTiles($floor);
                     foreach ($tiles as $tile) {
@@ -2861,7 +2884,9 @@ SQL;
         if ($location_arg) {
             $this->flipTile($floor, $location_arg);
         } else if ($floor) {
-            for ($i=0; $i <= 15 ; $i++) { 
+            $size = $this->getSquareSize();
+            $tile_count = $size * $size - 1;
+            for ($i=0; $i <= $tile_count ; $i++) { 
                 $this->flipTile($floor, $i);
             }
         } else {
@@ -3631,7 +3656,8 @@ SQL;
         if ($card_name == 'peterman2') {
             $player_tile = $this->getPlayerTile($current_player_id);
             $peterman2_detail = [];
-            for ($floor=1; $floor <= 3; $floor++) {
+            $max_floor = $this->getFloorCount();
+            for ($floor=1; $floor <= $max_floor; $floor++) {
                 if (abs($floor - $player_tile['location'][5]) == 1) {   
                     $peterman2_detail[$floor] = FALSE;
                     $tiles = $this->getTiles($floor);
@@ -3819,7 +3845,8 @@ SQL;
         $floor = $player_tile['location'][5];
         $shift_change = $this->getActiveEvent('shift-change');
         if ($shift_change) {
-            for ($other_floor=1; $other_floor <= 3; $other_floor++) { 
+            $max_floor = $this->getFloorCount();
+            for ($other_floor=1; $other_floor <= $max_floor; $other_floor++) { 
                 if ($other_floor != $floor) {
                     $guard_token = array_values($this->tokens->getCardsOfType('guard', $other_floor))[0];;
                     if ($guard_token['location'] == 'tile') {

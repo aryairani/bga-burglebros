@@ -48,7 +48,7 @@ class BurgleBrosBoard extends APP_GameClass
             }
         }
         // Check if the layout needs a shaft (black tile) - e.g. for Fort Knox      	
-        $size = $this->getSquareSize();
+        $size = $this->game->getSquareSize();
         if ($size === 5) {
 			$values[] = "('shaft',$index,'deck',0)";
 			$values[] = "('shaft',". ++$index .",'deck',0)";
@@ -66,7 +66,7 @@ class BurgleBrosBoard extends APP_GameClass
         $safes = $this->game->tiles->getCardsOfType('safe');
         $stairs = $this->game->tiles->getCardsOfType('stairs');
         $shafts = $this->game->tiles->getCardsOfType('shaft');
-        $size = $this->getSquareSize();
+        $size = $this->game->getSquareSize();
         $size_sq = $size * $size - 1;
         $shaft_index = rand(0, $size_sq);
         $max_floor = $this->game->getFloorCount();
@@ -85,7 +85,7 @@ class BurgleBrosBoard extends APP_GameClass
         }
         $this->game->tiles->shuffle('deck');
         // Grab tiles per floor "deck" and shuffle (14 for 4 cards square size || 22 for 5 cards square size)
-        $square_size = $this->getSquareSize();
+        $square_size = $this->game->getSquareSize();
         $cards_to_draw = $square_size === 4 ? 14 : 22;
         for ($floor=1; $floor <= $max_floor; $floor++) {
             $this->game->tiles->pickCardsForLocation($cards_to_draw, 'deck', "floor$floor");
@@ -152,7 +152,7 @@ class BurgleBrosBoard extends APP_GameClass
 	}
 
 	function generateWalls() {
-		$size = $this->getSquareSize();
+		$size = $this->game->getSquareSize();
 		$size_sq = $size * $size - 1;
 		$dec = $size - 1;
 		$expected_walls = $size === 4 ? 8 : 12;
@@ -206,7 +206,7 @@ class BurgleBrosBoard extends APP_GameClass
 		$shaft = $this->getShaftPosition();
 		$floor_tiles = $this->toFloor($walls);
 		// $this->game->dump('*** floor_tiles ***', $floor_tiles);
-		$size = $this->getSquareSize();
+		$size = $this->game->getSquareSize();
 		$total_tiles = $size * $size;
 		$visited = 0;
 		// Consider shaft tile already visited
@@ -250,7 +250,7 @@ class BurgleBrosBoard extends APP_GameClass
 
 	function toFloor($walls) {
 		// Create a floor (an array of [tile_index][n|e|s|w] => true if unblocked)
-		$size = $this->getSquareSize();
+		$size = $this->game->getSquareSize();
 		$dec = $size - 1;
 		$floor = [];
 		$i = 0;
@@ -279,7 +279,7 @@ class BurgleBrosBoard extends APP_GameClass
 
 	function getWalls($tile) {
 		// Return each available wall positions for a tile
-		$size = $this->getSquareSize();
+		$size = $this->game->getSquareSize();
 		$dec = $size - 1;
 		$max_tiles = 2 * size * dec;
 		$offset = $tile % $size;	# column offset
@@ -304,15 +304,6 @@ class BurgleBrosBoard extends APP_GameClass
 			return $shaft[0]['location_arg'];
 		} else {
 			return NULL;
-		}
-	}
-
-	public function getSquareSize() {
-		// Return the square size of the board (5 for Fort Knox scenario, 4 otherwise)
-		if ($this->game->getGameStateValue('scenario') == 3) {
-			return 5;
-		} else {
-			return 4;
 		}
 	}
 

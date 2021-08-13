@@ -111,7 +111,7 @@ function (dojo, declare) {
             }
 
             this.patrolCounters = {};
-            for(var floor = 1; floor <= 3; floor++) {
+            for(var floor = 1; floor <= gamedatas.floor_count; floor++) {
                 var key = 'floor' + floor;
                 for ( var tileId in this.gamedatas[key]) {
                     var tile = this.gamedatas[key][tileId];
@@ -365,7 +365,7 @@ function (dojo, declare) {
                     case 'cardChoice':
                         if (this.isCardChoice('thermal-bomb')) {
                             var floor = this.currentFloor();
-                            if (floor <= 3) {
+                            if (floor <= this.gamedatas.floor_count) {
                                 this.addActionButton('button_up', _('Up'), dojo.hitch(this, 'handleCardChoiceButton', floor + 1));
                             }
                             if (floor > 1) {
@@ -375,7 +375,7 @@ function (dojo, declare) {
                             var floor = this.currentFloor();
                             // XY, X = 0 is add, X = 1 is roll, Y is floor
                             var detail = this.gamedatas.gamestate.args.peterman2_detail;
-                            if (floor < 3 && detail[floor + 1]) {
+                            if (floor < this.gamedatas.floor_count && detail[floor + 1]) {
                                 this.addActionButton('button_add_die_up', _('Add Safe Die (Up)'), dojo.hitch(this, 'handleCardChoiceButton', floor + 1));
                                 this.addActionButton('button_roll_dice_up', _('Roll Safe Dice (Up)'), dojo.hitch(this, 'handleCardChoiceButton', floor + 11));
                             }
@@ -385,7 +385,7 @@ function (dojo, declare) {
                             }
                         } else if(this.isCardChoice('acrobat2') && this.actionsRemaining() >= 3) {
                             var floor = this.currentFloor();
-                            if (floor < 3) {
+                            if (floor < this.gamedatas.floor_count) {
                                 this.addActionButton('button_acrobat_up', _('Move Up'), dojo.hitch(this, 'handleCardChoiceButton', floor + 1));
                             }
                             if (floor > 1) {
@@ -453,8 +453,9 @@ function (dojo, declare) {
         },
         
         setupPatrolItem: function(floor, card_div, card_type_id, card_id) {
-            var key = floor + 3;
-            card_div.innerText = this.gamedatas.patrol_types[key].cards[card_type_id % 16].name;
+            var key = floor + this.gamedatas.floor_count; // TODO check was + 3
+            var size_sq = this.gamedatas.square_size * this.gamedatas.square_size;
+            card_div.innerText = this.gamedatas.patrol_types[key].cards[card_type_id % size_sq].name; // was sizeqs = 16
         },
 
         ///////////////////////////////////////////////////
@@ -565,8 +566,9 @@ function (dojo, declare) {
             var div_id = 'wall_' + wall.id;
                 
             var idx = parseInt(wall.position, 10);
-            var row = Math.floor(idx / 3);
-            var col = idx % 3;
+            var max_floor = this.gamedatas.floor_count;
+            var row = Math.floor(idx / max_floor);
+            var col = idx % max_floor;
             var sizePlusPadding = 120 + 36;
             var x = wall.vertical == '1' ? 142.5 + (col * sizePlusPadding) : 10 + (row * sizePlusPadding);
             var y = wall.vertical == '1' ? 20 + (row * sizePlusPadding) : 152.5 + (col * sizePlusPadding);
@@ -852,7 +854,7 @@ function (dojo, declare) {
         canCancelCardChoice: function() {
             var type = this.gamedatas.gamestate.args.card['type'];
             var type_arg = this.gamedatas.gamestate.args.card['type_arg'];
-            if (type_arg == 3 || type_arg == 17 || type_arg == 18) // crystal-ball or spotter1 or spotter2
+            if (type_arg == 3 || type_arg == 17 || type_arg == 18) // crystal-ball or spotter1 or spotter2
                 return false;   // cannot cancel when player has seen some top cards of the deck
             return type == 1 || type == 0; // Tools and Characters
         },
@@ -932,7 +934,7 @@ function (dojo, declare) {
 
         showFloor: function(floorNum) {
             this.selected_floor = floorNum;
-            for (var floor = 1; floor <= 3; floor++) {
+            for (var floor = 1; floor <= this.gamedatas.floor_count; floor++) {
                 var floorId = 'floor' + floor.toString() + '_tiles';
                 var patrolId = 'patrol_wrapper' + floor.toString();
                 var previewId = 'floor' + floor.toString() + '_preview';
@@ -1694,18 +1696,6 @@ function (dojo, declare) {
         setupNotifications: function()
         {
             console.log( 'notifications subscriptions setup' );
-            
-            // TODO: here, associate your game notifications with local methods
-            
-            // Example 1: standard notification handling
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            
-            // Example 2: standard notification handling + tell the user interface to wait
-            //            during 3 seconds after calling the method in order to let the players
-            //            see what is happening in the game.
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
-            // 
             dojo.subscribe('characterChosen', this, 'notif_characterChosen');
             dojo.subscribe('tokensPicked', this, 'notif_tokensPicked');
             dojo.subscribe('tokensPickedSync', this, 'notif_tokensPicked');

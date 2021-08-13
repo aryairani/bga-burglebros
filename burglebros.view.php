@@ -36,57 +36,19 @@
   	    // Get players & players number
         $players = $this->game->loadPlayersBasicInfos();
         $players_nbr = count( $players );
-
-        /*********** Place your code below:  ************/
-
-
-        /*
-        
-        // Examples: set the value of some element defined in your tpl file like this: {MY_VARIABLE_ELEMENT}
-
-        // Display a specific number / string
-        $this->tpl['MY_VARIABLE_ELEMENT'] = $number_to_display;
-
-        // Display a string to be translated in all languages: 
-        $this->tpl['MY_VARIABLE_ELEMENT'] = self::_("A string to be translated");
-
-        // Display some HTML content of your own:
-        $this->tpl['MY_VARIABLE_ELEMENT'] = self::raw( $some_html_code );
-        
-        */
-        
-        /*
-        
-        // Example: display a specific HTML block for each player in this game.
-        // (note: the block is defined in your .tpl file like this:
-        //      <!-- BEGIN myblock --> 
-        //          ... my HTML code ...
-        //      <!-- END myblock --> 
-        
-
-        $this->page->begin_block( "burglebros_burglebros", "myblock" );
-        foreach( $players as $player )
-        {
-            $this->page->insert_block( "myblock", array( 
-                                                    "PLAYER_NAME" => $player['player_name'],
-                                                    "SOME_VARIABLE" => $some_value
-                                                    ...
-                                                     ) );
-        }
-        
-        */
         $template = self::getGameName() . "_" . self::getGameName();
+        $max_floor = $this->getFloorCount();
 
         $this->page->begin_block($template, "tiles");
-        for ($floor=1; $floor <= 3; $floor++) { 
+        for ($floor=1; $floor <= $max_floor; $floor++) { 
             $this->page->insert_block("tiles", array ("FLOOR" => $floor));
         }
         $this->page->begin_block($template, "patrol");
-        for ($floor=1; $floor <= 3; $floor++) { 
+        for ($floor=1; $floor <= $max_floor; $floor++) { 
             $this->page->insert_block("patrol", array ("FLOOR" => $floor));
         }
         $this->page->begin_block($template, "floor_preview");
-        for ($floor=1; $floor <= 3; $floor++) { 
+        for ($floor=1; $floor <= $max_floor; $floor++) { 
             $this->page->insert_block("floor_preview", array ("FLOOR" => $floor));
         }
 
