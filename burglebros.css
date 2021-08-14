@@ -165,6 +165,10 @@
     height: 650px;
     margin: -10px -10px;
 }
+.size_5x5 .floor {
+    width: 780px;
+    height: 790px;
+}
 
 .tiles > *, .patrols > * {
     display: flex;
@@ -215,10 +219,19 @@
     padding: 0;
 }
 
+.size_5x5 .floor_preview {
+    width: 150px;
+    height: 145px;
+}
+
 .floor_preview_number {
     position: absolute;
     left: -21px;
     top: 35px;
+}
+
+.size_5x5 .floor_preview_number {
+    top: 55px;
 }
 
 .floor_preview_number {
@@ -256,6 +269,10 @@
     width: 120px;
     height: 120px;
     padding: 0;
+}
+.size_5x5 .floor_path_preview {
+    width: 150px;
+    height: 145px;
 }
 .floor_path_preview svg {
     filter: drop-shadow( 1px 1px 1px rgba(255, 255, 255, .7));
@@ -305,6 +322,10 @@
 
 .safe {
     background-color: #74B189;
+}
+
+.shaft {
+    background-color: #868686;
 }
 
 .secret-door, .service-duct {

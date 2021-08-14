@@ -110,6 +110,10 @@ function (dojo, declare) {
                     this.playerEscaped(playerId);
             }
 
+            // Setup tiles and patrols
+            if (gamedatas.square_size == 5) {
+                dojo.addClass('board_wrap', 'size_5x5');
+            }
             this.patrolCounters = {};
             for(var floor = 1; floor <= gamedatas.floor_count; floor++) {
                 var key = 'floor' + floor;
@@ -122,7 +126,7 @@ function (dojo, declare) {
                 var patrolKey = 'patrol' + floor;
                 this[patrolKey] = new ebg.stock();
                 this[patrolKey].create(this, $(patrolKey), this.cardwidth, this.cardheight);
-                this[patrolKey].image_items_per_row = 4;
+                this[patrolKey].image_items_per_row = gamedatas.square_size;
                 this[patrolKey].setSelectionMode(0);
 
                 for (var type in gamedatas.patrol_types) {
@@ -329,8 +333,11 @@ function (dojo, declare) {
                 {
                     case 'randomizeWalls':
                         this.addActionButton( 'randomize_all', _('Randomize walls on all the floors'), dojo.hitch(this, 'randomizeWalls', 'all'), null, null, 'gray' );
-                        for (var i = 1; i <= this.gamedatas.floor_count; i++) {
-                            this.addActionButton( 'randomize_' + i, _('Randomize walls on floor ' + i), dojo.hitch(this, 'randomizeWalls', i), null, null, 'gray' );
+                        // Cannot randomize only one floor on Fort Knox because the Shaft is updated on each floor
+                        if (this.gamedatas.size_sq !== 5) {
+                            for (var i = 1; i <= this.gamedatas.floor_count; i++) {
+                                this.addActionButton( 'randomize_' + i, _('Randomize walls on floor ' + i), dojo.hitch(this, 'randomizeWalls', i), null, null, 'gray' );
+                            }                            
                         }
                         this.addActionButton( 'confirm_walls', _('Start the game'), dojo.hitch(this, 'randomizeWalls', 'start') );
                         break;
@@ -485,8 +492,9 @@ function (dojo, declare) {
             var div_id = 'tile_' + tile.id + '_container';
                 
             var idx = parseInt(tile.location_arg, 10);
-            var row = Math.floor(idx / 4);
-            var col = idx % 4;
+            var size = this.gamedatas.square_size;
+            var row = Math.floor(idx / size);
+            var col = idx % size;
             dojo.place(this.format_block('jstpl_tile_container', {
                 id : tile.id, 
                 x : (this.cardwidth + 36) * col,
@@ -525,7 +533,8 @@ function (dojo, declare) {
             }
         },
 
-        playTileOnTable : function(floor, tile) {
+        playTileOnTable: function(floor, tile) {
+            console.log("play tile on table", tile);
             var div_id = 'tile_' + tile.id,
                 preview_div_id = 'tile_' + tile.id + '_preview';
             if ($(div_id)) {
@@ -535,16 +544,25 @@ function (dojo, declare) {
                 dojo.destroy(preview_div_id);
             }
                 
-            var bg_row = Math.floor(tile.type_arg / 2) * -100;
-            var bg_col = (tile.type_arg % 2) * -100;
-            dojo.place(this.format_block('jstpl_tile', {
-                id : tile.id, 
-                bg_image: g_gamethemeurl + 'img/tiles.jpg',
-                bg_position: bg_col.toString() + '% ' + bg_row.toString() + '%',
-                name : tile.type + tile.safe_die
-            }), div_id + '_container');
-            var preview_row = Math.floor(tile.location_arg / 4) * 28 + 8;
-            var preview_col = (tile.location_arg % 4) * 28 + 8;
+            if (tile.type != 'shaft') {
+                var bg_row = Math.floor(tile.type_arg / 2) * -100;
+                var bg_col = (tile.type_arg % 2) * -100;
+                dojo.place(this.format_block('jstpl_tile', {
+                    id : tile.id, 
+                    bg_image: g_gamethemeurl + 'img/tiles.jpg',
+                    bg_position: bg_col.toString() + '% ' + bg_row.toString() + '%',
+                    name : tile.type + tile.safe_die
+                }), div_id + '_container');
+            } else {
+                dojo.place(this.format_block('jstpl_tile_shaft', {
+                    id : tile.id, 
+                    name : tile.type + tile.safe_die
+                }), div_id + '_container');
+            }
+
+            var square_size = this.gamedatas.square_size;
+            var preview_row = Math.floor(tile.location_arg / square_size) * 28 + 8;
+            var preview_col = (tile.location_arg % square_size) * 28 + 8;
             dojo.place(this.format_block('jstpl_tile_preview', {
                 id : tile.id,
                 tile_type : tile.type,
@@ -552,7 +570,7 @@ function (dojo, declare) {
                 preview_col: preview_col
             }), 'floor' + floor.toString() + '_preview', 'first');
 
-            if (tile.type != 'back') {                
+            if (tile.type != 'back' && tile.type != 'shaft') {                
                 var tooltipHtml = this.format_block('jstpl_tile_tooltip', {
                     id : tile.id, 
                     bg_image: g_gamethemeurl + 'img/tiles.jpg',

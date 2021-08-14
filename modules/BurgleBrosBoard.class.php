@@ -52,7 +52,6 @@ class BurgleBrosBoard extends APP_GameClass
         if ($size === 5) {
 			$values[] = "('shaft',$index,'deck',0)";
 			$values[] = "('shaft',". ++$index .",'deck',0)";
-			$values[] = "('shaft',". ++$index .",'deck',0)";
         }
         shuffle($values);
         $sql = "INSERT INTO tile (card_type,card_type_arg,card_location,safe_die) VALUES ";
@@ -68,47 +67,62 @@ class BurgleBrosBoard extends APP_GameClass
         $shafts = $this->game->tiles->getCardsOfType('shaft');
         $size = $this->game->getSquareSize();
         $size_sq = $size * $size - 1;
-        $shaft_index = rand(0, $size_sq);
         $max_floor = $this->game->getFloorCount();
+        if ($size === 5) {
+        	if ($this->game->getGameStateValue('randomWalls') == 1) {
+	        	$shaft_location_arg = $this->default_walls_size_5[1]['shaft'];
+	        } else {
+	        	$shaft_location_arg = rand(0, $size_sq);
+	        }
+        }
 
         // Grab a safe and stair for each floor, and move to the floor "deck"
         // Move all the stairs and safe to "remove" cards out of the deck even if only playing 2 floors
-        for ($floor=1; $floor <= 3; $floor++) {
+        $shifted_shafts = $shafts;
+        for ($floor=1; $floor <= $max_floor; $floor++) {
             $safe = array_shift($safes);
             $stair = array_shift($stairs);
             $card_ids = array($safe['id'], $stair['id']);
-            if (count($shafts) > 0) {
-            	$shaft = array_shift($shafts);
+            if (count($shifted_shafts) > 0) {
+            	$shaft = array_shift($shifted_shafts);
             	$card_ids[] = $shaft['id'];
             }
             $this->game->tiles->moveCards($card_ids, "floor$floor");
         }
         $this->game->tiles->shuffle('deck');
-        // Grab tiles per floor "deck" and shuffle (14 for 4 cards square size || 22 for 5 cards square size)
+        // Grab tiles per floor "deck" and shuffle (14 for square size of 4 cards || 22 for square size of 5 cards)
         $square_size = $this->game->getSquareSize();
         $cards_to_draw = $square_size === 4 ? 14 : 22;
         for ($floor=1; $floor <= $max_floor; $floor++) {
             $this->game->tiles->pickCardsForLocation($cards_to_draw, 'deck', "floor$floor");
             $this->game->tiles->shuffle("floor$floor");
-            // Switch cards from shaft position
+            // Reset shaft positions by switching tiles
             if (count($shafts) > 0) {
-	            $card = array_values($this->game->tiles->getCardsInLocation("floor$floor", $shaft_index))[0];
+	            $card = array_values($this->game->tiles->getCardsInLocation("floor$floor", $shaft_location_arg))[0];
 	            $shaft = array_values($this->game->tiles->getCardsOfTypeInLocation("shaft", null, "floor$floor"))[0];
 	            $this->game->tiles->moveCard($card['id'], "floor$floor", $shaft['location_arg']);
 	            $this->game->tiles->moveCard($shaft['id'], "floor$floor", $card['location_arg']);
 	        }
+        }
+        // Flip shaft so they are visible
+        if (count($shafts) > 0) {
+        	self::DbQuery("UPDATE tile SET flipped=1 WHERE card_type='shaft'");
         }
     }
 
 	public function randomizeWalls($floor = 'all') {
 		// Dump walls db and recreate all the walls
 		self::DbQuery("TRUNCATE wall");
+		// Fort Knox, need to randomize the Shaft position
+		if ($this->game->getSquareSize() === 5) {
+			$this->setupTiles();
+		}
 		$this->setupWalls(TRUE, $floor);
 	}
 
 	function setupWalls($force_random = FALSE, $floor = 'all') {
 		if (!$force_random && $this->game->getGameStateValue('randomWalls') == 1) {
-			$walls = $this->default_walls;
+			$walls = $this->game->getSquareSize() === 5 ? $this->default_walls_size_5 : $this->default_walls;
 		} else {
 			if ($floor === 'all') {
 				$walls = $this->randomWalls();
@@ -130,6 +144,7 @@ class BurgleBrosBoard extends APP_GameClass
 
 	function updateWallsDb($walls, $floor) {
 		foreach ($walls as $dir => $positions) {
+			if ($dir === 'shaft') continue;
 			$sql = 'INSERT INTO wall (floor, vertical, position) VALUES ';
 			$values = array();
 			foreach ($positions as $position) {
