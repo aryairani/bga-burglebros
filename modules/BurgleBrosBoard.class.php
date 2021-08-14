@@ -112,7 +112,11 @@ class BurgleBrosBoard extends APP_GameClass
 
 	public function randomizeWalls($floor = 'all') {
 		// Dump walls db and recreate all the walls
-		self::DbQuery("TRUNCATE wall");
+		if ($floor === 'all') {
+			self::DbQuery("TRUNCATE wall");
+		} else {
+			self::DbQuery("DELETE FROM wall WHERE floor = '$floor'");
+		}
 		// Fort Knox, need to randomize the Shaft position
 		if ($this->game->getSquareSize() === 5) {
 			$this->setupTiles();
