@@ -566,9 +566,10 @@ function (dojo, declare) {
             var div_id = 'wall_' + wall.id;
                 
             var idx = parseInt(wall.position, 10);
-            var max_floor = this.gamedatas.floor_count;
-            var row = Math.floor(idx / max_floor);
-            var col = idx % max_floor;
+            var square_size = this.gamedatas.square_size;
+            var dec = square_size - 1;
+            var row = Math.floor(idx / dec);
+            var col = idx % dec;
             var sizePlusPadding = 120 + 36;
             var x = wall.vertical == '1' ? 142.5 + (col * sizePlusPadding) : 10 + (row * sizePlusPadding);
             var y = wall.vertical == '1' ? 20 + (row * sizePlusPadding) : 152.5 + (col * sizePlusPadding);
