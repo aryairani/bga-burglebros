@@ -37,7 +37,7 @@
         $players = $this->game->loadPlayersBasicInfos();
         $players_nbr = count( $players );
         $template = self::getGameName() . "_" . self::getGameName();
-        $max_floor = $this->getFloorCount();
+        $max_floor = $this->game->getFloorCount();
 
         $this->page->begin_block($template, "tiles");
         for ($floor=1; $floor <= $max_floor; $floor++) { 

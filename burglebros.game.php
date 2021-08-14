@@ -236,6 +236,18 @@ class burglebros extends Table
             $this->pickTokens('stealth', 'player', $player_id, $option_stealth_count);
         }
 
+        // Activate table administrator to randomize walls if needed
+        if ($this->gamestate->table_globals[103] !== 1) {
+            $players = self::loadPlayersBasicInfos();
+            foreach ($players as $id => $player) {
+                if ($player['player_is_admin'] == 1) {
+                    $admin_id = $id;
+                }
+            }
+            if (isset($admin_id)) {
+                $this->gamestate->changeActivePlayer( $admin_id );
+            }
+        }
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
 
@@ -1827,10 +1839,6 @@ SQL;
         $this->pickTokensForTile('alarm', $tile['id']);
         self::notifyAllPlayers('message', clienttranslate( 'An alarm was triggered' ), array());
         self::incStat(1, 'alarm_triggered');
-    }
-
-    function getAdminPlayerID() {
-        return self::getUniqueValueFromDB( "SELECT global_value value FROM global WHERE global_id = 5" );
     }
 
     function handleToolEffectDebug($name) {
@@ -3764,14 +3772,11 @@ SQL;
         $this->gamestate->nextState( 'some_gamestate_transition' );
     }    
     */
-    function stActivateAdmin() {
+    function stRandomizeWalls() {
         // Move on if the game use default walls
         if ($this->gamestate->table_globals[103] == 1) {
             $this->gamestate->nextState('');
         }
-        // Activate table administrator to randomize walls if needed
-        $this->gamestate->changeActivePlayer( $this->getAdminPlayerID() );
-        $this->gamestate->nextState('');
     }
 
     function stChooseCharacter() {
