@@ -2898,7 +2898,7 @@ SQL;
                 $this->flipTile($floor, $i);
             }
         } else {
-            $tiles = self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM tile WHERE flipped=0");
+            $tiles = self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM tile WHERE flipped=0 AND NOT card_location='deck'");
             foreach ($tiles as $id => $tile) {
                 $this->flipTile($tile['location'][5], $tile['location_arg']);
             }

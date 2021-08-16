@@ -76,8 +76,14 @@ class BurgleBrosBoard extends APP_GameClass
 	        }
         }
 
+        // Remove an extra safe and an extra stair if playing The Office Job
+        if ($this->game->getGameStateValue('scenario') == 2) {
+        	$safe = array_shift($safes);
+        	$stair = array_shift($stairs);
+        	$this->game->tiles->moveCards([$safe['id'], $stair['id']], "oop");
+        }
+
         // Grab a safe and stair for each floor, and move to the floor "deck"
-        // Move all the stairs and safe to "remove" cards out of the deck even if only playing 2 floors
         $shifted_shafts = $shafts;
         for ($floor=1; $floor <= $max_floor; $floor++) {
             $safe = array_shift($safes);
