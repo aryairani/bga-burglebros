@@ -108,12 +108,12 @@ $game_options = array(
                         'description' => totranslate('Standard layout (3 floors of 4x4 grid)')
                     ),
                     2 => array(
-                        'name' => totranslate('[ALPHA] The Office Job'),
+                        'name' => totranslate('The Office Job'),
                         'description' => totranslate('Beginners\' layout (2 floors of 4x4 grid)')
                     ),
                     3 => array(
-                        'name' => totranslate('[ALPHA] The Fort Knox Job'),
-                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid)')
+                        'name' => totranslate('[DEV] The Fort Knox Job'),
+                        'description' => totranslate('(NOT WORKING YET) Veterans\' layout (2 floors of 5x5 grid)')
                     ),
                 ),
         'default' => 1,
@@ -127,8 +127,8 @@ $game_options = array(
                         // 'description' => totranslate('')
                     ),
                     2 => array(
-                        'name' => totranslate('[ALPHA] Random walls'),
-                        'description' => totranslate('Currently in dev, please report any issue')
+                        'name' => totranslate('Random walls'),
+                        'description' => totranslate('Walls are generated randomly, table admin can reroll')
                     ),
                 ),
         'default' => 1,
