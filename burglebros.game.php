@@ -909,6 +909,7 @@ SQL;
         $players = self::loadPlayersBasicInfos();
         $player_stealth = $this->tokens->getCardsOfTypeInLocation('stealth', null, 'player', $player_id);
         $result['player_tokens'] = $this->tokens->getCardsOfType('player');
+        $token_id = key($this->tokens->getCardsOfType('player', $player_id));
         if ($amount > 0) {
             if (count($player_stealth) > 0) {
                 $this->moveToken(array_keys($player_stealth)[0], 'deck', TRUE);
@@ -916,7 +917,6 @@ SQL;
                 self::setGameStateValue('stealthDepleted', 1);
             }
             $action = 'decrementStealth';
-            $token_id = key($this->tokens->getCardsOfType('player', $player_id));
         } else if($amount < 0) {
             $this->pickTokens('stealth', 'player', $player_id, -$amount);
             $action = 'message';
