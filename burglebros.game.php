@@ -367,7 +367,8 @@ class burglebros extends Table
     */
     public function getFloorCount() {
         // Return the number of floors (3 for the Bank job, 2 otherwise)
-        if ($this->getGameStateValue('scenario') !== 1) {
+        // TODO Clean up !== 0 when all the alpha games are done
+        if ($this->getGameStateValue('scenario') !== 0 && $this->getGameStateValue('scenario') != 1) {
             return 2;
         } else {
             return 3;
