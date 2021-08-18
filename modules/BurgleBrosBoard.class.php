@@ -300,12 +300,7 @@ class BurgleBrosBoard extends APP_GameClass
 		$max_tiles = 2 * $size * $dec;
 		$offset = $tile % $size;			# tile column offset
 		$row = floor($tile / $size); 	# tile row
-		// $row = floor($tile / $size) * ($size + $dec);
-		// $index = $row + $offset;
 		$index = ($size + $dec) * $row + $offset;
-		// var_dump($offset);
-		// var_dump($row);
-		// var_dump($index);
 		$res = [];
 		if ($offset > 0)
 			$res[] = $index - 1;		# wall on the left
@@ -315,7 +310,6 @@ class BurgleBrosBoard extends APP_GameClass
 			$res[] = $index - $size;	# wall on top
 		if ($row < $dec)
 			$res[] = $index + $dec;		# wall on bottom
-		// var_dump($res);
 		return $res;
 	}
 
