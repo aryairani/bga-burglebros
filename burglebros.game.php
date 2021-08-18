@@ -183,7 +183,8 @@ class burglebros extends Table
             $this->createDecks($this->patrol_types, $this->patrol_info_size_5);
             // Move Patrol Cards for shaft position out of play
             $floor_count = $this->getFloorCount();
-            for ($i=1; $i <= $floor_count; $i++) { 
+            $shaft_position = $this->board->getShaftPosition();
+            for ($i=1; $i <= $floor_count; $i++) {
                 $ids = array_keys($this->cards->getCardsOfType($i + 3, $shaft_position));
                 $this->cards->moveCards($ids, 'patrol_oop');
             }
@@ -1374,7 +1375,7 @@ SQL;
                     if(isset($rolls[intval($tile['safe_die'])])) {
                         $this->pickTokensForTile('safe', $tile['id']);
                         $cracked_count++;
-                    } elseif ($tile['card_type'] == 'shaft') {
+                    } elseif ($tile['type'] == 'shaft') {
                         $cracked_count++;
                     }
                 } else {

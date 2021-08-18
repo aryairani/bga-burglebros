@@ -821,7 +821,6 @@ function (dojo, declare) {
         },
         calcSvgPosX: function(position) {
             var size_sq = this.gamedatas.square_size;
-            return (position + 1) % 5 == 0 ? 5 : position % 5;
             return (position + 1) % size_sq == 0 ? size_sq : position % size_sq;
         },
         calcSvgPosY: function(position) {
