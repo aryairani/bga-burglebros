@@ -181,9 +181,12 @@ class burglebros extends Table
             $this->createDecks($this->patrol_types, $this->patrol_info);
         } else {
             $this->createDecks($this->patrol_types, $this->patrol_info_size_5);
-            $shaft_position = $this->board->getShaftPosition();
-            // ZTODO move Patrol Card shaft oop
-            // $this->cards->moveCard()
+            // Move Patrol Cards for shaft position out of play
+            $floor_count = $this->getFloorCount();
+            for ($i=1; $i <= $floor_count; $i++) { 
+                $ids = array_keys($this->cards->getCardsOfType($i + 3, $shaft_position));
+                $this->cards->moveCards($ids, 'patrol_oop');
+            }
         }
 
         // Guards
