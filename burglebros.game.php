@@ -1378,7 +1378,7 @@ SQL;
             }
         }
         // Safe is open
-        if ($cracked_count == 6) {
+        if ($cracked_count == ($size_sq - 1) * 2) {
             $this->pickTokensForTile('open', $safe_tile['id']);
             if ($drop_loot) {
                 $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
@@ -1663,7 +1663,8 @@ SQL;
             $action = 'fell to';
             $reason = 'revealed a Walkway';
         }
-        $tile_name = $this->patrol_names[$tile['location_arg']]['name'];
+        $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+        $tile_name = $patrol_names[$tile['location_arg']]['name'];
         $msg = '${player_name} '.$action." tile $tile_name on floor $floor";
         if (!is_null($reason)) {
             $msg .= ' because they '.$reason;
@@ -2991,9 +2992,16 @@ SQL;
             } else {
                 $msg = clienttranslate("New random walls are generated on floor $floor");
             }
+            // Update tiles to update shaft
+            $tiles = [];
+            $max_floor = $this->getFloorCount();
+            for ($i=1; $i <= $max_floor; $i++) { 
+                $tiles["floor$i"] = $this->getTiles($i);
+            }
             self::notifyAllPlayers('updateWalls', $msg, [
                 'floor' => $floor,
                 'walls' => $this->getWalls(),
+                'tiles' => $tiles,
             ]);
         }
     }

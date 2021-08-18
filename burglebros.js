@@ -351,7 +351,7 @@ function (dojo, declare) {
                     case 'randomizeWalls':
                         this.addActionButton( 'randomize_all', _('Randomize walls on all the floors'), dojo.hitch(this, 'randomizeWalls', 'all'), null, null, 'gray' );
                         // Cannot randomize only one floor on Fort Knox because the Shaft is updated on each floor
-                        if (this.gamedatas.size_sq !== 5) {
+                        if (this.gamedatas.square_size !== 5) {
                             for (var i = 1; i <= this.gamedatas.floor_count; i++) {
                                 this.addActionButton( 'randomize_' + i, _('Randomize walls on floor ' + i), dojo.hitch(this, 'randomizeWalls', i), null, null, 'gray' );
                             }                            
@@ -551,6 +551,7 @@ function (dojo, declare) {
         },
 
         playTileOnTable: function(floor, tile) {
+            console.log('playTileOnTable', tile.type, tile.type != 'shaft');
             var div_id = 'tile_' + tile.id,
                 preview_div_id = 'tile_' + tile.id + '_preview';
             if ($(div_id)) {
@@ -570,6 +571,7 @@ function (dojo, declare) {
                     name : tile.type + tile.safe_die
                 }), div_id + '_container');
             } else {
+                console.log("place shaft", tile.id, div_id);
                 dojo.place(this.format_block('jstpl_tile_shaft', {
                     id : tile.id, 
                     name : tile.type + tile.safe_die
@@ -781,7 +783,6 @@ function (dojo, declare) {
                 var current_pos = guard_path[i];
                 var x2 = this.path_x_offset + this.path_tile_offset * this.calcSvgPosX(current_pos);
                 var y2 = this.path_y_offset + this.path_tile_offset * this.calcSvgPosY(current_pos);
-                // console.log("*** x1", x1, y1, current_pos, x2, y2);
                 HTML_path += this.format_block('jstpl_path_line', {
                     x1: x1,
                     y1: y1,
@@ -792,7 +793,6 @@ function (dojo, declare) {
                 });
             }
             // Append guard position (circle)
-            // console.log("guard path", HTML_path);
             HTML_path += this.createGuardPreviewHTML(floor, guard_path);
             // Wrap with svg tag
             HTML_path = '<svg id="floor' + floor + '_svg_path">' + HTML_path + '</svg>';
@@ -812,10 +812,7 @@ function (dojo, declare) {
         },
         createGuardPreviewHTML: function(floor, guard_path) {
             var x = this.calcSvgPosX(guard_path[0]);
-            console.log("*** guard preview x", x);
             var y = this.calcSvgPosY(guard_path[0]);
-            console.log("*** guard preview y", t);
-            // console.log("guard path", pos, x, y);
             return this.format_block('jstpl_path_circle', {
                 cx: this.path_x_offset + this.path_tile_offset * x,
                 cy: this.path_y_offset + this.path_tile_offset * y,
@@ -824,7 +821,6 @@ function (dojo, declare) {
         },
         calcSvgPosX: function(position) {
             var size_sq = this.gamedatas.square_size;
-            console.log("calcSvgPosX", position, (position + 1) % size_sq == 0 ? size_sq : position % size_sq, (position + 1) % 4 == 0 ? 4 : position % 4);
             return (position + 1) % 5 == 0 ? 5 : position % 5;
             return (position + 1) % size_sq == 0 ? size_sq : position % size_sq;
         },
@@ -1953,6 +1949,17 @@ function (dojo, declare) {
                 var wall = notif.args.walls[wallIdx];
                 this.playWallOnTable(wall);
             }
+            // Update tiles to update shaft
+            // var tiles = notif.args.tiles;
+            // dojo.query(".tile-container").forEach( (e) => dojo.destroy(e) );
+            // for (var floor = 1; floor <= this.gamedatas.floor_count; floor++) {
+            //     var key = 'floor' + floor;
+            //     for ( var tileId in tiles[key]) {
+            //         var tile = tiles[key][tileId];
+            //         this.createTileContainer(floor, tile);
+            //         this.playTileOnTable(floor, tile);
+            //     }
+            // }
         },
 
         notif_removeWall: function(notif) {
