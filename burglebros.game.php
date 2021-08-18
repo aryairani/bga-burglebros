@@ -1374,6 +1374,8 @@ SQL;
                     if(isset($rolls[intval($tile['safe_die'])])) {
                         $this->pickTokensForTile('safe', $tile['id']);
                         $cracked_count++;
+                    } elseif ($tile['card_type'] == 'shaft') {
+                        $cracked_count++;
                     }
                 } else {
                     $cracked_count++;
