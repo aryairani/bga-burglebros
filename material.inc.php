@@ -131,10 +131,44 @@ $this->patrol_names = array(
   array('name'=>'D4'),
 );
 
+$this->patrol_names_size_5 = array(
+  array('name'=>'A1'),  // index 1 == type_arg
+  array('name'=>'B1'),
+  array('name'=>'C1'),
+  array('name'=>'D1'),
+  array('name'=>'E1'),
+  array('name'=>'A2'),
+  array('name'=>'B2'),
+  array('name'=>'C2'),
+  array('name'=>'D2'),
+  array('name'=>'E2'),
+  array('name'=>'A3'),
+  array('name'=>'B3'),
+  array('name'=>'C3'),
+  array('name'=>'D3'),
+  array('name'=>'E3'),
+  array('name'=>'A4'),
+  array('name'=>'B4'),
+  array('name'=>'C4'),
+  array('name'=>'D4'),  // index 16 == type_arg
+  array('name'=>'E4'),
+  array('name'=>'A5'),
+  array('name'=>'B5'),
+  array('name'=>'C5'),
+  array('name'=>'D5'),
+  array('name'=>'E5'),
+);
+
 $this->patrol_info = array(
   4 => $this->patrol_names,
   5 => $this->patrol_names,
   6 => $this->patrol_names,
+);
+
+$this->patrol_info_size_5 = array(
+  4 => $this->patrol_names_size_5,
+  5 => $this->patrol_names_size_5,
+  6 => $this->patrol_names_size_5,
 );
 
 // Name to safe dice numbers

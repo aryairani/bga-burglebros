@@ -123,23 +123,40 @@ function (dojo, declare) {
                     this.playTileOnTable(floor, tile);
                 }
 
+                // For 4-card squares, use the Stock Patrol cards
                 var patrolKey = 'patrol' + floor;
-                this[patrolKey] = new ebg.stock();
-                this[patrolKey].create(this, $(patrolKey), this.cardwidth, this.cardheight);
-                this[patrolKey].image_items_per_row = gamedatas.square_size;
-                this[patrolKey].setSelectionMode(0);
+                if (gamedatas.square_size == 4) {
+                    this[patrolKey] = new ebg.stock();
+                    this[patrolKey].create(this, $(patrolKey), this.cardwidth, this.cardheight);
+                    this[patrolKey].image_items_per_row = gamedatas.square_size;
+                    this[patrolKey].setSelectionMode(0);
 
-                for (var type in gamedatas.patrol_types) {
-                    var typeInfo = gamedatas.patrol_types[type];
-                    for (var index = 0; index < typeInfo.cards.length; index++) {
-                        var cardInfo = typeInfo.cards[index];
-                        var id = ((cardInfo.type - 4) * 16) + index;
-                        this[patrolKey].addItemType(id, id, g_gamethemeurl + 'img/patrol.jpg', id);
+                    for (var type in gamedatas.patrol_types) {
+                        var typeInfo = gamedatas.patrol_types[type];
+                        for (var index = 0; index < typeInfo.cards.length; index++) {
+                            var cardInfo = typeInfo.cards[index];
+                            var id = ((cardInfo.type - 4) * 16) + index;
+                            this[patrolKey].addItemType(id, id, g_gamethemeurl + 'img/patrol.jpg', id);
+                        }
                     }
+                    // Patrol back
+                    this[patrolKey].addItemType(51, 51, g_gamethemeurl + 'img/patrol.jpg', 51);
+                } else {
+                    // Create custom Patrol cards zztodo
+                    var tiles_count = gamedatas.square_size * gamedatas.square_size;
+                    for (var i = 0; i <= tiles_count - 1; i++) {
+                        var id = patrolKey + this.gamedatas.patrol_names[i].name; // floor1A1...
+                        dojo.place(this.format_block('jstpl_patrol_tile', {
+                            id : id,
+                        }), patrolKey);
+                        if (i == gamedatas.shaft_position) {
+                            dojo.addClass(id,'shaft');
+                        }
+                    }
+                    dojo.addClass('patrol_wrapper' + floor, 'patrol_card_back');
+                    dojo.addClass(patrolKey, 'hidden');
                 }
-                // Patrol back
-                this[patrolKey].addItemType(51, 51, g_gamethemeurl + 'img/patrol.jpg', 51);
-                
+
                 var patrolTopKey = patrolKey + '_discard_top';
                 this.loadPatrolDiscard(floor, gamedatas[patrolTopKey]);
 
@@ -459,11 +476,11 @@ function (dojo, declare) {
             }
         },
         
-        setupPatrolItem: function(floor, card_div, card_type_id, card_id) {
-            var key = floor + this.gamedatas.floor_count; // TODO check was + 3
-            var size_sq = this.gamedatas.square_size * this.gamedatas.square_size;
-            card_div.innerText = this.gamedatas.patrol_types[key].cards[card_type_id % size_sq].name; // was sizeqs = 16
-        },
+        // setupPatrolItem: function(floor, card_div, card_type_id, card_id) {
+        //     var key = floor + this.gamedatas.floor_count;
+        //     var size_sq = this.gamedatas.square_size * this.gamedatas.square_size;
+        //     card_div.innerText = this.gamedatas.patrol_types[key].cards[card_type_id % size_sq].name;
+        // },
 
         ///////////////////////////////////////////////////
         //// Utility methods
@@ -534,7 +551,6 @@ function (dojo, declare) {
         },
 
         playTileOnTable: function(floor, tile) {
-            console.log("play tile on table", tile);
             var div_id = 'tile_' + tile.id,
                 preview_div_id = 'tile_' + tile.id + '_preview';
             if ($(div_id)) {
@@ -580,7 +596,7 @@ function (dojo, declare) {
             }
         },
 
-        playWallOnTable : function(wall) {
+        playWallOnTable: function(wall) {
             var div_id = 'wall_' + wall.id;
                 
             var idx = parseInt(wall.position, 10);
@@ -591,21 +607,23 @@ function (dojo, declare) {
             var sizePlusPadding = 120 + 36;
             var x = wall.vertical == '1' ? 142.5 + (col * sizePlusPadding) : 10 + (row * sizePlusPadding);
             var y = wall.vertical == '1' ? 20 + (row * sizePlusPadding) : 152.5 + (col * sizePlusPadding);
-            dojo.place(this.format_block('jstpl_wall', {
-                wall_id : wall.id,
-                wall_direction : wall.vertical == '1' ? 'vertical' : 'horizontal', 
-                x : x,
-                y : y
-            }), 'floor' + wall.floor);
+            if ($('floor' + wall.floor)) {
+                dojo.place(this.format_block('jstpl_wall', {
+                    wall_id : wall.id,
+                    wall_direction : wall.vertical == '1' ? 'vertical' : 'horizontal', 
+                    x : x,
+                    y : y
+                }), 'floor' + wall.floor);
 
-            dojo.connect( $(div_id), 'onclick', this, function(evt) {
-                dojo.stopEvent(evt);
-                if (this.checkAction('selectCardChoice')) {
-                    this.ajaxcall('/burglebros/burglebros/selectCardChoice.html', { lock: true, selected_type: 'wall', selected_id: wall.id }, this, function () {
-                        // dojo.destroy(div_id);
-                    }, console.error);
-                }
-            });
+                dojo.connect( $(div_id), 'onclick', this, function(evt) {
+                    dojo.stopEvent(evt);
+                    if (this.checkAction('selectCardChoice')) {
+                        this.ajaxcall('/burglebros/burglebros/selectCardChoice.html', { lock: true, selected_type: 'wall', selected_id: wall.id }, this, function () {
+                            // dojo.destroy(div_id);
+                        }, console.error);
+                    }
+                });
+            }
         },
 
         createPlayerToken: function(id, player_id) {
@@ -750,7 +768,7 @@ function (dojo, declare) {
         },
 
         createGuardPath: function(floor, guard_path) {
-            // console.log('guard_path', guard_path);
+            console.log('guard_path', guard_path);
             if (guard_path === null)
                 return false;
             // Create a SVG path preview on the floor preview zone
@@ -763,6 +781,7 @@ function (dojo, declare) {
                 var current_pos = guard_path[i];
                 var x2 = this.path_x_offset + this.path_tile_offset * this.calcSvgPosX(current_pos);
                 var y2 = this.path_y_offset + this.path_tile_offset * this.calcSvgPosY(current_pos);
+                // console.log("*** x1", x1, y1, current_pos, x2, y2);
                 HTML_path += this.format_block('jstpl_path_line', {
                     x1: x1,
                     y1: y1,
@@ -773,7 +792,7 @@ function (dojo, declare) {
                 });
             }
             // Append guard position (circle)
-            // console.log("guard path", pos, x, y);
+            // console.log("guard path", HTML_path);
             HTML_path += this.createGuardPreviewHTML(floor, guard_path);
             // Wrap with svg tag
             HTML_path = '<svg id="floor' + floor + '_svg_path">' + HTML_path + '</svg>';
@@ -793,7 +812,9 @@ function (dojo, declare) {
         },
         createGuardPreviewHTML: function(floor, guard_path) {
             var x = this.calcSvgPosX(guard_path[0]);
+            console.log("*** guard preview x", x);
             var y = this.calcSvgPosY(guard_path[0]);
+            console.log("*** guard preview y", t);
             // console.log("guard path", pos, x, y);
             return this.format_block('jstpl_path_circle', {
                 cx: this.path_x_offset + this.path_tile_offset * x,
@@ -802,10 +823,13 @@ function (dojo, declare) {
             });
         },
         calcSvgPosX: function(position) {
-            return (position + 1) % 4 == 0 ? 4 : position % 4;
+            var size_sq = this.gamedatas.square_size;
+            console.log("calcSvgPosX", position, (position + 1) % size_sq == 0 ? size_sq : position % size_sq, (position + 1) % 4 == 0 ? 4 : position % 4);
+            return (position + 1) % 5 == 0 ? 5 : position % 5;
+            return (position + 1) % size_sq == 0 ? size_sq : position % size_sq;
         },
         calcSvgPosY: function(position) {
-            return Math.floor(position / 4);
+            return Math.floor(position / this.gamedatas.square_size);
         },
 
         addCharacterAction: function() {
@@ -990,25 +1014,53 @@ function (dojo, declare) {
         },
 
         loadPatrolDiscard: function(floor, card) {
+            // console.log("loadPatrolDiscard", floor, card);
             var patrolKey = 'patrol' + floor;
-            var existing = this[patrolKey].getAllItems();
-            for(var idx = 0; idx < existing.length; idx++) {
-                var discardDiv = this[patrolKey].getItemDivId(existing[idx].id);
-                this.removeTooltip(discardDiv);
-            }
-            this[patrolKey].removeAll();
-    
-            if (card) {
-                var cardType = parseInt(card.type, 10);
-                var cardIndex = parseInt(card.type_arg, 10) - 1;
-                var id = ((cardType - 4) * 16) + cardIndex;
-                this[patrolKey].addToStockWithId(id, card.id);
+            // If Square size is 4, use the Patrol Stock cards
+            if (this.gamedatas.square_size == 4) {
+                var existing = this[patrolKey].getAllItems();
+                for(var idx = 0; idx < existing.length; idx++) {
+                    var discardDiv = this[patrolKey].getItemDivId(existing[idx].id);
+                    this.removeTooltip(discardDiv);
+                }
+                this[patrolKey].removeAll();
+        
+                if (card) {
+                    var cardType = parseInt(card.type, 10);
+                    var cardIndex = parseInt(card.type_arg, 10) - 1;
+                    var id = ((cardType - 4) * 16) + cardIndex;
+                    this[patrolKey].addToStockWithId(id, card.id);
 
-                var tooltipHtml = this.patrolCardHtml(card, id, this.gamedatas[patrolKey + '_discard']);
-                var divId = this[patrolKey].getItemDivId(card.id);
-                this.addTooltipHtml(divId, tooltipHtml);
+                    var tooltipHtml = this.patrolCardHtml(card, id, this.gamedatas[patrolKey + '_discard']);
+                    var divId = this[patrolKey].getItemDivId(card.id);
+                    this.addTooltipHtml(divId, tooltipHtml);
+                } else {
+                    this[patrolKey].addToStockWithId(51, 51);
+                }
             } else {
-                this[patrolKey].addToStockWithId(51, 51);
+                // ZZTODO
+                if (card) {
+                    dojo.removeClass('patrol_wrapper' + floor, 'patrol_card_back');
+                    dojo.addClass('patrol_wrapper' + floor, 'whiteblock');
+                    dojo.removeClass(patrolKey, 'hidden');
+                    // console.log("has card", card);
+                    var index = card.type_arg - 1;
+                    var label = this.gamedatas.patrol_names[index].name; // A1, B2...
+                    dojo.query('#' + patrolKey + ' .current_patrol').forEach(function(e) {
+                        // console.log("element", e);
+                        dojo.removeClass(e, 'current_patrol');
+                        e.innerHTML = '';
+                    });
+                    var tile_id = patrolKey + label;
+                    // console.log('$(patrolKey)', $(patrolKey));
+                    $(tile_id).innerHTML = label;
+                    // console.log('patrolKey + label', patrolKey + label);
+                    dojo.addClass(tile_id, 'current_patrol');
+                }
+                // else {
+                //     console.log("add back", patrolKey);
+                //     dojo.addClass(patrolKey, 'patrol_card_back');
+                // }
             }
         },
 

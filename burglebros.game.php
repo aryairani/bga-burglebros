@@ -177,7 +177,14 @@ class burglebros extends Table
                 break;
         }
         $this->createDecks($this->card_types, $this->card_info, $option_characters_advanced);
-        $this->createDecks($this->patrol_types, $this->patrol_info);
+        if ($this->getSquareSize() == 4) {
+            $this->createDecks($this->patrol_types, $this->patrol_info);
+        } else {
+            $this->createDecks($this->patrol_types, $this->patrol_info_size_5);
+            $shaft_position = $this->board->getShaftPosition();
+            // ZTODO move Patrol Card shaft oop
+            // $this->cards->moveCard()
+        }
 
         // Guards
         $tokens = array ();
@@ -217,10 +224,6 @@ class burglebros extends Table
             $this->tokens->createCards(array($player_token), 'hand', $player_id);
             if ($option_character == 1 || $option_character == 2) {
                 $character = $this->cards->pickCard('characters_deck', $player_id);
-                // $type = $this->getCardType($character);
-                // $name = substr($type, 0, -1);
-                // $nbr = substr($type, -1);
-                // $this->moveCardsOutOfPlay('characters', $name.($nbr == 1 ? 2 : 1));
                 if ($option_character == 2) {
                     // Move advanced card to player hand so they can choose on the next state
                     $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
@@ -287,6 +290,10 @@ class burglebros extends Table
         $result = array_merge($result, $this->gatherCardData('card', $this->card_types, $this->card_info));
         $result = array_merge($result, $this->gatherCardData('patrol', $this->patrol_types, $this->patrol_info));
         $result['card_info'] = $this->card_info;
+        $result['floor_count'] = $this->getFloorCount();
+        $result['square_size'] = $this->getSquareSize();
+        $result['shaft_position'] = $this->board->getShaftPosition();
+        $result['patrol_names'] = $result['square_size'] == 4 ? $this->patrol_names : $this->patrol_names_size_5;
 
         $tiles = array();
         $index = 0;
@@ -332,8 +339,6 @@ class burglebros extends Table
         $result['patrol_tokens'] = $patrol_tokens;
         $result['guard_paths'] = $guard_paths;
         $result['undo_allowed'] = self::getGameStateValue('undoAllowed');
-        $result['floor_count'] = $this->getFloorCount();
-        $result['square_size'] = $this->getSquareSize();
 
         return $result;
     }
@@ -682,13 +687,14 @@ SQL;
             $walls = $this->getWalls();
         }
         
+        $size_sq = $this->getSquareSize();
         $tindex = $tile['location_arg'];
-        $trow = floor($tindex / 4);
-        $tcol = $tindex % 4;
+        $trow = floor($tindex / $size_sq);
+        $tcol = $tindex % $size_sq;
 
         $pindex = $other_tile['location_arg'];
-        $prow = floor($pindex / 4);
-        $pcol = $pindex % 4;
+        $prow = floor($pindex / $size_sq);
+        $pcol = $pindex % $size_sq;
 
         $same_floor = $tile['location'] == $other_tile['location'];
         // Check row or column adjency and same floor
@@ -1027,10 +1033,11 @@ SQL;
     }
 
     function manhattanDistance($left, $right) {
-        $lcol = $left % 4;
-        $lrow = floor($left / 4);
-        $rcol = $right % 4;
-        $rrow = floor($right / 4);
+        $size_sq = $this->getSquareSize();
+        $lcol = $left % $size_sq;
+        $lrow = floor($left / $size_sq);
+        $rcol = $right % $size_sq;
+        $rrow = floor($right / $size_sq);
         return abs($lcol - $rcol) + abs($lrow - $rrow);
     }
 
@@ -1128,10 +1135,11 @@ SQL;
     }
 
     function directions($left, $right) {
-        $ly = floor($left / 4);
-        $lx = $left % 4;
-        $ry = floor($right / 4);
-        $rx = $right % 4;
+        $size_sq = $this->getSquareSize();
+        $ly = floor($left / $size_sq);
+        $lx = $left % $size_sq;
+        $ry = floor($right / $size_sq);
+        $rx = $right % $size_sq;
         $dx = $lx - $rx;
         $dy = $ry - $ly;
 
@@ -1331,6 +1339,7 @@ SQL;
 
     function applyDieRoll($rolls=null, $safe_tile=null, $drop_loot=null) {
         $current_player_id = self::getCurrentPlayerId();
+        $size_sq = $this->getSquareSize();
         if ($rolls === null) {
             $tokens = $this->tokens->getCardsInLocation('stethoscope');
             $rolls = array();
@@ -1351,12 +1360,12 @@ SQL;
         $floor = $safe_tile['location'][5];
         $tiles = $this->getTiles($floor);
         $placed_tokens = $this->getPlacedTokens(array('safe'));
-        $safe_row = floor($safe_tile['location_arg'] / 4);
-        $safe_col = $safe_tile['location_arg'] % 4;
+        $safe_row = floor($safe_tile['location_arg'] / $size_sq);
+        $safe_col = $safe_tile['location_arg'] % $size_sq;
         $cracked_count = 0;
         foreach ($tiles as $tile) {
-            $row = floor($tile['location_arg'] / 4);
-            $col = $tile['location_arg'] % 4;
+            $row = floor($tile['location_arg'] / $size_sq);
+            $col = $tile['location_arg'] % $size_sq;
             if (($row == $safe_row || $col == $safe_col)) {
                 if (!isset($placed_tokens[$tile['id']])) {
                     if(isset($rolls[intval($tile['safe_die'])])) {
@@ -2107,7 +2116,7 @@ SQL;
             $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
             $paths = [];
-            $shortest_path_length = 16;
+            $shortest_path_length = $this->getFloorCount() == 4 ? 16 : 25;
 
             $players = self::loadPlayersBasicInfos();
             foreach ($players as $player_id => $player) {
@@ -2270,8 +2279,9 @@ SQL;
             $walls = $this->getWalls();
 
             $tindex = $player_tile['location_arg'];
-            $trow = floor($tindex / 4);
-            $tcol = $tindex % 4;
+            $floor_count = $this->getFloorCount();
+            $trow = floor($tindex / $floor_count);
+            $tcol = $tindex % $floor_count;
 
             $wall = self::getObjectFromDB("SELECT * FROM wall WHERE id = '$selected_id'");
             $exit = FALSE;
@@ -2483,6 +2493,7 @@ SQL;
         $to_peek = $this->tiles->getCard($tile_id);
         $floor = $to_peek['location'][5];
         $flipped = $this->getFlippedTiles($floor);
+        $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
 
         if (isset($flipped[$to_peek['id']])) {
             if ($variant == 'effect') {
@@ -2498,7 +2509,7 @@ SQL;
         }
 
         $this->handleTilePeek($to_peek);
-        $tile_name = $this->patrol_names[$to_peek['location_arg']]['name'];
+        $tile_name = $patrol_names[$to_peek['location_arg']]['name'];
         // TODO: Add tile type?
         $players = self::loadPlayersBasicInfos();
         self::notifyAllPlayers('message', clienttranslate('${player_name} peeked tile ${tile_name} on floor ${floor}'), [
@@ -2942,8 +2953,6 @@ SQL;
             $ids = [
                 85300953,
                 86195160,
-                86204663,
-                87300416
             ];
         }
         

@@ -187,6 +187,14 @@
 .patrol {
     top: 10px;
 }
+.size_5x5 .patrol_wrapper {
+    width: 130px;
+    height: 120px;
+    border: 1px solid #3A5A6E;
+    border-radius: 8px;
+    /*background-color: #FFFFFF;*/
+    /*padding: 5px;*/
+}
 .patrol_counter {
     position: absolute;
     border-radius: 50%;
@@ -196,11 +204,35 @@
     font-weight: 500;
     color: white;
     font-size: 14px;
-    bottom: -2px;
+    bottom: 1px; /* -2px;*/
     left: 5px;
 }
 .patrol_wrapper {
     position: relative;
+}
+.patrol_card_back {
+    width: 145px;
+    height: 145px !important;
+    background-image: url(img/patrol.jpg);
+    background-size: 580px;
+    background-position: 100% 100%;
+    border-radius: 8px;
+}
+.patrol_tile {
+    width: 20px;
+    height: 20px;
+    position: relative;
+    display: inline-block;
+    background-color: #C9C7BE;
+    margin: 1px;
+}
+.current_patrol {
+    background-color: #FF0000;
+    color: #FFF;
+    font-weight: bold;
+    font-size: 0.9em;
+    vertical-align: top;
+    line-height: 20px;
 }
 
 .floor_preview_container {

@@ -325,8 +325,10 @@ class BurgleBrosBoard extends APP_GameClass
 	function getShaftPosition() {
 		// Return shaft position (on floor 1 because shaft is on the same position on each floor)
 		$shaft = $this->game->tiles->getCardsOfTypeInLocation('shaft', null, "floor1");
+		// var_dump($shaft);
 		if ($shaft) {
-			return $shaft[0]['location_arg'];
+			$shaft = reset($shaft);
+			return $shaft['location_arg'];
 		} else {
 			return NULL;
 		}
