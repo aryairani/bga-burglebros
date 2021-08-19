@@ -480,6 +480,8 @@ class burglebros extends Table
         $safes = $this->tiles->getCardsOfType('safe');
         $open = 0;
         foreach ($safes as $tile_id => $tile) {
+            if ($tile['location'] == 'oop')
+                continue;
             if ($this->tokensInTile('open', $tile_id) == 0) {
                 break;
             } else {
@@ -491,13 +493,16 @@ class burglebros extends Table
 
     function canEscape($player_tile) {
         $thermal_to_roof = FALSE;
+        $safes_needed = $this->getGameStateValue('scenario') == 2 ? 2 : 3;
         $max_floor = $this->getFloorCount();
         if ($player_tile['location'][5] == $max_floor && $this->tokensInTile('thermal', $player_tile['id'])) {
-            $tile_below = $this->findTileOnFloor(2, $player_tile['location_arg']);
+            $tile_below = $this->findTileOnFloor($max_floor - 1, $player_tile['location_arg']);
             $thermal_to_roof = $this->tokensInTile('thermal', $tile_below['id']) == null;
         }
         return ($player_tile['type'] == 'stairs' || $thermal_to_roof) &&
-            $player_tile['location'][5] == $max_floor && $this->openSafes() == $max_floor;
+            $player_tile['location'][5] == $max_floor && $this->openSafes() == $safes_needed;
+    }
+
     }
 
     function gatherCurrentData($current_player_id) {
@@ -2579,8 +2584,8 @@ SQL;
     }
 
     function checkWin() {
-        $max_floor = $this->getFloorCount();
-        $all_safes_opened = $this->openSafes() == $max_floor;
+        $safes_needed = $this->getGameStateValue('scenario') == 2 ? 2 : 3;
+        $all_safes_opened = $this->openSafes() == $safes_needed;
         $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(2, null, 'tile')) == 0 &&
             count($this->tokens->getCardsOfTypeInLocation('cat', null, 'tile')) == 0;
         return $all_safes_opened && $all_loot_escaped;
