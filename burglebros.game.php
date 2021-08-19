@@ -1705,8 +1705,10 @@ SQL;
 
         if ($context == 'acrobat2') {
             // No FAQ for this, I'm interpreting it as spend 3 actions to move + additional for the tile
-            $action_penalty += 2;
-            self::incGameStateValue('actionsRemaining', -2);
+            // Taking Tim's answer boardgamegeek.com/thread/1487753/wall-climbing-acrobat-questions
+            // Acrobat cannot enter Deadbolt nor use an extra action to disarm Laser
+            // $action_penalty += 2;
+            self::setGameStateValue('actionsRemaining', 0);
         }
         
         if ($type == 'deadbolt') {
