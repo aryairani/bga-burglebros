@@ -1701,6 +1701,7 @@ SQL;
         if ($context == 'acrobat2') {
             // No FAQ for this, I'm interpreting it as spend 3 actions to move + additional for the tile
             $action_penalty += 2;
+            self::incGameStateValue('actionsRemaining', -2);
         }
         
         if ($type == 'deadbolt') {
@@ -3178,13 +3179,13 @@ SQL;
         $tile_choice = $this->handleSelectCardChoice($card, $type, $id);
         if (self::getGameStateValue('stealthDepleted')) {
             $this->gamestate->nextState('gameOver');
-        } else if ($tile_choice) {
+        } elseif ($tile_choice) {
             self::setGameStateValue('tileChoice', $tile_choice);
             $this->gamestate->nextState('tileChoice');
         } else {
             if ($card['type'] == 3) {
                 $this->gamestate->nextState('endTurn');    
-            } elseif($card['type'] == 0) {
+            } elseif ($card['type'] == 0) {
                 $type = $this->getCardType($card);
                 self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
                     'player_name' => self::getCurrentPlayerName()
@@ -3194,9 +3195,9 @@ SQL;
                 self::incStat(1, 'special_ability_use', $current_player_id);
                 if (in_array($type, array('hacker2', 'spotter1', 'spotter2'))) {
                     $this->endAction(); // Spent action
-                } else if($type == 'peterman2') {
+                } else if ($type == 'peterman2') {
                     $this->endAction($id < 10 ? 2 : 1); // Spent 1 or 2 actions
-                } else if($type == 'acrobat2') {
+                } else if ($type == 'acrobat2') {
                     self::setGameStateValue('actionsRemaining', 0);
                     $this->endAction(0);
                 } else {
