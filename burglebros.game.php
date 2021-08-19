@@ -503,8 +503,6 @@ class burglebros extends Table
             $player_tile['location'][5] == $max_floor && $this->openSafes() == $safes_needed;
     }
 
-    }
-
     function gatherCurrentData($current_player_id) {
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
@@ -2294,9 +2292,9 @@ SQL;
             $walls = $this->getWalls();
 
             $tindex = $player_tile['location_arg'];
-            $floor_count = $this->getFloorCount();
-            $trow = floor($tindex / $floor_count);
-            $tcol = $tindex % $floor_count;
+            $size_sq = $this->getSquareSize();
+            $trow = floor($tindex / $size_sq);
+            $tcol = $tindex % $size_sq;
 
             $wall = self::getObjectFromDB("SELECT * FROM wall WHERE id = '$selected_id'");
             $exit = FALSE;
