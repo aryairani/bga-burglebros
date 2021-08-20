@@ -761,7 +761,7 @@ SQL;
             $flipped = $this->getFlippedTiles($tile['location'][5]);
             $service_duct = $tile['type'] == 'service-duct' && $other_tile['type'] == 'service-duct' && $tile['id'] != $other_tile['id'] && isset($flipped[$tile['id']]) && !($adjacent && !$blocked) ;
             $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
-            if ($painting && (($secret_door && $blocked) || $service_duct)) {
+            if ($painting && !($variant == 'hawk2') && (($secret_door && $blocked) || $service_duct)) {
                 throw new BgaUserException(self::_('Cannot move this way while holding the Painting'));
             }
             return ($same_floor && $adjacent && !$blocked) ||
@@ -848,7 +848,7 @@ SQL;
             throw new BgaUserException(self::_('Tile is already visible'));
         }
         foreach ($adjacent_flipped as $tile) {
-            if ($this->isTileAdjacent($target_tile, $tile, $walls)) {
+            if ($this->isTileAdjacent($target_tile, $tile, $walls, 'hawk2')) {
                 return true;
             }
         }
