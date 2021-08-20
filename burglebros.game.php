@@ -3853,7 +3853,7 @@ SQL;
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $type = $player_tile['type'];
-        if ($type == 'thermo' && !$this->tokensInTile('crowbar', $player_tile['id'])) {
+        if ($type == 'thermo' && self::getGameStateValue('empPlayer') == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
             $this->triggerAlarm($player_tile);
         }
         self::setGameStateValue('invisibleSuitActive', 0);
