@@ -787,7 +787,7 @@ SQL;
         // Same tile position (location_arg) but one floor up or down
         return $from['type'] == 'atrium' &&
             $to['location_arg'] == $from['location_arg'] &&
-            ($to['location'][5] + 1 == $from['location'][5] || $to['location'][5] - 1 == $from['location'][5]);
+            ($to['location'][5] == $from['location'][5]) == 1 || ($to['location'][5] - $from['location'][5]) == 1;
     }
 
     function thermalBombStairsAreAdjacent($to, $from) {
@@ -966,9 +966,9 @@ SQL;
     }
 
     function atriumGuards($tile) {
-        $player_floor = $tile['location'];
-        $player_lower_floor = --$player_floor;
-        $player_upper_floor = ++$player_floor;
+        $player_floor = $tile['location'][5];
+        $player_lower_floor = 'floor'.($player_floor - 1);
+        $player_upper_floor = 'floor'.($player_floor + 1);
         $player_location_arg = $tile['location_arg'];
         $sql = <<<SQL
             SELECT count(*) > 0 as seen
@@ -1008,7 +1008,6 @@ SQL;
             $this->deductTileStealth($player_tile['id'], 'player');
             return;
         }
-
         if ($player_tile['type'] == 'atrium' && $is_player_tile && $this->atriumGuards($player_tile)) {
             $this->deductTileStealth($player_tile['id'], 'player');
             return;
@@ -1032,7 +1031,7 @@ SQL;
             // TODO: Double check Atrium won't deduct twice if guard is also there
             // Deduct stealth if player is on Atrium the floor below or above
             $player_floor = $player_tile['location'][5];
-            if ($tile['location_arg'] == $player_tile['location_arg'] && $player_tile['type'] == 'atrium' 
+            if ($player_tile['type'] == 'atrium' && $tile['location_arg'] == $player_tile['location_arg'] 
                 && abs($player_floor - $guard_floor) == 1) {
                 $this->deductTileStealth($player_tile['id'], 'guard');
             }
@@ -1741,16 +1740,16 @@ SQL;
                 $this->setupGuardToken($guard_token, $floor);
                 $tile_choice = $actions_remaining >= (2 + $action_penalty) || $this->hackOrTrigger($tile);
             }
-        } elseif($type == 'motion') {
+        } elseif ($type == 'motion') {
             if (!$crowbar) {
                 $this->setTileBit('motionTileEntered', $id);
             }
-        } elseif($type == 'laboratory') {
+        } elseif ($type == 'laboratory') {
             $prev_value = $this->setTileBit('laboratoryTileEntered', $id);
             if (!$prev_value) {
                 self::setGameStateValue('drawToolsPlayer', $player_id);
             }
-        } elseif($type == 'detector') {
+        } elseif ($type == 'detector') {
             if (!$crowbar) {
                 $hand = $this->cards->getPlayerHand($player_id);
                 foreach ($hand as $card_id => $card) {
