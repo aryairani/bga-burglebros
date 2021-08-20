@@ -1581,10 +1581,10 @@ SQL;
 
         $type = $tile['type'];
         $tokens = $this->getPlacedTokens(array('hack'));
-        $tiles = $this->tiles->getCardsOfType("$type-computer");
         if (count($tokens) == 0) {
             return FALSE;
         }
+        $tiles = $this->tiles->getCardsOfType("$type-computer");
         $computer_tile = array_values($tiles)[0];
         return isset($tokens[$computer_tile['id']]);
     }
