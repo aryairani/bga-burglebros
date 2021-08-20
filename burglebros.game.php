@@ -1687,7 +1687,8 @@ SQL;
     function handleTileMovement($tile, $player_tile, $player_token, $guard_token, $flipped_this_turn, $context) {
         $id = $tile['id'];
         $type = $tile['type'];
-        $actions_remaining = !in_array($context, array('action', 'acrobat2')) ? 1 : self::getGameStateValue('actionsRemaining');
+        // $actions_remaining = !in_array($context, array('action', 'acrobat2')) ? 1 : self::getGameStateValue('actionsRemaining');
+        $actions_remaining = !in_array($context, array('action')) ? 1 : self::getGameStateValue('actionsRemaining');
         $cancel_move = false;
         $tile_choice = false;
         $tile_choice_id = $id;
@@ -1702,11 +1703,9 @@ SQL;
         }
 
         if ($context == 'acrobat2') {
-            // No FAQ for this, I'm interpreting it as spend 3 actions to move + additional for the tile
             // Taking Tim's answer boardgamegeek.com/thread/1487753/wall-climbing-acrobat-questions
             // Acrobat cannot enter Deadbolt nor use an extra action to disarm Laser
-            // $action_penalty += 2;
-            self::setGameStateValue('actionsRemaining', 0);
+            $action_penalty += 4;
         }
         
         if ($type == 'deadbolt') {
