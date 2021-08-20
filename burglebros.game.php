@@ -1750,7 +1750,7 @@ SQL;
                 self::setGameStateValue('drawToolsPlayer', $player_id);
             }
         } elseif ($type == 'detector') {
-            if (!$crowbar) {
+            if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
                 $hand = $this->cards->getPlayerHand($player_id);
                 foreach ($hand as $card_id => $card) {
                     if ($card['type'] == 1 || $card['type'] == 2) {
