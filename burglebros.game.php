@@ -1790,7 +1790,7 @@ SQL;
                 $exit_id = $player_tile['id'];
                 $motion_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$exit_id'");
                 $motion_entered = self::getGameStateValue('motionTileEntered');
-                if ($motion_entered & $motion_bit) {
+                if ($motion_entered && $motion_bit) {
                     $exiting_choice = $this->hackOrTrigger($player_tile);
                     if ($tile_choice && $exiting_choice) {
                         self::setGameStateValue('motionTileExitChoice', $tile_choice_id);
@@ -1804,7 +1804,7 @@ SQL;
         
             $this->moveToken($player_token['id'], 'tile', $id);
         }
-        if (!$tile_choice && $action_penalty) {
+        if ( (!$tile_choice && $action_penalty) || $context == 'acrobat2' ) {
             self::incGameStateValue('actionsRemaining', -$action_penalty);
         }
         if (!$cancel_move) {
@@ -2484,7 +2484,6 @@ SQL;
             self::notifyAllPlayers('message', clienttranslate('${player_name} used a hack token'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
-            
         } elseif($selected == 2) { // Extra action
             if (!$this->canUseExtraAction($player_id, $tile)) {
                 throw new BgaUserException(self::_('Cannot use an extra action to enter this tile'));
@@ -3268,7 +3267,7 @@ SQL;
             if (in_array($player_tile['location_arg'], array(5, 6, 9, 10))) {
                 throw new BgaUserException(self::_('Must be on an outer tile'));
             }
-            if(self::getGameStateValue('actionsRemaining') < 3) {
+            if (self::getGameStateValue('actionsRemaining') < 3) {
                 throw new BgaUserException(self::_('Must have at least 3 actions'));
             }
             self::setGameStateValue('cardChoice', $character['id']);
