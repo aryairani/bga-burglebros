@@ -885,6 +885,13 @@ SQL;
         $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
         $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
         $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
+        // If alarm on the same tile as the Guard, activate next Patrol
+        if ($guard_tile['id'] === $patrol_tile['id']) {
+            $this->performGuardMovementEffects($guard_token, $guard_tile['id']);
+            $this->nextPatrol($floor);
+            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
+            $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
+        }
 
         $donut_type_id = $this->getCardTypeForName(1, 'donuts');
         $donuts = $this->cards->getCardsOfTypeInLocation(1, $donut_type_id, 'tile', $guard_tile['id']);
