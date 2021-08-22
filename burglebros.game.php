@@ -787,7 +787,7 @@ SQL;
         // Same tile position (location_arg) but one floor up or down
         return $from['type'] == 'atrium' &&
             $to['location_arg'] == $from['location_arg'] &&
-            ($to['location'][5] == $from['location'][5]) == 1 || ($to['location'][5] - $from['location'][5]) == 1;
+            (abs($to['location'][5] - $from['location'][5]) == 1 || abs($to['location'][5] - $from['location'][5]) == 1);
     }
 
     function thermalBombStairsAreAdjacent($to, $from) {
