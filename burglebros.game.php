@@ -2368,6 +2368,7 @@ SQL;
             $add_or_roll = floor($selected_id / 10);
             if ($add_or_roll == 0) {
                 $this->performAddSafeDie($other_tile);
+                self::incGameStateValue('actionsRemaining', -1);
             } else {
                 $this->performSafeDiceRoll($other_tile, TRUE);
             }
@@ -2511,7 +2512,6 @@ SQL;
         $floor = $to_peek['location'][5];
         $flipped = $this->getFlippedTiles($floor);
         $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
-
         if (isset($flipped[$to_peek['id']])) {
             if ($variant == 'effect') {
                 // Tile is already flipped, do nothing
