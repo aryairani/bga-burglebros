@@ -2603,6 +2603,7 @@ SQL;
             throw new BgaUserException(self::_("Safe is already open"));
         }
         $floor = $tile['location'][5];
+        // ZZTODO won't work to handle safe die count by floor with Fort Knox -- append the value on the safe die on the tile
         $die_num = self::getGameStateValue("safeDieCount$floor");
         if ($die_num == 6) {
             throw new BgaUserException(self::_("You cannot add more than 6 die on a safe"));   
@@ -3570,7 +3571,7 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(3, 'squeak');
+            // $type_arg = $this->getCardTypeForName(3, 'go-with-your-gut');
             // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
@@ -3640,6 +3641,7 @@ SQL;
             }
             $this->gamestate->nextState('gameOver');
         } else {
+            // ZTODO Call the new function to clear globals (bug 43189)
             $this->gamestate->nextState('nextPlayer');
         }
     }
@@ -3863,13 +3865,14 @@ SQL;
         if ($type == 'thermo' && self::getGameStateValue('empPlayer') == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
             $this->triggerAlarm($player_tile);
         }
+        if (self::getGameStateValue('acrobatEnteredGuardTile')) {
+            $this->decrementPlayerStealth($current_player_id);
+        }
+        // ZTODO Create a function to cleanup globals
         self::setGameStateValue('invisibleSuitActive', 0);
         self::setGameStateValue('characterAbilityUsed', 0);
         self::setGameStateValue('playerPass', 0);
         self::setGameStateValue('firstAction', 1);
-        if (self::getGameStateValue('acrobatEnteredGuardTile')) {
-            $this->decrementPlayerStealth($current_player_id);
-        }
         self::setGameStateValue('acrobatEnteredGuardTile', 0);
         self::notifyAllPlayers('message', clienttranslate('${player_name} ended their turn'), [
             'player_name' => self::getActivePlayerName()
