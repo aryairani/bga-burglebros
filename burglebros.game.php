@@ -185,7 +185,7 @@ class burglebros extends Table
             $floor_count = $this->getFloorCount();
             $shaft_position = $this->board->getShaftPosition();
             for ($i=1; $i <= $floor_count; $i++) {
-                $ids = array_keys($this->cards->getCardsOfType($i + 3, $shaft_position));
+                $ids = array_keys($this->cards->getCardsOfType($i + 3, $shaft_position + 1)); // card_type_arg == shaft +1
                 $this->cards->moveCards($ids, 'patrol_oop');
             }
         }
