@@ -127,9 +127,11 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'safeDieCount2', 0 );
         self::setGameStateInitialValue( 'safeDieCount3', 0 );
         self::setGameStateInitialValue( 'motionTileEntered', 0x000 ); // Bit vector
-        self::setGameStateInitialValue( 'patrolDieCount1', 2 );
-        self::setGameStateInitialValue( 'patrolDieCount2', 3 );
-        self::setGameStateInitialValue( 'patrolDieCount3', 4 );
+        // Fort Knox starts guard die at 3 on floor 1
+        $intial_guard_die = $this->getGameStateValue('scenario') == 3 ? 3 : 2;
+        self::setGameStateInitialValue( 'patrolDieCount1', $intial_guard_die++ );
+        self::setGameStateInitialValue( 'patrolDieCount2', $intial_guard_die++ );
+        self::setGameStateInitialValue( 'patrolDieCount3', $intial_guard_die );
         self::setGameStateInitialValue( 'laboratoryTileEntered', 0x000 ); // Bit vector
         self::setGameStateInitialValue( 'invisibleSuitActive', 0 );
         self::setGameStateInitialValue( 'empPlayer', 0 );
