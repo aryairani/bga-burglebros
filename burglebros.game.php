@@ -2444,7 +2444,7 @@ SQL;
             $tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $this->pickTokensForTile('thermal', $tile['id']);
             // Can make thermal bomb go to roof
-            if ($selected_id != 4) {
+            if ($selected_id != $this->getFloorCount() + 1) {
                 $other_tile = $this->findTileOnFloor($selected_id, $tile['location_arg']);
                 $this->pickTokensForTile('thermal', $other_tile['id']);
             }
