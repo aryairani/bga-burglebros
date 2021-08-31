@@ -716,6 +716,14 @@ SQL;
         $this->gamestate->nextState('endAction');
     }
 
+    function resetGlobalVars() {
+        self::setGameStateValue('invisibleSuitActive', 0);
+        self::setGameStateValue('characterAbilityUsed', 0);
+        self::setGameStateValue('playerPass', 0);
+        self::setGameStateValue('firstAction', 1);
+        self::setGameStateValue('acrobatEnteredGuardTile', 0);
+    }
+
     function tileAdjacencyDetail($tile, $other_tile, $walls=null) {
         if (!isset($walls)) {
             $walls = $this->getWalls();
@@ -3670,7 +3678,7 @@ SQL;
             }
             $this->gamestate->nextState('gameOver');
         } else {
-            // ZTODO Call the new function to clear globals (bug 43189)
+            $this->resetGlobalVars();
             $this->gamestate->nextState('nextPlayer');
         }
     }
@@ -3899,12 +3907,7 @@ SQL;
         if (self::getGameStateValue('acrobatEnteredGuardTile')) {
             $this->decrementPlayerStealth($current_player_id);
         }
-        // ZTODO Create a function to cleanup globals
-        self::setGameStateValue('invisibleSuitActive', 0);
-        self::setGameStateValue('characterAbilityUsed', 0);
-        self::setGameStateValue('playerPass', 0);
-        self::setGameStateValue('firstAction', 1);
-        self::setGameStateValue('acrobatEnteredGuardTile', 0);
+        $this->resetGlobalVars();
         self::notifyAllPlayers('message', clienttranslate('${player_name} ended their turn'), [
             'player_name' => self::getActivePlayerName()
         ]);
