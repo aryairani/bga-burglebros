@@ -200,6 +200,11 @@ class burglebros extends Table
             $tokens [] = array('type' => 'patrol', 'type_arg' => $floor, 'nbr' => 1);
             $tokens [] = array('type' => 'crack', 'type_arg' => $floor, 'nbr' => 1);    # when a first die is added on the safe
         }
+        // Fort Knox, create other tokens for the third safe
+        if ($this->getGameStateValue('scenario') == 3) {
+            $tokens [] = array('type' => 'crack', 'type_arg' => 1, 'nbr' => 1);
+            $tokens [] = array('type' => 'crack', 'type_arg' => 2, 'nbr' => 1);
+        }
         $tokens [] = array('type' => 'hack', 'type_arg' => 0, 'nbr' => 19);
         $tokens [] = array('type' => 'safe', 'type_arg' => 0, 'nbr' => 22); # when a tile is validated by a safe roll
         // $tokens [] = array('type' => 'die', 'type_arg' => 0, 'nbr' => 21);  # store die values when rolling (handle stethoscope)
@@ -578,14 +583,13 @@ class burglebros extends Table
 
     function getSafeDie($tile_id) {
         // Get Safe die count, by $floor for standard scenarios (1 safe per floor) or else by $tile_id of the safe
-        // ZZTODO
         // if ($floor === null) {
             $sql = "SELECT card_id, safe_die FROM tile WHERE card_id=$tile_id";
         // } else {
             // $sql = "SELECT card_id, safe_die FROM tile WHERE card_type='safe' AND card_location='floor$floor'";
         // }
         $result = self::getObjectFromDB($sql);
-        if (count($result) > 0) {
+        if ($result && count($result) > 0) {
             return $result['safe_die'];
         } else {
             return 0;
@@ -2641,18 +2645,17 @@ SQL;
             throw new BgaUserException(self::_("Safe is already open"));
         }
         $floor = $tile['location'][5];
-        // ZZTODO won't work to handle safe die count by floor with Fort Knox -- append the value on the safe die on the tile
-        // $die_num = self::getGameStateValue("safeDieCount$floor");
         $die_num = $this->getSafeDie($tile['id']);
         if ($die_num == 6) {
             throw new BgaUserException(self::_("You cannot add more than 6 die on a safe"));   
         }
-        $safe_token = array_values($this->tokens->getCardsOfType('crack', $floor))[0];
-        if ($safe_token['location'] != 'tile') {
+        $safe_token = array_values($this->tokens->getCardsOfTypeInLocation('crack', null, 'tile', $tile['id']));
+        if (count($safe_token) > 0) {
+            $safe_token = $safe_token[0];
+        } else {
+            $safe_token = array_values($this->tokens->getCardsOfTypeInLocation('crack', $floor, 'deck'))[0];
             $this->moveToken($safe_token['id'], 'tile', $tile['id']);
-            $safe_token = array_values($this->tokens->getCardsOfType('crack', $floor))[0];
         }
-        // $die_num = self::incGameStateValue("safeDieCount$floor", 1);
         $this->setSafeDie(++$die_num, $tile['id']);
         self::notifyAllPlayers('safeDieIncreased', '', array(
             'die_num' => $die_num,
