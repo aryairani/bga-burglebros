@@ -3860,6 +3860,7 @@ SQL;
         if ($draw_tools_player_id == 0) {
             $this->gamestate->nextState($next_state);
         } else if ($draw_tools_player_id != 0 && !$draw_two) {
+            self::setGameStateValue('undoAllowed', 0);
             self::setGameStateValue('drawToolsPlayer', 0);
             $this->reshuffleDeckIfEmpty('tools');
             $card = $this->cards->pickCard('tools_deck', $current_player_id);
@@ -3872,6 +3873,7 @@ SQL;
             $this->notifyPlayerHand($current_player_id);
             $this->gamestate->nextState($next_state);
         } else {
+            self::setGameStateValue('undoAllowed', 0);
             self::setGameStateValue('drawToolsPlayer', 0);
             if ($draw_tools_player_id != $current_player_id) {
                 self::setGameStateValue('drawToolsNextPlayer', $current_player_id);
