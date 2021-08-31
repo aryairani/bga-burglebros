@@ -708,7 +708,7 @@ function (dojo, declare) {
         createSafeToken: function(token, die_num) {
             var div_id = 'crack_token_' + token.id;
             if ($(div_id)) {
-                $(div_id).innerText = die_num;
+                $(div_id).innerText = 'x' + die_num;
             } else {
                 dojo.place(this.format_block('jstpl_safe_die', {
                     token_id : token.id,
