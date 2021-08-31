@@ -112,8 +112,8 @@ $game_options = array(
                         'description' => totranslate('Beginners\' layout (2 floors of 4x4 grid)')
                     ),
                     3 => array(
-                        'name' => totranslate('[DEV] The Fort Knox Job'),
-                        'description' => totranslate('(NOT WORKING YET) Veterans\' layout (2 floors of 5x5 grid)')
+                        'name' => totranslate('The Fort Knox Job'),
+                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid)')
                     ),
                 ),
         'default' => 1,
