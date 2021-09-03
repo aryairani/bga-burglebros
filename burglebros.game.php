@@ -2859,7 +2859,8 @@ SQL;
             }
         } else if($type == 'acrobat2') {
             $player_tile = $this->getPlayerTile($current_player_id);
-            if (in_array($player_tile['location_arg'], array(5, 6, 9, 10))) {
+            $inner_tiles = $this->getGameStateValue('scenario') == 3 ? array(6, 7, 8, 11, 12, 13, 16, 17, 18):array(5, 6, 9, 10);
+            if (in_array($player_tile['location_arg'], $inner_tiles)) {
                 return FALSE;
             }
             if(self::getGameStateValue('actionsRemaining') < 3) {
@@ -3312,7 +3313,8 @@ SQL;
             throw new BgaUserException(self::_('Character action can be used once per turn'));
         } else if($type == 'acrobat2') {
             $player_tile = $this->getPlayerTile($current_player_id);
-            if (in_array($player_tile['location_arg'], array(5, 6, 9, 10))) {
+            $inner_tiles = $this->getGameStateValue('scenario') == 3 ? array(6, 7, 8, 11, 12, 13, 16, 17, 18):array(5, 6, 9, 10);
+            if (in_array($player_tile['location_arg'], $inner_tiles) ) {
                 throw new BgaUserException(self::_('Must be on an outer tile'));
             }
             if (self::getGameStateValue('actionsRemaining') < 3) {
