@@ -274,8 +274,8 @@ function (dojo, declare) {
                     for (i in args.args.rolls) {
                         rolls.push(args.args.rolls[i].type_arg);
                     }
-                    if ($("rolled_dice_1") === null) {
-                        this.createDice('safe', 'safe', rolls, false);
+                    if ($("rolled_dice_stethoscope") === null) {
+                        this.createDice('safe', 'safe', rolls, true);
                     }
                     this.setupStethoscope(rolls);
                 }
@@ -551,7 +551,7 @@ function (dojo, declare) {
         },
 
         playTileOnTable: function(floor, tile) {
-            console.log('playTileOnTable', tile.type, tile.type != 'shaft');
+            // console.log('playTileOnTable', tile.type, tile.type != 'shaft');
             var div_id = 'tile_' + tile.id,
                 preview_div_id = 'tile_' + tile.id + '_preview';
             if ($(div_id)) {
@@ -1388,9 +1388,21 @@ function (dojo, declare) {
             });
         },
 
-        createDice: function(type, token_type, rolls, bSetTimeout = true) {
-            var wrapper_id = 'rolled_dice_' + ++this.diceRolls;
-            dojo.place('<div id="'+wrapper_id+'" class="rolled_dice hidden_animated"></div>', 'rolled_dice');
+        createDice: function(type, token_type, rolls, bStethoscope = false) {
+            // Do not display dice if player preference is No
+            if (!bStethoscope && this.prefs[100].value == 2)
+                return;
+            if (bStethoscope) {
+                $('temp_notify').innerHTML = '';
+                var rolls_id = 'rolled_dice_stethoscope';
+                var container = 'maintitlebar_content';
+            } else {
+                var rolls_id = 'rolled_dice_' + ++this.diceRolls;
+                var container = 'temp_notify';
+            }
+            dojo.place(this.format_block('jstpl_notification', {
+                    id : rolls_id,
+                }), container);
             // Add a token before the dice to illustrate the dice roll
             if (token_type in this.gamedatas.token_types) {
                 var token = {
@@ -1398,35 +1410,34 @@ function (dojo, declare) {
                     type: token_type,
                     letter: '' // not used
                 }
-                this.createGenericToken(token, wrapper_id);
+                this.createGenericToken(token, rolls_id);
             }
+            // Create each die result icon
             for (id in rolls) {
-                console.log("rolls", rolls, rolls[id]);
                 dojo.place(this.format_block('jstpl_die', {
                     die_id : 'die_' + id + '_' + rolls[id],
                     die_value : rolls[id],
                     die_color : this.diceColors[type],
-                }), wrapper_id);
+                }), rolls_id);
             }
-            this.displayElement('temp_display');
-            this.displayElement(wrapper_id);
-            dojo.removeClass('rolled_dice_wrapper', 'hidden');
-            if (bSetTimeout) {
+            var wrapper = $(rolls_id).parentNode;
+            this.displayElement(wrapper);
+            if (!bStethoscope) {
+                // Show the close button and binnd the hiding event
+                var close_button = wrapper.querySelector('.close_button');
+                dojo.removeClass(close_button, 'hidden');
+                dojo.connect(close_button, 'onclick', this, function(evt){
+                    evt.preventDefault();
+                    this.hideElement(wrapper);
+                    this.fadeOutAndDestroy(wrapper);  
+                } );
+                // Hide the dice after a few seconds
                 this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
-                    var node = $("rolled_dice").firstElementChild;
-                    if (node) {
-                        this.hideElement(node);
-                        this.fadeOutAndDestroy(node);                        
+                    if (wrapper) {
+                        this.hideElement(wrapper);
+                        this.fadeOutAndDestroy(wrapper);                        
                     }
-                    // Hide wrapper if this was the last dice roll
-                    if (--this.diceRolls <= 0)
-                        this.hideElement('temp_display');
-                    // Add a guarantee to hide temporary display
-                    setTimeout( dojo.hitch(this, function() {
-                        if ($('rolled_dice').innerHTML === "")
-                            this.hideElement('temp_display');
-                    }), 1000);
-                }), 5000 );
+                }), 4000 );
             }
         },
         setupStethoscope: function(rolls) {
@@ -1434,7 +1445,7 @@ function (dojo, declare) {
             for (id in rolls) {
                 this.connect($('die_' + id + '_' + rolls[id]), 'onclick', 'selectDie');
             }
-            dojo.place( '<div style="display:block;position:relative;width:100%;" id="dice_choice" class="hidden_animated rolled_dice"></div>', 'rolled_dice')
+            dojo.place( '<div style="display:block;position:relative;width:100%;" id="dice_choice" class="hidden_animated rolled_dice"></div>', 'rolled_dice_stethoscope')
             for (var i = 1; i <= 6; i++) {
                 dojo.place(this.format_block('jstpl_die', {
                     die_id : 'alternative_die_' + i,
@@ -1671,7 +1682,12 @@ function (dojo, declare) {
         },
 
         handleCancelCardChoice: function() {
+            // console.log('cancelCardChoice');
             if (this.checkAction('cancelCardChoice')) {
+                var stethoscope = $('wrapper_rolled_dice_stethoscope');
+                if (stethoscope) {
+                    dojo.destroy(stethoscope);
+                }
                 this.myHand.unselectAll();
                 this.ajaxcall('/burglebros/burglebros/cancelCardChoice.html', { lock: true }, this, console.log, console.error);
             }
@@ -1685,6 +1701,8 @@ function (dojo, declare) {
                 // Push old value first then new value
                 ids.push( dojo.query('.icon_die.selected')[0].id.split('_').pop() );
                 ids.push( e.target.id.split('_').pop() );
+                this.hideElement('wrapper_rolled_dice_stethoscope');
+                this.fadeOutAndDestroy('wrapper_rolled_dice_stethoscope');
             }
             this.handleCardChoiceButton(ids.join(";"), null);
         },
@@ -1835,19 +1853,17 @@ function (dojo, declare) {
             this.showFloor(floor);
             this.playTileOnTable(floor, tile);
             this.undo_allowed = notif.args.undo_allowed;
-            console.log('undo', this.undo_allowed == 0, $('button_undo'));
             if (this.undo_allowed == 0 && $('button_undo') != null) {
-                console.log("yes destroy");
                 this.fadeOutAndDestroy('button_undo');
             }
         },
 
         notif_nextPatrol: function(notif) {
+            console.log('notif next patrol', notif.args);
             var deck = 'patrol' + notif.args.floor + '_discard';
             var floor = notif.args.floor;
             this.gamedatas[deck] = notif.args.cards;
             this.gamedatas[deck + '_top'] = notif.args.top;
-            console.log('notif next patrol', notif.args);
             this.showFloor(floor);
             this.loadPatrolDiscard(floor, notif.args.top);
             this.patrolCounters[floor].toValue(notif.args.deck_count);
@@ -1913,7 +1929,7 @@ function (dojo, declare) {
             }
             // console.log("type", type);
             var rolls = notif.args.rolls;
-            this.createDice(type, token_type, rolls, true);
+            this.createDice(type, token_type, rolls, false);
         },
 
         notif_patrolDieIncreased: function(notif) {

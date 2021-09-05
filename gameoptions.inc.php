@@ -135,4 +135,21 @@ $game_options = array(
     )
 );
 
+$game_preferences = array(
+    100 => array(
+            'name' => totranslate('Display dice result'),
+            'needReload' => false,
+            'values' => array(
+                1 => array( 
+                    'name' => totranslate( 'Yes' ),
+                    'description' => totranslate('Show the dice result on top of the window (safe, keypad, chihuahua, Persian Cat')
+                ),
+                2 => array( 
+                    'name' => totranslate( 'No' ),
+                    'description' => totranslate('Show the dice result only in the logs')  
+                )
+            )
+    ),
+);
+
 

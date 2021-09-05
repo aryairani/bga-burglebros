@@ -58,7 +58,7 @@ $this->card_info = array(
     array('name'=>'makeup-kit', 'title' => clienttranslate('Makeup Kit'), 'tooltip' => clienttranslate('Discard to give all players on your current tile a Stealth token.')),
     array('name'=>'rollerskates', 'title' => clienttranslate('Rollerskates'), 'tooltip' => clienttranslate('Discard to gain two additional actions this turn.')),
     array('name'=>'smoke-bomb', 'title' => clienttranslate('Smoke Bomb'), 'tooltip' => clienttranslate('Discard to add three Stealth tokens to the current tile. These tokens may only be used in this room.')),
-    array('name'=>'stethoscope', 'choice_description' => self::_('the die you want to change (click on the die)'), 'title' => clienttranslate('Stethoscope'), 'tooltip' => clienttranslate('Discard after a cracking attempt to change the result of any one die to any side you wish.')),
+    array('name'=>'stethoscope', 'choice_description' => self::_('the die you want to change (click on the die) or'), 'title' => clienttranslate('Stethoscope'), 'tooltip' => clienttranslate('Discard after a cracking attempt to change the result of any one die to any side you wish.')),
     array('name'=>'thermal-bomb', 'choice_description' => self::_('up or down to create stairs'), 'title' => clienttranslate('Thermal Bomb'), 'tooltip' => clienttranslate('Discard to make stairs up or down from current tile. Mark with a stair token. Trigger alarm in the player current\'s tile.')),
     array('name'=>'virus', 'choice_description' => self::_('a computer to add hack tokens'), 'title' => clienttranslate('Virus'), 'tooltip' => clienttranslate('Discard to add three hack tokens to any computer room.')),
   ),

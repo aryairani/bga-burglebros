@@ -116,6 +116,36 @@
     margin: 0px !important;     /* reset whiteblock margin and padding */
     transition: all 0.8s;
 }
+#temp_notify {
+    position: fixed;
+    top: 70px;
+    width: 100%;
+    /*background: rgba(0,0,0,.6);*/
+    overflow: hidden;
+    z-index: 1;
+}
+.bb_notif_wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    border-radius: 8px;
+    margin-bottom: 10px !important;
+}
+.bb_notif:before{
+    display:block;
+    margin-top:15px; 
+}
+.close_button {
+    font-weight: bold;
+    line-height: 20px;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
 .crystal_ball_card {
     cursor: pointer;
 }

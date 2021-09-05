@@ -25,16 +25,17 @@
     Please REMOVE this comment before publishing your game on BGA
 -->
 
+<div id="temp_notify"></div>
 <div id="myhand_wrap" class="whiteblock">
     <h3>{MY_HAND}</h3>
     <div id="myhand">
     </div>
 </div>
 <div id="temp_display" class="hidden_animated whiteblock">
-    <div id="rolled_dice_wrapper" class="hidden">
+<!--     <div id="rolled_dice_wrapper" class="hidden">
         <h3>{DICE_ROLLED_TITLE}</h3>
         <div id="rolled_dice"></div>
-    </div>
+    </div> -->
     <div id="spotter_card_wrapper" class="hidden">
         <h3>{SPOTTER_TITLE}</h3>
         <div id="spotter_card"></div>
@@ -227,7 +228,8 @@ var jstpl_die = '<div class="icon_die icon_die_${die_value} icon_die_${die_color
 
 var jstpl_path_line = '<line id="path_preview_floor${floor}_position${position}" class="path_in" x1=${x1} y1=${y1} x2=${x2} y2=${y2} />';
 var jstpl_path_circle = '<circle id="guard_preview_floor${floor}" cx=${cx} cy=${cy} r="5" />';
-// var jstpl_path_circle = '<circle cx=${cx} cy=${cy}><animate attributeName="x2" attributeType="XML" from="10" to="90" dur="4s" repeatCount="indefinite"/></circle>';
+
+var jstpl_notification = '<div id="wrapper_${id}" class="bb_notif_wrapper hidden_animated whiteblock"><div id="${id}" class="bb_notif rolled_dice"></div><div id="close_${id}" class="close_button hidden">X</div></div>';
 </script>  
 
 {OVERALL_GAME_FOOTER}
