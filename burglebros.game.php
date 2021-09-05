@@ -3698,6 +3698,9 @@ SQL;
             $this->gamestate->nextState('gameOver');
         } else {
             $this->resetGlobalVars();
+            if (self::getGameStateValue('empPlayer') == $current_player_id) {
+                self::setGameStateValue('empPlayer', 0);
+            }
             $this->gamestate->nextState('nextPlayer');
         }
     }
