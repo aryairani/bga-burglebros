@@ -1361,11 +1361,18 @@ SQL;
             throw new BgaUserException(self::_("You have not added any dice"));
         }
 
+        // Check player holding the keycard is rolling
         $keycard = $this->getPlayerLoot('keycard');
         if ($keycard) {
             $keycard_holder = $this->getPlayerToken($keycard['location_arg']);
+            // This is advanced Peterman ($drop_loot === TRUE), check he has the keycard
             if ($keycard_holder['location_arg'] != $safe_tile['id']) {
-                throw new BgaUserException(self::_("The player holding the keycard must be present"));
+                if ( $drop_loot ) {
+                    if (!$this->getPlayerCharacter($keycard_holder['type_arg'], 'peterman2'))
+                        throw new BgaUserException(self::_("The player holding the keycard must be present"));
+                } else {
+                    throw new BgaUserException(self::_("The player holding the keycard must be present"));        
+                }
             }
         }
         $rolls = $this->rollDice($dice_count);
