@@ -582,12 +582,8 @@ class burglebros extends Table
     }
 
     function getSafeDie($tile_id) {
-        // Get Safe die count, by $floor for standard scenarios (1 safe per floor) or else by $tile_id of the safe
-        // if ($floor === null) {
-            $sql = "SELECT card_id, safe_die FROM tile WHERE card_id=$tile_id";
-        // } else {
-            // $sql = "SELECT card_id, safe_die FROM tile WHERE card_type='safe' AND card_location='floor$floor'";
-        // }
+        // Get Safe die count
+        $sql = "SELECT card_id, safe_die FROM tile WHERE card_id=$tile_id";
         $result = self::getObjectFromDB($sql);
         if ($result && count($result) > 0) {
             return $result['safe_die'];
@@ -597,12 +593,18 @@ class burglebros extends Table
     }
 
     function setSafeDie($die_value, $tile_id, $floor = null) {
-        // if ($floor === null) {
-            $sql = "UPDATE tile SET safe_die=$die_value WHERE card_id=$tile_id";
-        // } else {
-        //     $sql = "UPDATE tile SET safe_die=$die_value WHERE card_type='safe' AND card_location='floor$floor'";
-        // }
-        return self::DbQuery($sql);
+        return self::DbQuery("UPDATE tile SET safe_die=$die_value WHERE card_id=$tile_id");
+    }
+
+    function getSafeToken($tile_id) {
+        // Get Safe crack token
+        $sql = "SELECT card_id FROM token WHERE card_type='crack' AND card_location='tile' AND card_location_arg=$tile_id";
+        $result = self::getObjectFromDB($sql);
+        if ($result && count($result) > 0) {
+            return $result['card_id'];
+        } else {
+            return 0;
+        }
     }
 
     function getFloorAlarmTiles($floor) {
@@ -1464,9 +1466,10 @@ SQL;
                 'player_name' => self::getCurrentPlayerName()
             ]);
 
-            $safe_token = array_values($this->tokens->getCardsOfType('crack', $floor))[0];
-            if ($safe_token['location'] == 'tile') {
-                $this->moveToken($safe_token['id'], 'deck');
+            // $safe_token = array_values($this->tokens->getCardsOfType('crack', $floor))[0];
+            $safe_token_id = $this->getSafeToken($safe_tile['id']);
+            if ($safe_token_id > 0) {
+                $this->moveToken($safe_token_id, 'deck');
             }
             for ($lower_floor=$floor; $lower_floor >= 1; $lower_floor--) { 
                 $die_count = self::getGameStateValue("patrolDieCount$lower_floor");
