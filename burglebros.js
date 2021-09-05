@@ -247,7 +247,9 @@ function (dojo, declare) {
                 this.showFloor(this.currentFloor());
                 break;
             case 'chooseCharacter':
-                this.loadPlayerHand(this.myHand, args.args.cards, [], false);
+                // If hand is already loaded, don't reload because it adds extra cards on [random walls x random w/ advanced]
+                if (this.myHand.count() == 0)
+                    this.loadPlayerHand(this.myHand, args.args.cards, [], false);
                 break;
             case 'cardChoice':
                 if (args.args.spotter_card && (this.isCardChoice('spotter1') || this.isCardChoice('spotter2'))) {
