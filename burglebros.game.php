@@ -2462,7 +2462,9 @@ SQL;
                 $other_tile = $this->findTileOnFloor($selected_id, $tile['location_arg']);
                 $this->pickTokensForTile('thermal', $other_tile['id']);
             }
-            $this->triggerAlarm($tile, FALSE, TRUE);
+            if (self::getGameStateValue('empPlayer') == 0) {
+                $this->triggerAlarm($tile, FALSE, TRUE);
+            }
         } elseif ($type == 'virus') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
