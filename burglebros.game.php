@@ -62,6 +62,8 @@ class burglebros extends Table
             'playerPass' => 34,
             'dropLoot' => 35,
             'undoAllowed' => 36,
+            'rookDestinationTile' => 37,
+            'currentPlayer' => 38,
 
             // Options
             'characterAssignment' => 100,
@@ -149,6 +151,8 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'playerPass', 0 );
         self::setGameStateInitialValue( 'dropLoot', 0 );
         self::setGameStateInitialValue( 'undoAllowed', 0 );
+        self::setGameStateInitialValue( 'rookDestinationTile', 0 );
+        self::setGameStateInitialValue( 'currentPlayer', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -1718,7 +1722,7 @@ SQL;
 
     function notifyMovement($player_id, $tile, $context='move') {
         $floor = $tile['location'][5];
-        $action = 'moved to';
+        $action = clienttranslate('moves to');
         $reason = null;
         if ($context == 'deadbolt') {
             $action = 'stayed in';
@@ -1732,7 +1736,7 @@ SQL;
         }
         $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
         $tile_name = $patrol_names[$tile['location_arg']]['name'];
-        $msg = '${player_name} '.$action." tile $tile_name on floor $floor";
+        $msg = '${player_name} '.$action.clienttranslate(" tile $tile_name on floor $floor");
         if (!is_null($reason)) {
             $msg .= ' because they '.$reason;
         }
@@ -2794,19 +2798,16 @@ SQL;
 
     function handleSelectSpecialChoice($type, $choice_arg, $selected) {
         if ($type == 'rook1') {
-            $player_token = $this->getPlayerToken($choice_arg);
-            $tile_choice = $this->performMove($selected, 'rook1', $choice_arg);
-            if (self::getGameStateValue('stealthDepleted')) {
-                $this->gamestate->nextState('gameOver');
-            } else if ($tile_choice) {
-                self::setGameStateValue('tileChoice', $tile_choice);
-                $this->gamestate->nextState('tileChoice');
-            } else {
-                $this->endAction();
-            }
-            self::setGameStateValue('characterAbilityUsed', 1);
-            $current_player_id = self::getCurrentPlayerId();
-            self::incStat(1, 'special_ability_use', $current_player_id);
+            // Must switch to another state to ask chosen player confirmation
+            self::setGameStateValue('currentPlayer', self::getCurrentPlayerId());
+            // Must store tile_choice destination
+            self::setGameStateValue('rookDestinationTile', $selected);
+            $players = self::loadPlayersBasicInfos();
+            self::notifyAllPlayers('message', clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
+                'player_name' => self::getActivePlayerName(),
+                'other_name' => $players[$choice_arg]['player_name'],
+            ]);        
+            $this->gamestate->nextState('switchRookMove');
         } else if ($type == 'rigger') {
             $tool = $this->cards->getCard($choice_arg);
         }
@@ -3542,8 +3543,7 @@ SQL;
                 $this->notifyPlayerHand($current_player_id);
             }
         }
-        $next_player = self::getGameStateValue('drawToolsNextPlayer') || $current_player_id;
-        if ($next_player != $current_player_id) {
+        if (self::getGameStateValue('drawToolsNextPlayer') != $current_player_id) {
             $this->gamestate->nextState('drawToolsOtherPlayer');
         } else {
             if (self::getGameStateValue('playerPass') == 0) {
@@ -3601,6 +3601,39 @@ SQL;
     function cancelTakeCards() {
         self::checkAction('cancelTakeCards');
         $this->gamestate->nextState('nextAction');
+    }
+
+    function confirmRookMove() {
+        // Player confirmed the Rook movement
+        self::setGameStateValue('characterAbilityUsed', 1);
+        $current_player_id = self::getGameStateValue('currentPlayer');
+        self::incStat(1, 'special_ability_use', $current_player_id);
+        self::notifyAllPlayers('message', clienttranslate('${player_name} accepts the move'), [
+            'player_name' => self::getActivePlayerName(),
+        ]);
+
+        $choice_arg = self::getGameStateValue('specialChoiceArg');
+        $selected = self::getGameStateValue('rookDestinationTile');
+        self::setGameStateValue('rookDestinationTile', 0);
+        $player_token = $this->getPlayerToken($choice_arg);
+        $tile_choice = $this->performMove($selected, 'rook1', $choice_arg);
+        if (self::getGameStateValue('stealthDepleted')) {
+            $this->gamestate->nextState('gameOver');
+        } else if ($tile_choice) {
+            self::setGameStateValue('tileChoice', $tile_choice);
+            $this->gamestate->nextState('tileChoice');
+        } else {
+            $this->gamestate->nextState('switchRookMove');
+        }
+    }
+
+    function cancelRookMove() {
+        self::checkAction('cancelRookMove');
+        self::notifyAllPlayers('message', clienttranslate('${player_name} cancels the move'), [
+            'player_name' => self::getActivePlayerName(),
+        ]);
+        self::setGameStateValue('rookDestinationTile', -1);
+        $this->gamestate->nextState('switchRookMove');
     }
 
     function pickUpCat() {
@@ -3747,6 +3780,23 @@ SQL;
         return $this->gatherCurrentData(self::getActivePlayerId());
     }
 
+    function argConfirmRookMove() {
+        $destination_id = self::getGameStateValue('rookDestinationTile');
+        if ($destination_id > 0) {
+            $tile = $this->tiles->getCard($destination_id);
+            $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+            $destination_name = $patrol_names[$tile['location_arg']]['name'];
+            return array(
+                'destination_id' => $destination_id,
+                'destination_name' => $destination_name,
+                'floor' => $tile['location'][5],
+                'undo_allowed' => 0,
+            );
+        } else {
+            return array();
+        }
+    }
+
     function argCardChoice() {
         $current_player_id = self::getActivePlayerId();
         $args = $this->gatherCurrentData($current_player_id);
@@ -3883,7 +3933,7 @@ SQL;
     }
 
     function stEndAction() {
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = self::getActivePlayerId();
         $draw_tools_player_id = self::getGameStateValue('drawToolsPlayer');
         $draw_two = $this->showRiggerToolSelection();
         $next_state = self::getGameStateValue('playerPass') == 1 ? 'endTurn' : 'nextAction';
@@ -4083,6 +4133,26 @@ SQL;
         $this->gamestate->changeActivePlayer( $trade['current_player'] );
         $this->deleteTrade();
         $this->gamestate->nextState( 'nextAction' );
+    }
+
+    function stSwitchRookMove() {
+        // Switch active player between Rook and chosen player who must accept move / draw tools if laboratory...
+        $destination_tile = self::getGameStateValue('rookDestinationTile');
+        if ($destination_tile > 0) {
+            // Activate other player
+            $player_id = self::getGameStateValue('specialChoiceArg');
+            $this->gamestate->changeActivePlayer( $player_id );
+            $this->gamestate->nextState( 'confirmRookMove' );
+        } else { // Activate Rook
+            $player_id = self::getGameStateValue('currentPlayer');
+            $this->gamestate->changeActivePlayer( $player_id );
+            if ($destination_tile == -1) { // other player cancelled the move
+                self::setGameStateValue('rookDestinationTile', 0);
+                $this->endAction(0);
+            } else {
+                $this->endAction();
+            }
+        }
     }
 
     function stDrawToolsOtherPlayer() {

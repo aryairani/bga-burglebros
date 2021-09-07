@@ -163,6 +163,18 @@
       self::ajaxResponse();
     }
 
+    public function confirmRookMove() {
+      self::setAjaxMode();
+      $this->game->confirmRookMove();
+      self::ajaxResponse();
+    }
+
+    public function cancelRookMove() {
+      self::setAjaxMode();
+      $this->game->cancelRookMove();
+      self::ajaxResponse();
+    }
+
     public function cancelTrade() {
       self::setAjaxMode();
       $this->game->cancelTrade();

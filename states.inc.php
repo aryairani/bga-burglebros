@@ -101,7 +101,7 @@ $machinestates = array(
         'args' => 'argPlayerTurn',
         'updateGameProgression' => true,
         'possibleactions' => array( 'hack', 'move', 'peek', 'addSafeDie', 'rollSafeDice', 'playCard', 'characterAction', 'trade', 'pickUpCat', 'takeCards', 'pass', 'escape', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'endTurn' => 10, 'nextPlayer' => 12, 'cardChoice' => 13, 'tileChoice' => 14, 'playerChoice' => 15, 'proposeTrade' => 16, 'takeCards' => 24, 'specialChoice' => 20, 'restartTurn' => 9, 'gameOver' => 90 )
+        'transitions' => array( 'endAction' => 21, 'endTurn' => 10, 'nextPlayer' => 12, 'cardChoice' => 13, 'tileChoice' => 14, 'playerChoice' => 15, 'proposeTrade' => 16, 'takeCards' => 24, 'specialChoice' => 20, 'rookChoice' => 25, 'restartTurn' => 9, 'gameOver' => 90 )
     ),    
 
     10 => array(
@@ -149,7 +149,7 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argTileChoice',
         'possibleactions' => array( 'selectTileChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10 )
+        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10, 'endRookMove' => 25 )
     ),
 
     15 => array(
@@ -206,7 +206,7 @@ $machinestates = array(
         'args' => 'argSpecialChoice',
         'updateGameProgression' => true,
         'possibleactions' => array( 'selectSpecialChoice', 'cancelSpecialChoice' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'tileChoice' => 14, 'gameOver' => 90 )
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'tileChoice' => 14, 'switchRookMove' => 25, 'gameOver' => 90 )
     ),
 
     21 => array(
@@ -243,6 +243,24 @@ $machinestates = array(
         'args' => 'argPlayerTurn',
         'possibleactions' => array( 'confirmTakeCards', 'cancelTakeCards' ),
         'transitions' => array( 'endAction' => 21, 'nextAction' => 9 )
+    ),
+
+    25 => array(
+        'name' => 'switchRookMove',
+        'description' => '',
+        'type' => 'game',
+        'action' => 'stSwitchRookMove',
+        'transitions' => array( 'confirmRookMove' => 26, 'endAction' => 21 )
+    ),
+
+    26 => array(
+        'name' => 'confirmRookMove',
+        'description' => clienttranslate('${actplayer} must confirm The Rook move'),
+        'descriptionmyturn' => clienttranslate('The Rook wants to move you to ${destination_name} on floor ${floor}'),
+        'type' => 'activeplayer',
+        'args' => 'argConfirmRookMove',
+        'possibleactions' => array( 'confirmRookMove', 'cancelRookMove' ),
+        'transitions' => array( 'switchRookMove' => 25, 'gameOver' => 90, 'tileChoice' => 14 )
     ),
     
     90 => array(

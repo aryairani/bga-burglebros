@@ -352,11 +352,8 @@ function (dojo, declare) {
                 {
                     case 'randomizeWalls':
                         this.addActionButton( 'randomize_all', _('Randomize walls on all the floors'), dojo.hitch(this, 'randomizeWalls', 'all'), null, null, 'gray' );
-                        // Cannot randomize only one floor on Fort Knox because the Shaft is updated on each floor
-                        if (this.gamedatas.square_size !== 5) {
-                            for (var i = 1; i <= this.gamedatas.floor_count; i++) {
-                                this.addActionButton( 'randomize_' + i, _('Randomize walls on floor ' + i), dojo.hitch(this, 'randomizeWalls', i), null, null, 'gray' );
-                            }                            
+                        for (var i = 1; i <= this.gamedatas.floor_count; i++) {
+                            this.addActionButton( 'randomize_' + i, _('Randomize walls on floor ' + i), dojo.hitch(this, 'randomizeWalls', i), null, null, 'gray' );
                         }
                         this.addActionButton( 'confirm_walls', _('Start the game'), dojo.hitch(this, 'randomizeWalls', 'start') );
                         break;
@@ -463,6 +460,10 @@ function (dojo, declare) {
                     case 'proposeTrade':
                     case 'confirmTrade':
                         this.addActionButton('button_cancel', _('Cancel Trade'), 'handleCancelTrade');
+                        break;
+                    case 'confirmRookMove':
+                        this.addActionButton('button_confirm', _('Confirm move'), 'handleConfirmRookMove');
+                        this.addActionButton('button_cancel', _('Cancel move'), 'handleCancelRookMove');
                         break;
                     case 'specialChoice':
                         this.addActionButton('button_cancel', _('Cancel'), 'handleCancelSpecialChoice');
@@ -1439,7 +1440,7 @@ function (dojo, declare) {
                         this.hideElement(wrapper);
                         this.fadeOutAndDestroy(wrapper);                        
                     }
-                }), 4000 );
+                }), 5000 );
             }
         },
         setupStethoscope: function(rolls) {
@@ -1734,6 +1735,20 @@ function (dojo, declare) {
             console.log("handlePlayerChoice", player_id);
             if (this.checkAction('selectPlayerChoice')) {
                 this.ajaxcall('/burglebros/burglebros/selectPlayerChoice.html', { lock: true, selected: player_id }, this, console.log, console.error);
+            }
+        },
+
+        handleConfirmRookMove: function() {
+            console.log("handleConfirmRookMove");
+            if (this.checkAction('confirmRookMove')) {
+                this.ajaxcall('/burglebros/burglebros/confirmRookMove.html', { lock: true }, this, console.log, console.error);
+            }
+        },
+
+        handleCancelRookMove: function() {
+            console.log("handleCancelRookMove");
+            if (this.checkAction('cancelRookMove')) {
+                this.ajaxcall('/burglebros/burglebros/cancelRookMove.html', { lock: true }, this, console.log, console.error);
             }
         },
 
