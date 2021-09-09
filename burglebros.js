@@ -282,25 +282,28 @@ function (dojo, declare) {
                     this.setupStethoscope(rolls);
                 }
                 break;
-            
             case 'proposeTrade':
                 if (this.isCurrentPlayerActive()) {
                     this.proposeTrade(args.args);
                 }
                 break;
-
             case 'confirmTrade':
                 if (this.isCurrentPlayerActive()) {
                     this.confirmTrade(args.args);
                 }
                 break;
-            
+            case 'confirmRookMove':
+                var tile_id = 'tile_' + args.args.destination_id;
+                if ($(tile_id)) {
+                    dojo.addClass(tile_id, 'highlight');
+                }
+                this.showFloor(args.args.floor);
+                break;
             case 'drawToolsAndDiscard':
                 if (this.isCurrentPlayerActive()) {
                     this.drawToolsAndDiscard(args.args.tools);
                 }
                 break;
-            
             case 'takeCards':
                 if (this.isCurrentPlayerActive()) {
                     this.takeCards(args.args);
@@ -335,6 +338,9 @@ function (dojo, declare) {
                 this.disconnectAll();
                 break;
             case 'playerTurn':
+                break;
+            case 'confirmRookMove':
+                dojo.query('.tile.highlight').removeClass('highlight');
                 break;
             }               
         }, 

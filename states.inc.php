@@ -149,7 +149,7 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argTileChoice',
         'possibleactions' => array( 'selectTileChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10, 'endRookMove' => 25 )
+        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10, 'switchRookMove' => 25 )
     ),
 
     15 => array(

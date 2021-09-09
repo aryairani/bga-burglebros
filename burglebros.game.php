@@ -3301,15 +3301,22 @@ SQL;
     function selectTileChoice($selected) {
         self::checkAction('selectTileChoice');
         $tile = $this->handleSelectTileChoice($selected);
-        $motion_exit = self::getGameStateValue('motionTileExitChoice');
-        if ($tile['type'] == 'motion' && $motion_exit > 0) {
-            self::setGameStateValue('tileChoice', $motion_exit);
-            $this->gamestate->nextState('tileChoice');
+        // Check if this is a Rook move
+        $rook_destination_tile = self::getGameStateValue('rookDestinationTile');
+        if ($rook_destination_tile > 0) {
+            self::setGameStateValue('rookDestinationTile', 0);
+            $this->gamestate->nextState('switchRookMove');
         } else {
-            self::setGameStateValue('tileChoice', 0);
-            $this->endAction();
+            $motion_exit = self::getGameStateValue('motionTileExitChoice');
+            if ($tile['type'] == 'motion' && $motion_exit > 0) {
+                self::setGameStateValue('tileChoice', $motion_exit);
+                $this->gamestate->nextState('tileChoice');
+            } else {
+                self::setGameStateValue('tileChoice', 0);
+                $this->endAction();
+            }
+            self::setGameStateValue('motionTileExitChoice', 0);
         }
-        self::setGameStateValue('motionTileExitChoice', 0);
     }
 
     function characterAction() {
@@ -3543,7 +3550,8 @@ SQL;
                 $this->notifyPlayerHand($current_player_id);
             }
         }
-        if (self::getGameStateValue('drawToolsNextPlayer') != $current_player_id) {
+        $draw_tools_next_player = self::getGameStateValue('drawToolsNextPlayer');
+        if ($draw_tools_next_player > 0 && $draw_tools_next_player != $current_player_id) {
             $this->gamestate->nextState('drawToolsOtherPlayer');
         } else {
             if (self::getGameStateValue('playerPass') == 0) {
@@ -3614,7 +3622,6 @@ SQL;
 
         $choice_arg = self::getGameStateValue('specialChoiceArg');
         $selected = self::getGameStateValue('rookDestinationTile');
-        self::setGameStateValue('rookDestinationTile', 0);
         $player_token = $this->getPlayerToken($choice_arg);
         $tile_choice = $this->performMove($selected, 'rook1', $choice_arg);
         if (self::getGameStateValue('stealthDepleted')) {
@@ -3623,6 +3630,7 @@ SQL;
             self::setGameStateValue('tileChoice', $tile_choice);
             $this->gamestate->nextState('tileChoice');
         } else {
+            self::setGameStateValue('rookDestinationTile', 0);
             $this->gamestate->nextState('switchRookMove');
         }
     }

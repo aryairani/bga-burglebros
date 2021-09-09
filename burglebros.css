@@ -94,6 +94,10 @@
     box-shadow: 0 0 0 6rem rgba(255,255,255, 0);
   }
 }
+@keyframes breathe {
+    0% { box-shadow: 0px 0px 3px 2px lime; }
+    to { box-shadow: 0px 0px 3px 4px lime; }
+}
 
 /* Board game CSS */
 .stockitem {
@@ -448,6 +452,9 @@
     background-size: 720px;
     border-radius: 16px;
     /*margin: auto;*/
+}
+.tile.highlight {
+    animation: breathe 1s infinite alternate;
 }
 .tooltip_text {
     display: inline-block;
