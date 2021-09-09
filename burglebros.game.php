@@ -2962,18 +2962,18 @@ SQL;
     }
 
     function notifyGuardMovement($floor, $movement, $has_alarms, $has_event=FALSE) {
-        $msg = "Guard on floor $floor is moving $movement spaces";
+        $msg = clienttranslate("Guard on floor $floor is moving $movement spaces");
         if ($has_alarms || $has_event) {
-            $msg .= ' including ';
+            $msg .= clienttranslate(' including ');
             if ($has_alarms && $has_event) {
-                $msg .= 'alarms and an event card';
+                $msg .= clienttranslate('alarms and an event card');
             } else if ($has_alarms) {
-                $msg .= 'alarms';
+                $msg .= clienttranslate('alarms');
             } else if ($has_event) {
-                $msg .= 'an event card';
+                $msg .= clienttranslate('an event card');
             }
         }
-        self::notifyAllPlayers('message', self::_($msg), []);
+        self::notifyAllPlayers('message', $msg, []);
     }
 
     /* DEBUG */
