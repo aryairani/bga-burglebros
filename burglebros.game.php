@@ -1752,6 +1752,7 @@ SQL;
         // $actions_remaining = !in_array($context, array('action', 'acrobat2')) ? 1 : self::getGameStateValue('actionsRemaining');
         $actions_remaining = !in_array($context, array('action')) ? 1 : self::getGameStateValue('actionsRemaining');
         $cancel_move = false;
+        $motion_entered = false;
         $tile_choice = false;
         $tile_choice_id = $id;
         $player_id = $player_token['type_arg'];
@@ -1769,7 +1770,7 @@ SQL;
             // Acrobat cannot enter Deadbolt nor use an extra action to disarm Laser
             $action_penalty += 4;
         }
-        
+
         if ($type == 'deadbolt') {
             if (!$crowbar && !$rook1_action) {
                 $people = $this->getPlacedTokens(array('player', 'guard'));
@@ -1805,6 +1806,9 @@ SQL;
             }
         } elseif ($type == 'motion') {
             if (!$crowbar) {
+                if ($player_tile['type'] == 'motion') { // exiting a motion tile
+                    $motion_entered = self::getGameStateValue('motionTileEntered');
+                }
                 $this->setTileBit('motionTileEntered', $id);
             }
         } elseif ($type == 'laboratory') {
@@ -1850,7 +1854,7 @@ SQL;
             if ($exit_type == 'motion' && !$rook1_action) {
                 $exit_id = $player_tile['id'];
                 $motion_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$exit_id'");
-                $motion_entered = self::getGameStateValue('motionTileEntered');
+                $motion_entered = $motion_entered !== false ? $motion_entered : self::getGameStateValue('motionTileEntered');
                 if ($motion_entered && $motion_bit) {
                     $exiting_choice = $this->hackOrTrigger($player_tile);
                     if ($tile_choice && $exiting_choice) {
