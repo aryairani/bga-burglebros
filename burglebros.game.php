@@ -1977,6 +1977,7 @@ SQL;
         } else {
             $choice = TRUE;
         }
+        self::incStat(1, 'tools_used', $current_player_id);
         return $choice;
     }
 
@@ -2311,8 +2312,6 @@ SQL;
         $current_player_id = self::getCurrentPlayerId();
         if ($card && $card['type'] == 0) {
             self::incStat(1, 'special_ability_use', $current_player_id);
-        } elseif ($card && $card['type'] == 1) {
-            self::incStat(1, 'tools_used', $current_player_id);
         }
         $tile_choice = FALSE;
         $discard = TRUE;
