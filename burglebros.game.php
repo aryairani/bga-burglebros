@@ -546,6 +546,15 @@ class burglebros extends Table
         $info = $this->card_info[$card['type']];
         return $info[$card['type_arg'] - 1]['name'];
     }
+    function getCardTitle($card) {
+        $info = $this->card_info[$card['type']];
+        return $info[$card['type_arg'] - 1]['title'];
+    }
+    function getCardTooltip($card) {
+        $info = $this->card_info[$card['type']];
+        $tooltip = $info[$card['type_arg'] - 1]['tooltip'];
+        return rtrim($tooltip,'.');
+    }
     function getDisplayedCardName($card_name) {
         // Remove last character if 1, replace last char if 2 by Advanced and replace '-'' by space
         if (substr($card_name, -1) == '1') {
@@ -3231,9 +3240,11 @@ SQL;
                 $this->cards->moveCard($card['id'], 'tools_discard');
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
                 $type = $this->getCardType($card);
-                self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${card_type} card'), [
+                self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${title} card (${tooltip})'), [
+                    'card_id' => $card['id'],
                     'player_name' => self::getCurrentPlayerName(),
-                    'card_type' => $this->getDisplayedCardName($type)
+                    'title' => $this->getDisplayedCardName($type),
+                    'tooltip' => $this->getCardTooltip($card)
                 ]);
                 
                 $this->gamestate->nextState('endAction');
@@ -3279,9 +3290,11 @@ SQL;
                 // $this->cards->moveCard($card['id'], 'tools_discard');
                 $current_player_id = self::getCurrentPlayerId();
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
-                self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${card_type} card'), [
+                self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${title} card (${tooltip}'), [
+                    'card_id' => $card['id'],
                     'player_name' => self::getCurrentPlayerName(),
-                    'card_type' => $this->getDisplayedCardName($card_type)
+                    'title' => $this->getDisplayedCardName($card_type),
+                    'tooltip' => $this->getCardTooltip($card),
                 ]);
                 $this->endAction(0);
             }
@@ -3676,9 +3689,11 @@ SQL;
             // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
-                $type = $this->getCardType($event_card);
-                self::notifyAllPlayers('eventCard', self::_("Event Card: $type"), array(
-                    'card' => $event_card
+                self::notifyAllPlayers('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
+                    'card_id' => $event_card['id'],
+                    'card' => $event_card,
+                    'title' => $this->getCardTitle($event_card),
+                    'tooltip' => $this->getCardTooltip($event_card)
                 ));
                 $event_result = $this->handleEventEffect($current_player_id, $event_card);
             } else {
@@ -3958,9 +3973,12 @@ SQL;
             $card = $this->cards->pickCard('tools_deck', $current_player_id);
             $card_name = $this->getCardType($card);
             self::incStat( 1, 'tools_drawn', $current_player_id );
-            self::notifyAllPlayers('message', clienttranslate('${player_name} draws ${card_name}'), [
+            self::notifyAllPlayers('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
+                'card_id' => $card['id'],
+                'card' => $card,
                 'player_name' => self::getActivePlayerName(),
-                'card_name' => $this->getDisplayedCardName($card_name),
+                'title' => $this->getDisplayedCardName($card_name),
+                'tooltip' => $this->getCardTooltip($card),
             ]);
             $this->notifyPlayerHand($current_player_id);
             $this->gamestate->nextState($next_state);

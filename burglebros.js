@@ -1091,6 +1091,7 @@ function (dojo, declare) {
         },
 
         addCardTooltip: function(card, divId) {
+            console.log("addCardTooltip", card, divId);
             var typeInfo = this.gamedatas.card_types[card.type];
             if (typeInfo === undefined)    // patrol card
                 return false;
@@ -1108,7 +1109,7 @@ function (dojo, declare) {
                 card_ability: _(card_info.ability),
                 card_tooltip: _(card_info.tooltip)
             });
-            this.addTooltipHtml(divId, tooltipHtml);
+            this.addTooltipHtml(divId, tooltipHtml, 700);
         },
 
         addCardTypesToStock: function(stock, types) {
@@ -1813,6 +1814,7 @@ function (dojo, declare) {
             dojo.subscribe('createGuardPath', this, 'notif_createGuardPath');
             dojo.subscribe('updateGuardPath', this, 'notif_updateGuardPath');
             dojo.subscribe('playerHand', this, 'notif_playerHand');
+            dojo.subscribe('addTooltipToLog', this, 'notif_addTooltipToLog');
             dojo.subscribe('eventCard', this, 'notif_eventCard');
             dojo.subscribe('safeDieIncreased', this, 'notif_safeDieIncreased');
             dojo.subscribe('diceRolled', this, 'notif_diceRolled');
@@ -1822,6 +1824,25 @@ function (dojo, declare) {
             dojo.subscribe('updateWalls', this, 'notif_updateWalls');
             dojo.subscribe('removeWall', this, 'notif_removeWall');
             dojo.subscribe('playerEscape', this, 'notif_playerEscape');
+        },
+
+        /** Override this function to inject html into log items. This is a built-in BGA method.
+            Described here https://en.doc.boardgamearena.com/BGA_Studio_Cookbook#Inject_images_and_styled_html_in_the_log */
+        /* @Override */
+        format_string_recursive : function(log, args) {
+            try {
+                if (log && args && !args.processed) {
+                    args.processed = true;
+                    // Building name contains building material id that we want to replace with building name and tooltip
+                    if ('card_id' in args) {
+                        console.log("*** found card_id", args);
+                        args['title'] = '<span id="log_' + args['card_id'] + '" class="card_name">' + args['title'] + '</span>';
+                    }
+                }
+            } catch (e) {
+                console.error(log,args,"Exception thrown", e.stack);
+            }
+            return this.inherited(arguments);
         },
 
         notif_characterChosen: function(notif) {
@@ -1915,13 +1936,18 @@ function (dojo, declare) {
             this.loadPlayerHand(handStock, hand, notif.args.discard_ids, false);
         },
 
+        notif_addTooltipToLog: function(notif) {
+            this.addCardTooltip(notif.args.card, 'log_' + notif.args.card.id);
+        },
+
         notif_eventCard: function(notif) {
+            var event_card = notif.args.card;
             var dialog = new ebg.popindialog();
             dialog.create( 'eventCardDialog' );
             dialog.setTitle( _("Event Card") );
             
             // Show the dialog
-            dialog.setContent( this.eventCardHtml(notif.args.card) ); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
+            dialog.setContent( this.eventCardHtml(event_card) ); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             dialog.show();
             
             // Now that the dialog has been displayed, you can connect your method to some dialog elements
@@ -1930,6 +1956,8 @@ function (dojo, declare) {
             //     evt.preventDefault();
             //     dialog.destroy();
             // } );
+            // Add tooltip to the notification log
+            this.addCardTooltip(event_card, 'log_' + event_card.id);
         },
 
         notif_safeDieIncreased: function(notif) {
