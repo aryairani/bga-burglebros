@@ -4006,7 +4006,8 @@ SQL;
             $this->triggerAlarm($player_tile);
         }
         if (self::getGameStateValue('acrobatEnteredGuardTile')) {
-            $this->decrementPlayerStealth($current_player_id);
+            $this->deductTileStealth($player_tile['id'], 'acrobat');
+            // $this->decrementPlayerStealth($current_player_id);
         }
         $this->resetGlobalVars();
         self::notifyAllPlayers('message', clienttranslate('${player_name} ended their turn'), [
