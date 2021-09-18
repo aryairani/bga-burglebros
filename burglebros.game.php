@@ -2405,14 +2405,14 @@ SQL;
                 }
             }
             if (!$exit) {
-                throw new BgaUserException(self::_('Wall is not adjacent'));
+                throw new BgaUserException(self::_('This wall is not adjacent'));
             }
         } elseif($type == 'go-with-your-gut') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
             $flipped = $this->getFlippedTiles($tile['location'][5]);
             if (isset($flipped[$tile['id']])) {
-                throw new BgaUserException(self::_('Tile is already visible'));
+                throw new BgaUserException(self::_('This tile is already visible'));
             }
             $tile_choice = $this->performMove($selected_id, 'event');
         } elseif($type == 'hawk1') {
@@ -2429,11 +2429,11 @@ SQL;
             $tile = $this->tiles->getCard($selected_id);
             $flipped = $this->getFlippedTiles($tile['location'][5]);
             if (!isset($flipped[$tile['id']])) {
-                throw new BgaUserException(self::_('Cannot set alarm in hidden tile'));
+                throw new BgaUserException(self::_('You must reveal the tile first before setting an alarm'));
             }
             $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
-                throw new BgaUserException(self::_('Tile is not adjacent'));
+                throw new BgaUserException(self::_('This tile is not adjacent'));
             }
             $this->triggerAlarm($tile);
         } elseif($type == 'peekhole') {
