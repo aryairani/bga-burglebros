@@ -580,7 +580,6 @@ function (dojo, declare) {
                     name : tile.type + tile.safe_die
                 }), div_id + '_container');
             } else {
-                console.log("place shaft", tile.id, div_id);
                 dojo.place(this.format_block('jstpl_tile_shaft', {
                     id : tile.id, 
                     name : tile.type + tile.safe_die
@@ -1042,29 +1041,20 @@ function (dojo, declare) {
                     this[patrolKey].addToStockWithId(51, 51);
                 }
             } else {
-                // ZZTODO
                 if (card) {
                     dojo.removeClass('patrol_wrapper' + floor, 'patrol_card_back');
                     dojo.addClass('patrol_wrapper' + floor, 'whiteblock');
                     dojo.removeClass(patrolKey, 'hidden');
-                    // console.log("has card", card);
                     var index = card.type_arg - 1;
                     var label = this.gamedatas.patrol_names[index].name; // A1, B2...
                     dojo.query('#' + patrolKey + ' .current_patrol').forEach(function(e) {
-                        // console.log("element", e);
                         dojo.removeClass(e, 'current_patrol');
                         e.innerHTML = '';
                     });
                     var tile_id = patrolKey + label;
-                    // console.log('$(patrolKey)', $(patrolKey));
                     $(tile_id).innerHTML = label;
-                    // console.log('patrolKey + label', patrolKey + label);
                     dojo.addClass(tile_id, 'current_patrol');
                 }
-                // else {
-                //     console.log("add back", patrolKey);
-                //     dojo.addClass(patrolKey, 'patrol_card_back');
-                // }
             }
         },
 
@@ -1091,7 +1081,7 @@ function (dojo, declare) {
         },
 
         addCardTooltip: function(card, divId) {
-            console.log("addCardTooltip", card, divId);
+            // console.log("addCardTooltip", card, divId);
             var typeInfo = this.gamedatas.card_types[card.type];
             if (typeInfo === undefined)    // patrol card
                 return false;
@@ -1466,7 +1456,7 @@ function (dojo, declare) {
             }
         },
         selectDie: function(e) {
-            console.log('selectDie',e);
+            // console.log('selectDie',e);
             dojo.query('.icon_die.selected').removeClass('selected');
             dojo.addClass(e.target, 'selected');
             this.displayElement('dice_choice');
@@ -1536,8 +1526,8 @@ function (dojo, declare) {
         },
 
         handleTileClick: function(evt, id) {
-            console.log('handleTileClick', evt, id);
-            console.log("this.gamedatas.gamestate.name", this.gamedatas.gamestate.name);
+            // console.log('handleTileClick', evt, id);
+            // console.log("this.gamedatas.gamestate.name", this.gamedatas.gamestate.name);
             dojo.stopEvent(evt);
 
             if (this.gamedatas.gamestate.name == 'cardChoice' && this.checkAction('selectCardChoice')) {

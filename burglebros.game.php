@@ -2339,6 +2339,9 @@ SQL;
             if ($other_token['type'] != 'player') {
                 throw new BgaUserException(self::_("Must choose a player token"));
             }
+            if ($other_token['type_arg'] == $current_player_id) {
+                throw new BgaUserException(self::_('You cannot choose yourself'));
+            }
             $player_token = $this->getPlayerToken(self::getCurrentPlayerId());
             $this->moveToken($other_token['id'], 'tile', $player_token['location_arg']);
         } elseif ($type == 'crowbar') {
