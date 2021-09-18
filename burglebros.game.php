@@ -1016,6 +1016,9 @@ SQL;
                 // TODO: pick which players
                 $stealth_token = array_shift($tile_stealth);
                 $this->moveToken($stealth_token['id'], 'deck');
+                // Use only one stealth if this is a player move
+                if ($context == 'player')
+                    return;
             } else if($context == 'guard' || $token['type_arg'] == $current_player_id) {
                 $this->decrementPlayerStealth($token['type_arg']);
             }
