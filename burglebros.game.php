@@ -1977,6 +1977,7 @@ SQL;
         } else {
             $choice = TRUE;
         }
+        $current_player_id = self::getCurrentPlayerId();
         self::incStat(1, 'tools_used', $current_player_id);
         return $choice;
     }
