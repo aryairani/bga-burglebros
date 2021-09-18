@@ -2352,6 +2352,11 @@ SQL;
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
                 throw new BgaUserException(self::_('Tile is not adjacent'));
             }
+            // Check tile type is legitimate for crowbar
+            $available_tiles = ['camera','deadbolt','detector','fingerprint','keypad','laser','motion','thermo'];
+            if (!in_array($tile['type'], $available_tiles)) {
+                throw new BgaUserException( sprintf(self::_("There is no point in using the crowbar on a %s tile, please try on another one"), $tile['type']) );
+            }
             $this->pickTokensForTile('crowbar', $tile['id']);
         } elseif ($type == 'donuts') {
             $this->validateSelection('tile', $selected_type);
