@@ -3492,9 +3492,25 @@ SQL;
         foreach ($this->cards->getCards($card_ids) as $id => $card) {
             if (in_array($card['type'], array(0, 3))) {
                 throw new BgaUserException(self::_('Card must be a tool or loot'));
-            } else if($card['location'] != 'hand' || !in_array($card['location'], array($trade['current_player'], $trade['other_player']))) {
+            } elseif ($card['location'] != 'hand' || !in_array($card['location'], array($trade['current_player'], $trade['other_player']))) {
                 throw new BgaUserException(self::_('Card does not belong to trading player'));
             }
+        }
+        // Check only one gold bar max per player zz
+        $gold_type = $this->getCardTypeForName(2, 'gold-bar');
+        $has_gold_bar = FALSE;
+        $player_cards = [$p1_ids, $p2_ids];
+        foreach ($player_cards as $p_ids) {
+            foreach ($this->cards->getCards($p_ids) as $id => $card) {
+                if ($card['type_arg'] == $gold_type) {
+                    if ($has_gold_bar) {
+                        throw new BgaUserException(self::_('One player cannot hold the two gold bars, please propose another trade'));
+                    } else {
+                        $has_gold_bar = TRUE;
+                    }
+                }
+            }
+            $has_gold_bar = FALSE;
         }
         $players = self::loadPlayersBasicInfos();
         self::notifyAllPlayers('message', clienttranslate('${player_name} proposed a trade to ${other_name}'), [
