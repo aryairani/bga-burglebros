@@ -847,8 +847,10 @@ SQL;
     }
 
     function thermalBombStairsAreAdjacent($to, $from) {
+        // var_dump($from['location'] != $to['location']);
         return $this->tokensInTile('thermal', $to['id']) &&
-            $this->tokensInTile('thermal', $from['id']);
+            $this->tokensInTile('thermal', $from['id']) &&
+            $from['location'] != $to['location'];
     }
 
     function walkwayIsAdjacent($to, $from) {
