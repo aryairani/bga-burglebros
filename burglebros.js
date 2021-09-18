@@ -1530,6 +1530,8 @@ function (dojo, declare) {
             // console.log("this.gamedatas.gamestate.name", this.gamedatas.gamestate.name);
             dojo.stopEvent(evt);
 
+            if (this.isCardChoice('crystal-ball'))
+                return;
             if (this.gamedatas.gamestate.name == 'cardChoice' && this.checkAction('selectCardChoice')) {
                 var selected_type = 'tile', selected_id = id;
                 if (dojo.hasClass(evt.target, 'meeple')) {
