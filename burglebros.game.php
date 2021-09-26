@@ -1116,6 +1116,7 @@ SQL;
     }
 
     function findShortestPathDebug($floor, $start, $end) {
+        // Inputs $floor as int (1,2,3), $start and $end are tiles id
         var_dump($this->findShortestPathClockwise(intval($floor),intval($start),intval($end)));
     }
 
@@ -1272,12 +1273,28 @@ SQL;
             $path2 = $paths[1];
             $idx = 0;
             while($path1 != null && $path2 != null && $path1[$idx] == $path2[$idx]) $idx++;
-            $most_cw = $this->clockwise($path1[$idx-1], $end, $path1[$idx], $path2[$idx]);
+            // self::dump("*** clockwise", $path1[$idx-1]);
+            // self::dump("*** clockwise end", $end);
+            // self::dump("*** clockwise path1", $path1[$idx]);
+            // self::dump("*** clockwise path2", $path2[$idx]);
+            // Must check $end because $end can be far far away and create a bias for the clockwise analysis
+            // Check $end on the next common tile of $paths
+            $temp_end = $end;
+            for ($i=$idx; $i <= count($path1); $i++) {
+                if ($path1[$i] == $path2[$i]) {
+                    $temp_end = $path1[$i];
+                    break;
+                }
+            }
+            // self::dump("*** clockwise temp_end", $temp_end);
+            $most_cw = $this->clockwise($path1[$idx-1], $temp_end, $path1[$idx], $path2[$idx]);
+            // $most_cw = $this->clockwise($path1[$idx-1], $end, $path1[$idx], $path2[$idx]);
             return $most_cw == $path1[$idx] ? $path1 : $path2;
         }
     }
 
     function findShortestPathClockwise($floor, $start, $end) {
+        // Find the shortest path from $start to $end that are tiles_id
         $tiles = array_values($this->tiles->getCardsInLocation("floor$floor", null, 'location_arg'));
         $walls = $this->getWalls();
 
@@ -3501,7 +3518,7 @@ SQL;
                 throw new BgaUserException(self::_('Card does not belong to trading player'));
             }
         }
-        // Check only one gold bar max per player zz
+        // Check only one gold bar max per player
         $gold_type = $this->getCardTypeForName(2, 'gold-bar');
         $has_gold_bar = FALSE;
         $player_cards = [$p1_ids, $p2_ids];
