@@ -27,13 +27,13 @@ class BurgleBrosBoard extends APP_GameClass
 
 	public $default_walls_size_5 = array(
 		1 => array(
-			'vertical' => array(2, 4, 7, 8, 18, 9, 10),
-			'horizontal' => array(2, 3, 6, 8, 11, 15, 18, 9, 10),
+			'vertical' => array(2, 3, 4, 7, 18, 9, 10),
+			'horizontal' => array(1, 3, 6, 8, 11, 15, 18, 9, 10),
 			'shaft' => 12
 		),
 		2 => array(
-			'vertical' => array(1, 2, 7, 8, 14, 16, 18, 9, 10),
-			'horizontal' => array(0, 6, 13, 15, 18, 9, 10),
+			'vertical' => array(1, 2, 7, 8, 14, 16, 17, 9, 10),
+			'horizontal' => array(0, 6, 17, 15, 18, 9, 10),
 			'shaft' => 12
 		)
 	);
