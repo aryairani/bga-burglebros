@@ -709,6 +709,10 @@ class burglebros extends Table
         return $tiles;
     }
 
+    function getTile($tile_id) {
+        return self::getObjectFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg, flipped, safe_die FROM tile WHERE card_id='$tile_id'");
+    }
+
     function getSafeDie($tile_id) {
         // Get Safe die count
         $sql = "SELECT card_id, safe_die FROM tile WHERE card_id=$tile_id";
@@ -2657,7 +2661,11 @@ SQL;
             }
         } elseif ($type == 'virus') {
             $this->validateSelection('tile', $selected_type);
-            $tile = $this->tiles->getCard($selected_id);
+            // $tile = $this->tiles->getCard($selected_id);
+            $tile = $this->getTile($selected_id);
+            if ($tile['flipped'] === '0') {
+                throw new BgaUserException(self::_("You must reveal the tile first"));
+            }
             if (strpos($tile['type'], 'computer') === FALSE) {
                 throw new BgaUserException(self::_("Tile is not a computer"));
             }
