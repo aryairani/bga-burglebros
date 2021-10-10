@@ -278,7 +278,7 @@ function (dojo, declare) {
             case 'chooseCharacter':
                 // If hand is already loaded, don't reload because it adds extra cards on [random walls x random w/ advanced]
                 var player_id = args.args.player_id;
-                var hand_stock = player_id == this.player_id ? this.myHand : this.playerHands[player_id];
+                var hand_stock = player_id == this.player_id || player_id == 0 ? this.myHand : this.playerHands[player_id];
                 if (hand_stock.count() == 0)
                     this.loadPlayerHand(hand_stock, args.args.cards, [], false);
                 // if (this.myHand.count() == 0)

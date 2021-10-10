@@ -4016,10 +4016,11 @@ SQL;
     function argChooseCharacter() {
         // Return basic (and if relevant advanced side) of each player character
         $cards = $this->getAvailableCharacters();
+        $player_id = $this->getSoloMultiCharacters() > 1 ? $this->getActivePlayerIdCustom() : 0;
         return array(
             'cards' => $cards,
             'floor' => 1,
-            'player_id' => $this->getActivePlayerIdCustom(),
+            'player_id' => $player_id,
         );
     }
 
