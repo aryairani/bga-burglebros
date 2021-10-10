@@ -3598,6 +3598,7 @@ SQL;
             self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
+            self::incStat(1, 'special_ability_use', $human_player_id);
             $this->endAction();
         } else if($type == 'juicer2') {
             $player_tile = $this->getPlayerTile($current_player_id);
