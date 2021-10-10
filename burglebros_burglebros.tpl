@@ -26,9 +26,10 @@
 -->
 
 <div id="temp_notify"></div>
-<div id="myhand_wrap" class="whiteblock">
-    <h3>{MY_HAND}</h3>
-    <div id="myhand">
+<div id="player_hand_wrap_1" class="player_hand whiteblock">
+    <div id="player_hand_content_{HUMAN_PLAYER_ID}">
+        <h3>{MY_HAND}</h3>
+        <div id="myhand"></div>
     </div>
 </div>
 <div id="temp_display" class="hidden_animated whiteblock">
@@ -84,9 +85,10 @@
 </div>
 
 <!-- BEGIN player_hand -->
-<div class="player_hand whiteblock">
-    <h3 style="color: #{PLAYER_COLOR};">{PLAYER_NAME}</h3>
-    <div id="player_hand_{PLAYER_ID}">
+<div id="player_hand_wrap_{PLAYER_INDEX}" class="player_hand whiteblock">
+    <div id="player_hand_content_{PLAYER_ID}">
+        <h3 style="color: #{PLAYER_COLOR};">{PLAYER_NAME}</h3>
+        <div id="player_hand_{PLAYER_ID}"></div>
     </div>
 </div>
 <!-- END player_hand -->

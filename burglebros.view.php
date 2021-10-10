@@ -34,7 +34,8 @@
   	function build_page( $viewArgs )
   	{		
   	    // Get players & players number
-        $players = $this->game->loadPlayersBasicInfos();
+        // $players = $this->game->loadPlayersBasicInfos();
+        $players = $this->game->loadPlayersInfos();
         $players_nbr = count( $players );
         $template = self::getGameName() . "_" . self::getGameName();
         $max_floor = $this->game->getFloorCount();
@@ -56,17 +57,21 @@
         $current_player_id = $g_user->get_id();
 
         $this->page->begin_block($template, "player_hand");
+        $index = 2;
         foreach ($players as $player_id => $player) {
             if ($player_id != $current_player_id) {
                 $this->page->insert_block("player_hand", array (
                     "PLAYER_NAME" => $player['player_name'],
                     "PLAYER_COLOR" => $player['player_color'],
-                    "PLAYER_ID" => $player_id
+                    "PLAYER_ID" => $player_id,
+                    "PLAYER_INDEX" => $index++,
                 ));
             }
         }
-        // this will make our My Hand text translatable
-        $this->tpl['MY_HAND'] = self::_("My hand");
+        // this will make our texts translatable
+        $human_player = key($players);
+        $this->tpl['HUMAN_PLAYER_ID'] = $human_player;
+        $this->tpl['MY_HAND'] = $this->game->getSoloMultiCharacters() > 1 ? $players[$human_player]['player_name'] : self::_("My hand");
         $this->tpl['DICE_ROLLED_TITLE'] = self::_("Dice rolled");
         $this->tpl['CRYSTAL_BALL_TITLE'] = self::_("Reorder the 3 upcoming events (leftmost will be the first to happen). Click on a card to move it.");
         $this->tpl['SPOTTER_TITLE'] = self::_("Spotter: place the card back on top or bottom of the deck");

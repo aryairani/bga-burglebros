@@ -74,3 +74,13 @@ CREATE TABLE IF NOT EXISTS `trade_cards` (
   `card_id` int(10) unsigned NOT NULL,
   PRIMARY KEY (`trade_id`, `card_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
+
+CREATE TABLE IF NOT EXISTS `solo_characters` (
+  `player_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `player_name` varchar(32) NOT NULL,
+  `player_color` varchar(32) NOT NULL,
+  `player_avatar` varchar(10) NOT NULL,
+  `player_score` INT(3) NOT NULL DEFAULT 0,
+  `player_stealth_tokens` INT(11) NOT NULL DEFAULT '3',
+  PRIMARY KEY (`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;

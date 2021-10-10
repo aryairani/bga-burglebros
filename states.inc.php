@@ -79,7 +79,7 @@ $machinestates = array(
         'action' => 'stChooseCharacter',
         'args' => 'argChooseCharacter',
         'possibleactions' => array( 'playCard' ),
-        'transitions' => array( 'chooseCharacter' => 8 )
+        'transitions' => array( 'chooseCharacter' => 8, 'nextPlayer' => 7 )
     ),
 
     8 => array(
@@ -169,7 +169,7 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argProposeTrade',
         'possibleactions' => array( 'proposeTrade', 'cancelTrade' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'nextTradePlayer' => 18 )
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'nextTradePlayer' => 18, 'endTradeOtherPlayer' => 19 )
     ),
 
     17 => array(
@@ -250,7 +250,7 @@ $machinestates = array(
         'description' => '',
         'type' => 'game',
         'action' => 'stSwitchRookMove',
-        'transitions' => array( 'confirmRookMove' => 26, 'endAction' => 21 )
+        'transitions' => array( 'confirmRookMove' => 26, 'endAction' => 21, 'switchRookMove' => 25 )
     ),
 
     26 => array(

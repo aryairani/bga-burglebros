@@ -183,13 +183,13 @@
     color: #606060;
 }
 
-#myhand_wrap, #board_wrap, .player_hand {
+#player_hand_wrap_1, #board_wrap, .player_hand {
     text-align: center;
 }
 #myhand .stockitem, .player_hand .stockitem, #trade_dialog .stockitem {
     background-size: 240px;
 }
-.spectatorMode #myhand_wrap {
+.spectatorMode #player_hand_wrap_1 {
     display: none;
 }
 

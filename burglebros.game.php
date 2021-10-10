@@ -69,7 +69,8 @@ class burglebros extends Table
             'characterAssignment' => 100,
             'level' => 101,
             'scenario' => 102,
-            'randomWalls' => 103
+            'randomWalls' => 103,
+            'soloMultiCharacters' => 104,
         ) ); 
 
         // Initialize module classes
@@ -120,7 +121,27 @@ class burglebros extends Table
         self::DbQuery( $sql );
         self::reattributeColorsBasedOnPreferences( $players, $gameinfos['player_colors'] );
         self::reloadPlayersBasicInfos();
-        
+
+        // Initialize solo_characters table if needed
+        $multi_characters = $this->getSoloMultiCharacters();
+        // $multi_characters = 1;
+        $current_player_id = 0;
+        if ($multi_characters > 1) {
+            $id = key($players);
+            $player = $players[$id];
+            $current_player_id = $id;
+            $default_colors = array_diff($gameinfos['player_colors'], array($player['player_colorprefs'][0]));
+            $values = array();
+            $sql = "INSERT INTO solo_characters (player_id, player_color, player_name, player_avatar) VALUES ";
+            for ($i=1; $i <= $multi_characters; $i++) {
+                $color = array_shift( $default_colors );
+                $values[] = "('".$id++."','$color','".addslashes( $player['player_name'] )."$i','".addslashes( $player['player_avatar'] )."')";
+            }
+            $sql .= implode( $values, ',' );
+            self::DbQuery( $sql );
+            $players = $this->loadPlayersInfos();
+        }
+
         /************ Start the game initialization *****/
 
         // Init global values with their initial values
@@ -152,7 +173,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'dropLoot', 0 );
         self::setGameStateInitialValue( 'undoAllowed', 0 );
         self::setGameStateInitialValue( 'rookDestinationTile', 0 );
-        self::setGameStateInitialValue( 'currentPlayer', 0 );
+        self::setGameStateInitialValue( 'currentPlayer', $current_player_id );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -224,7 +245,7 @@ class burglebros extends Table
         $this->tokens->createCards( $tokens );
 
         // Remove cards that don't make sense for the number of players
-        if (count($players) == 1) {
+        if (count($players) == 1 && $multi_characters <= 1) {
             $this->moveCardsOutOfPlay('loot', 'gold-bar');
             $this->moveCardsOutOfPlay('characters', 'rook1');
             $this->moveCardsOutOfPlay('characters', 'rook2');
@@ -233,7 +254,7 @@ class burglebros extends Table
             $this->moveCardsOutOfPlay('events', 'dead-drop');
             $this->moveCardsOutOfPlay('events', 'jump-the-gun');
         }
-
+        
         foreach ($players as $player_id => $player) {
             $player_token = array('type' => 'player', 'type_arg' => $player_id, 'nbr' => 1);
             $this->tokens->createCards(array($player_token), 'hand', $player_id);
@@ -256,9 +277,8 @@ class burglebros extends Table
 
         // Activate table administrator to randomize walls if needed
         if ($this->gamestate->table_globals[103] !== 1) {
-            $players = self::loadPlayersBasicInfos();
             foreach ($players as $id => $player) {
-                if ($player['player_is_admin'] == 1) {
+                if (isset($player['player_is_admin']) && $player['player_is_admin'] == 1) {
                     $admin_id = $id;
                 }
             }
@@ -289,19 +309,26 @@ class burglebros extends Table
     {
         $result = array();
     
-        $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
-    
+        $current_player_id = $this->getCurrentPlayerIdCustom();  // !! We must only return informations visible by this player !!
+
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, player_stealth_tokens stealth_tokens FROM player ";
-        $result['players'] = self::getCollectionFromDb( $sql );
+        // $sql = "SELECT player_id id, player_score score, player_stealth_tokens stealth_tokens FROM player ";
+        // $result['players'] = self::getCollectionFromDb( $sql );
+        $result['players'] = $this->loadPlayersInfos();
         foreach ($result['players'] as $player_id => &$player) {
             $player['hand'] = $this->cards->getPlayerHand($player_id);
             $player['character'] = $this->getPlayerCharacter($player_id);
+            if ($player['character'])
+                $player['character']['name'] = $this->getCardType($player['character']);
             $player_token = $this->getPlayerToken($player_id);
             $player['escaped'] = $player_token['location'] == 'roof';
         }
   
+
+        // $character = $this->getPlayerCharacter($current_player_id);
+        // $character['name'] = $this->getCardType($character);
+
         $result = array_merge($result, $this->gatherCardData('card', $this->card_types, $this->card_info));
         $result = array_merge($result, $this->gatherCardData('patrol', $this->patrol_types, $this->patrol_info));
         $result['card_info'] = $this->card_info;
@@ -309,6 +336,8 @@ class burglebros extends Table
         $result['square_size'] = $this->getSquareSize();
         $result['shaft_position'] = $this->board->getShaftPosition();
         $result['patrol_names'] = $result['square_size'] == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+        $result['solo_characters'] = $this->getSoloMultiCharacters();
+        $result['active_player_id'] = $this->getCurrentPlayerIdCustom();
 
         $tiles = array();
         $index = 0;
@@ -387,6 +416,91 @@ class burglebros extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+    public function getSoloMultiCharacters() {
+        if (isset($this->gamestate->table_globals[104])) {
+            return $this->gamestate->table_globals[104];
+        } else {
+            return 1;
+        }
+    }
+
+    public function loadPlayersInfos() {
+        if ($this->getSoloMultiCharacters() > 1) {
+            return self::getCollectionFromDB("SELECT player_id id, player_name, player_color, player_avatar, player_score score, player_stealth_tokens stealth_tokens FROM solo_characters");            
+        } else {
+            return self::loadPlayersBasicInfos();
+        }
+    }
+
+    public function getCurrentPlayerIdCustom() {
+        if ($this->getSoloMultiCharacters() > 1) {
+            return self::getGameStateValue('currentPlayer');
+        } else {
+            return self::getCurrentPlayerId();
+        }
+    }
+    public function getActivePlayerIdCustom() {
+        if ($this->getSoloMultiCharacters() > 1) {
+            return $this->getCurrentPlayerIdCustom();
+        } else {
+            return self::getActivePlayerId();
+        }
+    }
+    public function getActivePlayerNameCustom() {
+        if ($this->getSoloMultiCharacters() > 1) {
+            $players = $this->loadPlayersInfos();
+            $active_player_id = $this->getCurrentPlayerIdCustom();
+            return $players[$active_player_id]['player_name'];
+        } else {
+            return self::getActivePlayerName();
+        }
+    }
+
+    public function activeNextPlayerCustom() {
+        $multi_characters = $this->getSoloMultiCharacters();
+        if ($multi_characters > 1) {
+            $current_player_id = $this->getCurrentPlayerIdCustom();
+            $human_player_id = self::getCurrentPlayerId();
+            // Increase player_id or loop back to human id
+            $current_player_id = ++$current_player_id >= $human_player_id + $multi_characters ? $human_player_id : $current_player_id;
+            self::setGameStateValue('currentPlayer', $current_player_id);
+            self::notifyAllPlayers('activatePlayer', '', [
+                'player_id' => $current_player_id,
+            ]);
+            return $current_player_id;
+        } else {
+            return self::activeNextPlayer();
+        }
+    }
+
+    public function getNextCharacterId() {
+        $human_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
+        $multi_characters = $this->getSoloMultiCharacters();
+        if (++$current_player_id >= $human_player_id + $multi_characters) {
+            return $human_player_id;
+        } else {
+            
+        }
+
+    }
+
+    function getAvailableCharacters() {
+        // self::getCurrentPlayerId() may raise an exception error because this is the first state called by game setup, so wrap it into a try / catch
+        try {
+            $current_player_id = $this->getCurrentPlayerIdCustom();
+            $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand', $current_player_id);
+        } catch (Exception $e) {
+            // No one has chosen a character yet (game not started)
+            $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand');
+        }
+        // If hand is empty, player can choose any available character
+        if (count($cards) == 0) {
+            $cards = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg FROM card WHERE card_location='characters_deck'");
+        }
+        return $cards;
+    }
+
     public function getFloorCount() {
         // Return the number of floors (3 for the Bank job, 2 otherwise)
         // TODO Clean up !== 0 when all the alpha games are done
@@ -423,7 +537,8 @@ class burglebros extends Table
 
         // Move first player token to entrance
         self::setGameStateInitialValue( 'entranceTile', $tile_id );
-        $hand = $this->tokens->getPlayerHand(self::getCurrentPlayerId());
+        // $hand = $this->tokens->getPlayerHand(self::getCurrentPlayerId());
+        $hand = $this->tokens->getPlayerHand($this->getCurrentPlayerIdCustom());
         $current_player_token = array_shift($hand);
         $this->moveToken($current_player_token['id'], 'tile', $tile_id);
         $this->pickTokensForTile('stairs', $tile_id);
@@ -809,7 +924,8 @@ SQL;
             return $this->acrobat2IsAdjacent($tile, $other_tile) ||
                 $this->acrobat2IsAdjacent($other_tile, $tile);
         } else {
-            $current_player_id = self::getCurrentPlayerId();
+            // $current_player_id = self::getCurrentPlayerId();
+            $current_player_id = $this->getCurrentPlayerIdCustom();
             $painting = $this->getPlayerLoot('painting', $current_player_id);
             // Check $tile and $other_tile are different to avoid counting a move when clicking on service_duct
             // Check destination tile is flipped to avoid disclosing the other service duct card
@@ -878,7 +994,7 @@ SQL;
 
     function hawk1IsAdjacent($detail) {
         return $detail['same_floor'] && $detail['adjacent'] && $detail['blocked'] &&
-            $this->getPlayerCharacter(self::getActivePlayerId(), 'hawk1') && 
+            $this->getPlayerCharacter($this->getActivePlayerIdCustom(), 'hawk1') && 
             !self::getGameStateValue('characterAbilityUsed');
     }
 
@@ -984,8 +1100,10 @@ SQL;
     }
 
     function decrementPlayerStealth($player_id, $amount = 1) {
-        self::DbQuery("UPDATE player SET player_stealth_tokens = player_stealth_tokens - $amount WHERE player_id = '$player_id'");
-        $players = self::loadPlayersBasicInfos();
+        $table = $this->getSoloMultiCharacters() > 1 ? "solo_characters" : "player";
+        self::DbQuery("UPDATE $table SET player_stealth_tokens = player_stealth_tokens - $amount WHERE player_id = '$player_id'");
+        // $players = self::loadPlayersBasicInfos();
+        $players = $this->loadPlayersInfos();
         $player_stealth = $this->tokens->getCardsOfTypeInLocation('stealth', null, 'player', $player_id);
         $result['player_tokens'] = $this->tokens->getCardsOfType('player');
         $token_id = key($this->tokens->getCardsOfType('player', $player_id));
@@ -1007,10 +1125,10 @@ SQL;
         ));
     }
 
-    function deductTileStealth($tile_id, $context) {
+    function deductTileStealth($tile_id, $context, $player_id = null) {
         $player_tokens = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $tile_id);
         $tile_stealth = $this->tokens->getCardsOfTypeInLocation('stealth', null, 'tile', $tile_id);
-        $current_player_id = self::getActivePlayerId();
+        $current_player_id = $player_id != null ? $player_id : self::getCurrentPlayerIdCustom();
         foreach ($player_tokens as $token) {
             if (count($tile_stealth) > 0) {
                 // TODO: pick which players
@@ -1050,11 +1168,12 @@ SQL;
         return self::getUniqueValueFromDB($sql);
     }
 
-    function handlePlayerEnteredGuardSight($tile) {
+    function handlePlayerEnteredGuardSight($tile, $player_id = null) {
         $guard_token = array_values($this->tokens->getCardsOfType('guard', $tile['location'][5]))[0];
         $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
 
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $player_id != null ? $player_id : self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         
@@ -1063,7 +1182,7 @@ SQL;
         $is_player_tile = $tile['id'] == $player_token['location_arg'];
         
         if ($is_guard_tile && $is_player_tile) {
-            $this->deductTileStealth($player_tile['id'], 'player');
+            $this->deductTileStealth($player_tile['id'], 'player', $current_player_id);
             return;
         }
 
@@ -1327,6 +1446,7 @@ SQL;
             }
         }
 
+        // Return an array of tile_ids of the shortest path
         return array_map(function($idx) use ($tiles) {
             return $tiles[$idx]['id'];
         }, $this->breakTie($end, $paths));
@@ -1388,7 +1508,8 @@ SQL;
         // $floor = $safe_tile['location'][5];
         // $dice_count = self::getGameStateValue("safeDieCount$floor");
         $dice_count = $this->getSafeDie($safe_tile['id']);
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         if ($this->getPlayerCharacter($current_player_id, 'peterman1')) {
             $dice_count++;
         }
@@ -1437,7 +1558,8 @@ SQL;
     }
 
     function applyDieRoll($rolls=null, $safe_tile=null, $drop_loot=null) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $size_sq = $this->getSquareSize();
         if ($rolls === null) {
             $tokens = $this->tokens->getCardsInLocation('stethoscope');
@@ -1621,7 +1743,7 @@ SQL;
             }
         }
         self::notifyAllPlayers('diceRolled', clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
-            'player_name' => self::getActivePlayerName(),
+            'player_name' => $this->getActivePlayerNameCustom(),
             'roll' => implode($roll_list, ','),
             'rolls' => $roll_list,
             'for' => $for
@@ -1640,7 +1762,8 @@ SQL;
 
         $previous = $this->getPlacedTokens(array('keypad'));
         $count = isset($previous[$tile['id']]) ? count($previous[$tile['id']]) + 1 : 1;
-        if ($this->getPlayerCharacter(self::getCurrentPlayerId(), 'peterman1')) {
+        // if ($this->getPlayerCharacter(self::getCurrentPlayerId(), 'peterman1')) {
+        if ($this->getPlayerCharacter($this->getCurrentPlayerIdCustom(), 'peterman1')) {
             $count++;
         }
         $rolls = $this->rollDice($count);
@@ -1706,7 +1829,8 @@ SQL;
         $hackers = $this->cards->getCardsOfTypeInLocation(0, $type_arg, 'hand');
         if (count($hackers) > 0) {
             $hacker = array_values($hackers)[0];
-            if ($hacker['location_arg'] == self::getCurrentPlayerId()) {
+            // if ($hacker['location_arg'] == self::getCurrentPlayerId()) {
+            if ($hacker['location_arg'] == $this->getCurrentPlayerIdCustom()) {
                 return TRUE;
             }
 
@@ -1771,7 +1895,8 @@ SQL;
         if (!is_null($reason)) {
             $msg .= ' because they '.$reason;
         }
-        $players = self::loadPlayersBasicInfos();
+        // $players = self::loadPlayersBasicInfos();
+        $players = $this->loadPlayersInfos();
         self::notifyAllPlayers('message', clienttranslate($msg), [
             'player_name' => $players[$player_id]['player_name']
         ]);
@@ -1786,7 +1911,7 @@ SQL;
         $motion_entered = false;
         $tile_choice = false;
         $tile_choice_id = $id;
-        $player_id = $player_token['type_arg'];
+        $player_id = $context == 'rook1' ? self::getGameStateValue('specialChoiceArg') : $player_token['type_arg'];
         $crowbar = $this->tokensInTile('crowbar', $id);
         $rook1_action = $context == 'rook1';
         $floor = $tile['location'][5];
@@ -1961,7 +2086,8 @@ SQL;
     }
 
     function handleToolEffectDebug($name) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $type_arg = $this->getCardTypeForName(1, $name);
         $card = array_values($this->cards->getCardsOfType(1, $type_arg))[0];
         $choice = $this->handleToolEffect($current_player_id, $card);
@@ -1999,8 +2125,8 @@ SQL;
         } else {
             $choice = TRUE;
         }
-        $current_player_id = self::getCurrentPlayerId();
-        self::incStat(1, 'tools_used', $current_player_id);
+        $human_player_id = self::getCurrentPlayerId();
+        self::incStat(1, 'tools_used', $human_player_id);
         return $choice;
     }
 
@@ -2024,7 +2150,8 @@ SQL;
     }
 
     function drawToolDebug($name = null, $location='hand', $location_arg=null) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         if (is_null($location_arg)) {
             $location_arg = $current_player_id;
         }
@@ -2046,7 +2173,8 @@ SQL;
     }
 
     function drawLootDebug($name) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $type_arg = $this->getCardTypeForName(2, $name);
         $card = array_values($this->cards->getCardsOfType(2, $type_arg))[0];
         $this->cards->moveCard($card['id'], 'hand', $current_player_id);
@@ -2054,7 +2182,8 @@ SQL;
     }
 
     function discardLootDebug($name) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $type_arg = $this->getCardTypeForName(2, $name);
         $card = array_values($this->cards->getCardsOfType(2, $type_arg))[0];
         $this->cards->moveCard($card['id'], 'loot_deck');
@@ -2062,7 +2191,8 @@ SQL;
     }
 
     function drawCharacterDebug($name) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $current_char = $this->getPlayerCharacter($current_player_id);
         $this->cards->moveCard($current_char['id'], 'characters_deck');
 
@@ -2073,7 +2203,8 @@ SQL;
     }
 
     function handleEventEffectDebug($name) {
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $type_arg = $this->getCardTypeForName(3, $name);
         $card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
         $event_result = $this->handleEventEffect($current_player_id, $card);
@@ -2100,7 +2231,7 @@ SQL;
                 }
             }
         } elseif($type == 'buddy-system') {
-            if (self::getPlayersNumber() > 1) {
+            if (self::getPlayersNumber() > 1 || $this->getSoloMultiCharacters() > 1) {
                 $card_choice = TRUE;
             }
         } elseif ($type == 'change-of-plans') {
@@ -2229,7 +2360,8 @@ SQL;
             $paths = [];
             $shortest_path_length = $this->getFloorCount() == 4 ? 16 : 25;
 
-            $players = self::loadPlayersBasicInfos();
+            // $players = self::loadPlayersBasicInfos();
+            $players = $this->loadPlayersInfos();
             foreach ($players as $player_id => $player) {
                 $player_token = $this->getPlayerToken($player_id);
                 $player_tile = $this->getPlayerTile($player_id, $player_token);
@@ -2332,9 +2464,10 @@ SQL;
     function handleSelectCardChoice($card, $selected_type, $selected_ids) {
         $selected_id = count($selected_ids) == 1 ? $selected_ids[0] : $selected_ids;
         $type = $card ? $this->getCardType($card) : null;
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         if ($card && $card['type'] == 0) {
-            self::incStat(1, 'special_ability_use', $current_player_id);
+            self::incStat(1, 'special_ability_use', self::getCurrentPlayerId());
         }
         $tile_choice = FALSE;
         $discard = TRUE;
@@ -2344,7 +2477,8 @@ SQL;
             $this->performMove($selected_id, 'acrobat1');
         } else if($type == 'acrobat2') {
             $this->validateSelection('button', $selected_type);
-            $tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $floor = $selected_id;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
             $tile_choice = $this->performMove($other_tile['id'], 'acrobat2');
@@ -2365,12 +2499,14 @@ SQL;
             if ($other_token['type_arg'] == $current_player_id) {
                 throw new BgaUserException(self::_('You cannot choose yourself'));
             }
-            $player_token = $this->getPlayerToken(self::getCurrentPlayerId());
+            // $player_token = $this->getPlayerToken(self::getCurrentPlayerId());
+            $player_token = $this->getPlayerToken($this->getCurrentPlayerIdCustom());
             $this->moveToken($other_token['id'], 'tile', $player_token['location_arg']);
         } elseif ($type == 'crowbar') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
-            $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
                 throw new BgaUserException(self::_('Tile is not adjacent'));
             }
@@ -2392,7 +2528,8 @@ SQL;
             $discard = FALSE;
         } elseif($type == 'dynamite') {
             $this->validateSelection('wall', $selected_type);
-            $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $walls = $this->getWalls();
 
             $tindex = $player_tile['location_arg'];
@@ -2440,7 +2577,8 @@ SQL;
             $this->performPeek($selected_id, 'hawk1');
         } elseif($type == 'hawk2') {
             $this->validateSelection('tile', $selected_type);
-            $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if ($this->hawk2PeekAllowed($player_tile, $this->tiles->getCard($selected_id))) {
                 $this->performPeek($selected_id, 'effect');
             }
@@ -2451,7 +2589,8 @@ SQL;
             if (!isset($flipped[$tile['id']])) {
                 throw new BgaUserException(self::_('You must reveal the tile first before setting an alarm'));
             }
-            $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
                 throw new BgaUserException(self::_('This tile is not adjacent'));
             }
@@ -2461,7 +2600,8 @@ SQL;
             $this->performPeek($selected_id, 'peekhole');
         } elseif($type == 'peterman2') {
             $this->validateSelection('button', $selected_type);
-            $tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $floor = $selected_id % 10;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
             $add_or_roll = floor($selected_id / 10);
@@ -2473,7 +2613,8 @@ SQL;
             }
         } elseif($type == 'raven1') {
             $this->validateSelection('tile', $selected_type);
-            $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $tile = $this->tiles->getCard($selected_id);
             if ($player_tile['location']['5'] != $tile['location'][5]) {
                 throw new BgaUserException(self::_('Crow must be placed on your floor'));
@@ -2488,7 +2629,8 @@ SQL;
         } elseif($type == 'spotter1') {
             $this->validateSelection('button', $selected_type);
             if ($selected_id == 2) {
-                $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+                // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
+                $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
                 $floor = $player_tile['location'][5];
                 $deck = "patrol$floor".'_deck';
                 $top_patrol = $this->cards->getCardOnTop($deck);
@@ -2502,7 +2644,8 @@ SQL;
             }
         } elseif($type == 'thermal-bomb') {
             $this->validateSelection('button', $selected_type);
-            $tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            // $tile = $this->getPlayerTile(self::getCurrentPlayerId());
+            $tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $this->pickTokensForTile('thermal', $tile['id']);
             // Can make thermal bomb go to roof
             if ($selected_id != $this->getFloorCount() + 1) {
@@ -2545,7 +2688,6 @@ SQL;
         } elseif ($type == 'throw-voice') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
-            $current_player_id = self::getCurrentPlayerId();
             $player_token = $this->getPlayerToken($current_player_id);
             $player_tile = $this->getPlayerTile($current_player_id, $player_token);
             $floor = $player_tile['location'][5];
@@ -2562,14 +2704,16 @@ SQL;
                 $this->cards->moveCard($card['id'], $card['type'] == 1 ? 'tools_discard' : 'events_discard');
             }
             if ($card['type'] == 1) {
-                $this->notifyPlayerHand(self::getCurrentPlayerId(), array($card['id']));
+                // $this->notifyPlayerHand(self::getCurrentPlayerId(), array($card['id']));
+                $this->notifyPlayerHand($this->getCurrentPlayerIdCustom(), array($card['id']));
             }
         }
         return $tile_choice;
     }
 
     function handleSelectTileChoice($selected) {
-        $player_id = self::getCurrentPlayerId();
+        // $player_id = self::getCurrentPlayerId();
+        $player_id = $this->getCurrentPlayerIdCustom();
         $tile = $this->tiles->getCard(self::getGameStateValue('tileChoice'));
         $type = $tile['type'];
         if ($selected == 0) { // trigger
@@ -2606,7 +2750,7 @@ SQL;
     }
 
     function performPeek($tile_id, $variant='peek') {
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $to_peek = $this->tiles->getCard($tile_id);
@@ -2629,7 +2773,8 @@ SQL;
         $this->handleTilePeek($to_peek);
         $tile_name = $patrol_names[$to_peek['location_arg']]['name'];
         // TODO: Add tile type?
-        $players = self::loadPlayersBasicInfos();
+        // $players = self::loadPlayersBasicInfos();
+        $players = $this->loadPlayersInfos();
         self::notifyAllPlayers('message', clienttranslate('${player_name} peeked tile ${tile_name} on floor ${floor}'), [
             'player_name' => $players[$current_player_id]['player_name'],
             'tile_name' => $tile_name,
@@ -2646,7 +2791,7 @@ SQL;
     }
 
     function performMove($tile_id, $context='action', $player_id = null) {
-        $current_player_id = $player_id != null ? $player_id : self::getCurrentPlayerId();
+        $current_player_id = $player_id != null ? $player_id : self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $to_move = $this->tiles->getCard($tile_id);
@@ -2675,7 +2820,7 @@ SQL;
         if ($move_result['perform_move']) {
             self::setGameStateValue('acrobatEnteredGuardTile', $acrobat_entered);
             if (!$invisible_suit && !$acrobat_entered) {
-                $this->handlePlayerEnteredGuardSight($to_move);
+                $this->handlePlayerEnteredGuardSight($to_move, $current_player_id);
             }
         }
         if (!$invisible_suit) {
@@ -2685,7 +2830,8 @@ SQL;
     }
 
     function allPlayersEscaped() {
-        return count($this->tokens->getCardsOfTypeInLocation('player', null, 'roof')) == self::getPlayersNumber();
+        $players_count = $this->getSoloMultiCharacters() > 1 ? $this->getSoloMultiCharacters() : self::getPlayersNumber();
+        return count($this->tokens->getCardsOfTypeInLocation('player', null, 'roof')) == $players_count;
     }
 
     function checkWin() {
@@ -2841,15 +2987,22 @@ SQL;
 
     function handleSelectSpecialChoice($type, $choice_arg, $selected) {
         if ($type == 'rook1') {
-            // Must switch to another state to ask chosen player confirmation
-            self::setGameStateValue('currentPlayer', self::getCurrentPlayerId());
+            $multi_characters = $this->getSoloMultiCharacters();
+            $players = $this->loadPlayersInfos();
+            $active_player_id = $this->getCurrentPlayerIdCustom();
             // Must store tile_choice destination
             self::setGameStateValue('rookDestinationTile', $selected);
-            $players = self::loadPlayersBasicInfos();
+            if ($multi_characters > 1) {
+                $player_name = $players[$active_player_id]['player_name'];
+            } else {
+                // Must switch to another state to ask chosen player confirmation
+                self::setGameStateValue('currentPlayer', $active_player_id);
+                $player_name = self::getActivePlayerName();
+            }
             self::notifyAllPlayers('message', clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
-                'player_name' => self::getActivePlayerName(),
+                'player_name' => $player_name,
                 'other_name' => $players[$choice_arg]['player_name'],
-            ]);        
+            ]);      
             $this->gamestate->nextState('switchRookMove');
         } else if ($type == 'rigger') {
             $tool = $this->cards->getCard($choice_arg);
@@ -2882,7 +3035,8 @@ SQL;
     function skipEscapedPlayers($player_id) {
         $player_token = $this->getPlayerToken($player_id);
         while ($player_token['location'] == 'roof') {
-            $player_id = self::activeNextPlayer();
+            // $player_id = self::activeNextPlayer();
+            $player_id = $this->activeNextPlayerCustom();
             $player_token = $this->getPlayerToken($player_id);
         }
         return $player_id;
@@ -3137,7 +3291,7 @@ SQL;
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         $tile_choice = FALSE;
         if ($context == 'acrobat1') {
-            $current_player_id = self::getCurrentPlayerId();
+            $current_player_id = self::getCurrentPlayerIdCustom();
             $character = $this->getPlayerCharacter($current_player_id);
             if ($this->getCardType($character) != 'acrobat1')
                 throw new BgaUserException(self::_("You are not the Acrobat"));
@@ -3165,7 +3319,7 @@ SQL;
         if ($actions_remaining < 2) {
             throw new BgaUserException(self::_("Adding a die requires 2 actions"));
         }
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         
@@ -3179,7 +3333,7 @@ SQL;
         if ($actions_remaining < 1) {
             throw new BgaUserException(self::_("You have no actions remaining"));
         }
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
 
@@ -3193,7 +3347,7 @@ SQL;
         if ($actions_remaining < 1) {
             throw new BgaUserException(self::_("You have no actions remaining"));
         }
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         if (strpos($player_tile['type'], 'computer') === FALSE) {
@@ -3213,7 +3367,8 @@ SQL;
     function playCard($card_id) {
         self::checkAction('playCard');
 
-        $current_player_id = self::getCurrentPlayerId();
+        // $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $card = $this->cards->getCard($card_id);
         if ($this->gamestate->state()['name'] == 'chooseCharacter') {
             if ( $this->gamestate->table_globals[100] !== '2' &&
@@ -3224,6 +3379,8 @@ SQL;
         }
 
         if ($card['type'] == 0) {
+            if ($this->gamestate->state()['name'] != 'chooseCharacter')
+                throw new BgaUserException(self::_("You cannot change your character once the game has started"));
             // Character choice, player chose a character
             $character = $this->cards->getCard($card_id);
             $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
@@ -3245,12 +3402,33 @@ SQL;
                 'character_name' => $this->getDisplayedCardName($this->getCardType($card)),
             ]);
             // Remove chosen character from the other player hands
-            $players = $this->loadPlayersBasicInfos();
+            $players = $this->loadPlayersInfos();
             foreach ($players as $player_id => $player) {
                 if ($player_id != $current_player_id)
                     $this->notifyPlayerHand($player_id, array($card_id, $other_side_id));
             }
-            $this->gamestate->setPlayerNonMultiactive($current_player_id, 'chooseCharacter');
+            // Check if playing solo with multiple characters
+            $multi_characters = $this->getSoloMultiCharacters();
+            if ($multi_characters > 1) {
+                if (++$current_player_id >= self::getCurrentPlayerId() + $multi_characters) {
+                    // Activate next player and enter state again
+                    $human_player_id = self::getCurrentPlayerId();
+                    self::setGameStateValue('currentPlayer', $human_player_id);
+                    self::notifyAllPlayers('activatePlayer', '', [
+                        'player_id' => $human_player_id,
+                    ]);
+                    $this->gamestate->nextState('chooseCharacter');
+                } else {
+                    // Activate next player and enter state again
+                    self::setGameStateValue('currentPlayer', $current_player_id);
+                    self::notifyAllPlayers('activatePlayer', '', [
+                        'player_id' => $current_player_id,
+                    ]);
+                    $this->gamestate->nextState('nextPlayer');
+                }
+            } else {
+                $this->gamestate->setPlayerNonMultiactive($current_player_id, 'chooseCharacter');
+            }
         } else {
             // Player wants to use a tool
             if ($card['type'] != 1) {
@@ -3302,8 +3480,8 @@ SQL;
                     'player_name' => self::getCurrentPlayerName()
                 ]);
                 self::setGameStateValue('characterAbilityUsed', 1);
-                $current_player_id = self::getCurrentPlayerId();
-                self::incStat(1, 'special_ability_use', $current_player_id);
+                $human_player_id = self::getCurrentPlayerId();
+                self::incStat(1, 'special_ability_use', $human_player_id);
                 if (in_array($type, array('hacker2', 'spotter1', 'spotter2'))) {
                     $this->endAction(); // Spent action
                 } else if ($type == 'peterman2') {
@@ -3318,7 +3496,7 @@ SQL;
                 $card_type = $this->getCardType($card);
                 // Move card is in handleSelectCardChoice
                 // $this->cards->moveCard($card['id'], 'tools_discard');
-                $current_player_id = self::getCurrentPlayerId();
+                $current_player_id = $this->getCurrentPlayerIdCustom();
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
                 self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${title} card (${tooltip}'), [
                     'card_id' => $card['id'],
@@ -3368,7 +3546,8 @@ SQL;
 
     function characterAction() {
         self::checkAction('characterAction');
-        $current_player_id = self::getCurrentPlayerId();
+        $human_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $character = $this->getPlayerCharacter($current_player_id);
         $type = $this->getCardType($character);
         $used = self::getGameStateValue('characterAbilityUsed');
@@ -3417,7 +3596,7 @@ SQL;
                 $this->nextPatrol($player_tile['location'][5]);
             }
             self::setGameStateValue('characterAbilityUsed', 1);
-            self::incStat(1, 'special_ability_use', $current_player_id);
+            self::incStat(1, 'special_ability_use', $human_player_id);
             self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
@@ -3476,7 +3655,7 @@ SQL;
 
     function trade() {
         self::checkAction('trade');
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $current_player_token = $this->getPlayerToken($current_player_id);
         $player_tokens = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $current_player_token['location_arg']);
         if (count($player_tokens) < 2) {
@@ -3499,7 +3678,7 @@ SQL;
 
     function selectPlayerChoice($selected) {
         self::checkAction('selectPlayerChoice');
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_choice = self::getGameStateValue('playerChoice');
         $player_choice_type = $this->player_choices[$player_choice];
         $this->handleSelectPlayerChoice($current_player_id, $player_choice_type, $selected);
@@ -3534,7 +3713,8 @@ SQL;
             }
             $has_gold_bar = FALSE;
         }
-        $players = self::loadPlayersBasicInfos();
+        // $players = self::loadPlayersBasicInfos();
+        $players = $this->loadPlayersInfos();
         self::notifyAllPlayers('message', clienttranslate('${player_name} proposed a trade to ${other_name}'), [
             'player_name' => $players[$trade['current_player']]['player_name'],
             'other_name' => $players[$trade['other_player']]['player_name'],
@@ -3542,11 +3722,15 @@ SQL;
 
         $this->createTradeCards($trade['id'], $trade['current_player'], $p1_ids);
         $this->createTradeCards($trade['id'], $trade['other_player'], $p2_ids);
-        $this->gamestate->nextState('nextTradePlayer');
+        if ($this->getSoloMultiCharacters() > 1) {
+            $this->confirmTrade(TRUE);
+        } else {
+            $this->gamestate->nextState('nextTradePlayer');
+        }
     }
 
-    function confirmTrade() {
-        self::checkAction('confirmTrade');
+    function confirmTrade($force = FALSE) {
+        if (!$force) self::checkAction('confirmTrade');
         $trade = $this->getTrade();
         $p1_cards = array_keys($this->getTradeCards($trade['id'], $trade['current_player']));
         $this->cards->moveCards($p1_cards, 'hand', $trade['current_player']);
@@ -3554,13 +3738,18 @@ SQL;
         $this->cards->moveCards($p2_cards, 'hand', $trade['other_player']);
         $this->notifyPlayerHand($trade['current_player'], $p2_cards);
         $this->notifyPlayerHand($trade['other_player'], $p1_cards);
-        $players = self::loadPlayersBasicInfos();
+        // $players = self::loadPlayersBasicInfos();
+        $players = $this->loadPlayersInfos();
         self::notifyAllPlayers('message', clienttranslate('${player_name} agreed to ${current_name}\'s trade'), [
             'player_name' => $players[$trade['other_player']]['player_name'],
             'current_name' => $players[$trade['current_player']]['player_name'],
         ]);
-        self::incStat(1, 'trade_confirmed', $players[$trade['other_player']]['player_id']);
-        self::incStat(1, 'trade_confirmed', $players[$trade['current_player']]['player_id']);
+        if ($this->getSoloMultiCharacters() > 1) {
+            self::incStat(1, 'trade_confirmed', self::getCurrentPlayerId());
+        } else {
+            self::incStat(1, 'trade_confirmed', $players[$trade['other_player']]['player_id']);
+            self::incStat(1, 'trade_confirmed', $players[$trade['current_player']]['player_id']);            
+        }
         $this->gamestate->nextState('endTradeOtherPlayer');
     }
 
@@ -3587,7 +3776,6 @@ SQL;
 
     function selectSpecialChoice($selected) {
         self::checkAction('selectSpecialChoice');
-        // $current_player_id = self::getCurrentPlayerId();
         $special_choice = self::getGameStateValue('specialChoice');
         $special_choice_type = $this->special_choices[$special_choice];
         $special_choice_arg = self::getGameStateValue('specialChoiceArg');
@@ -3603,7 +3791,7 @@ SQL;
 
     function discardTool($selected) {
         self::checkAction('discardTool');
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $tools = $this->cards->getCardsOfTypeInLocation(1, null, 'choice');
         foreach ($tools as $tool_id => $tool) {
             if ($tool_id == $selected) {
@@ -3627,7 +3815,7 @@ SQL;
 
     function takeCards() {
         self::checkAction('takeCards');
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
         if ($player_tile['type'] != 'safe') {
             throw new BgaUserException(self::_('Cards can only be taken from a safe'));
@@ -3642,7 +3830,7 @@ SQL;
 
     function confirmTakeCards($l_ids, $r_ids) {
         self::checkAction('confirmTakeCards');
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
         // If player already has the gold bar, they cannot pick the other one
         $hand = $this->cards->getPlayerHand($current_player_id);
@@ -3662,7 +3850,7 @@ SQL;
         $this->notifyPlayerHand($current_player_id);
         $this->notifyTileCards($player_tile['id']);
         self::notifyAllPlayers('message', clienttranslate('${player_name} picked up ${card_count} card${card_s} in their tile'), [
-            'player_name' => self::getActivePlayerName(),
+            'player_name' => $this->getActivePlayerNameCustom(),
             'card_count' => count($r_ids),
             'card_s' => count($r_ids) == 1 ? '' : 's'
         ]);
@@ -3677,11 +3865,15 @@ SQL;
     function confirmRookMove() {
         // Player confirmed the Rook movement
         self::setGameStateValue('characterAbilityUsed', 1);
-        $current_player_id = self::getGameStateValue('currentPlayer');
+        if ($this->getSoloMultiCharacters() > 1) {
+            $current_player_id =  self::getGameStateValue('currentPlayer');
+        } else {
+            $current_player_id =  self::getCurrentPlayerId();
+            self::notifyAllPlayers('message', clienttranslate('${player_name} accepts the move'), [
+                'player_name' => self::getActivePlayerName(),
+            ]);                                            
+        }
         self::incStat(1, 'special_ability_use', $current_player_id);
-        self::notifyAllPlayers('message', clienttranslate('${player_name} accepts the move'), [
-            'player_name' => self::getActivePlayerName(),
-        ]);
 
         $choice_arg = self::getGameStateValue('specialChoiceArg');
         $selected = self::getGameStateValue('rookDestinationTile');
@@ -3709,7 +3901,7 @@ SQL;
 
     function pickUpCat() {
         self::checkAction('pickUpCat');
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
         $cat_tokens = $this->tokens->getCardsOfTypeInLocation('cat', null, 'tile', $player_tile['id']);
         if (count($cat_tokens) == 0) {
@@ -3717,7 +3909,7 @@ SQL;
         }
         $this->moveTokens(array_keys($cat_tokens), 'deck');
         self::notifyAllPlayers('message', clienttranslate('${player_name} picked up the cat token'), [
-            'player_name' => self::getActivePlayerName()
+            'player_name' => $this->getActivePlayerNameCustom()
         ]);
         $this->endAction(0);
     }
@@ -3725,14 +3917,15 @@ SQL;
     function pass() {
         self::checkAction('pass');
         self::setGameStateValue('playerPass', 1);
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         $trigger_action_count = $this->getPlayerLoot( 'stamp', $current_player_id) ? 1 : 2;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(3, 'go-with-your-gut');
-            // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
+            //zz
+            $type_arg = $this->getCardTypeForName(3, 'jump-the-gun');
+            $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
                 self::notifyAllPlayers('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
@@ -3783,17 +3976,16 @@ SQL;
             throw new BgaUserException(self::_("You have no actions remaining"));
         }
 
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
-        // if (!$this->canEscape($player_tile)) {
         if (!$this->checkWin()) {
             throw new BgaUserException(self::_('You must open all the safes and get all the loots before you escape (especially the Persian Kitty)'));
         }
         $this->moveToken($player_token['id'], 'roof');
         self::notifyAllPlayers('playerEscape', clienttranslate('${player_name} escaped to the roof'), [
             'player_id' => $current_player_id,
-            'player_name' => self::getActivePlayerName(),
+            'player_name' => $this->getActivePlayerNameCustom(),
             'token_id' => $player_token['id'],
         ]);
 
@@ -3824,21 +4016,11 @@ SQL;
 
     function argChooseCharacter() {
         // Return basic (and if relevant advanced side) of each player character
-        // self::getCurrentPlayerId() may raise an exception error because this is the first state called by game setup, so wrap it into a try / catch
-        try {
-            $current_player_id = self::getCurrentPlayerId();
-            $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand', $current_player_id);
-        } catch (Exception $e) {
-            // No one has chosen a character yet (game not started)
-            $cards = $this->cards->getCardsOfTypeInLocation(0, null, 'hand');
-        }
-        // If hand is empty, player can choose any available character
-        if (count($cards) == 0) {
-            $cards = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg FROM card WHERE card_location='characters_deck'");
-        }
+        $cards = $this->getAvailableCharacters();
         return array(
             'cards' => $cards,
-            'floor' => 1
+            'floor' => 1,
+            'player_id' => $this->getActivePlayerIdCustom(),
         );
     }
 
@@ -3850,7 +4032,7 @@ SQL;
 
     function argPlayerTurn() {
         // Can't get current player here for some reason
-        return $this->gatherCurrentData(self::getActivePlayerId());
+        return $this->gatherCurrentData($this->getActivePlayerIdCustom());
     }
 
     function argConfirmRookMove() {
@@ -3871,7 +4053,7 @@ SQL;
     }
 
     function argCardChoice() {
-        $current_player_id = self::getActivePlayerId();
+        $current_player_id = $this->getActivePlayerIdCustom();
         $args = $this->gatherCurrentData($current_player_id);
         $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
         $card_name = $this->getCardType($card);
@@ -3910,7 +4092,7 @@ SQL;
     }
 
     function argTileChoice() {
-        $player_id = self::getActivePlayerId();
+        $player_id = $this->getActivePlayerIdCustom();
         $player_token = $this->getPlayerToken($player_id);
         $tile = $this->tiles->getCard(self::getGameStateValue('tileChoice'));
         $args = array(
@@ -3929,20 +4111,20 @@ SQL;
     }
 
     function argPlayerChoice() {
-        $args = $this->gatherCurrentData(self::getActivePlayerId());
+        $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
         $player_choice = self::getGameStateValue('playerChoice');
         $args['context'] = $this->player_choices[$player_choice];
         return $args;
     }
 
     function argProposeTrade() {
-        $args = $this->gatherCurrentData(self::getActivePlayerId());
+        $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
         $args['trade'] = $this->getTrade();
         return $args;
     }
 
     function argConfirmTrade() {
-        $args = $this->gatherCurrentData(self::getActivePlayerId());
+        $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
         $trade = $this->getTrade();
         $args['trade'] = $trade;
         $args['p1_cards'] = $this->getTradeCards($trade['id'], $trade['other_player']);
@@ -3951,7 +4133,7 @@ SQL;
     }
 
     function argSpecialChoice() {
-        $args = $this->gatherCurrentData(self::getActivePlayerId());
+        $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
         $special_choice = self::getGameStateValue('specialChoice');
         $choice_arg = self::getGameStateValue('specialChoiceArg');
         $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
@@ -3964,7 +4146,7 @@ SQL;
     }
 
     function argDrawToolsAndDiscard() {
-        $args = $this->gatherCurrentData(self::getActivePlayerId());
+        $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
         $args['tools'] = $this->cards->getCardsOfTypeInLocation(1, null, 'choice');
         return $args;
     }
@@ -4006,7 +4188,8 @@ SQL;
     }
 
     function stEndAction() {
-        $current_player_id = self::getActivePlayerId();
+        $current_player_id = $this->getActivePlayerIdCustom();
+        $players = $this->loadPlayersInfos();
         $draw_tools_player_id = self::getGameStateValue('drawToolsPlayer');
         $draw_two = $this->showRiggerToolSelection();
         $next_state = self::getGameStateValue('playerPass') == 1 ? 'endTurn' : 'nextAction';
@@ -4016,17 +4199,18 @@ SQL;
             self::setGameStateValue('undoAllowed', 0);
             self::setGameStateValue('drawToolsPlayer', 0);
             $this->reshuffleDeckIfEmpty('tools');
-            $card = $this->cards->pickCard('tools_deck', $current_player_id);
+            $card = $this->cards->pickCard('tools_deck', $draw_tools_player_id);
             $card_name = $this->getCardType($card);
-            self::incStat( 1, 'tools_drawn', $current_player_id );
+            $human_player_id = $this->getActivePlayerId();
+            self::incStat( 1, 'tools_drawn', $human_player_id );
             self::notifyAllPlayers('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
                 'card_id' => $card['id'],
                 'card' => $card,
-                'player_name' => self::getActivePlayerName(),
+                'player_name' => $players[$draw_tools_player_id]['player_name'],
                 'title' => $this->getDisplayedCardName($card_name),
                 'tooltip' => $this->getCardTooltip($card),
             ]);
-            $this->notifyPlayerHand($current_player_id);
+            $this->notifyPlayerHand($draw_tools_player_id);
             $this->gamestate->nextState($next_state);
         } else {
             self::setGameStateValue('undoAllowed', 0);
@@ -4045,7 +4229,7 @@ SQL;
     }
 
     function stEndTurn() {
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $type = $player_tile['type'];
@@ -4058,13 +4242,13 @@ SQL;
         }
         $this->resetGlobalVars();
         self::notifyAllPlayers('message', clienttranslate('${player_name} ended their turn'), [
-            'player_name' => self::getActivePlayerName()
+            'player_name' => $this->getActivePlayerNameCustom()
         ]);
         $this->gamestate->nextState( 'moveGuard' );
     }
 
     function stMoveGuard() {
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $floor = $player_tile['location'][5];
@@ -4122,7 +4306,8 @@ SQL;
     }
 
     function stNextPlayer() {
-        $player_id = self::activeNextPlayer();
+        $human_player_id = self::getCurrentPlayerId();
+        $player_id = $this->activeNextPlayerCustom();
         $jump_the_gun = $this->getActiveEvent('jump-the-gun');
         if ($jump_the_gun) {
             $player_id = $this->skipEscapedPlayers($player_id);
@@ -4131,10 +4316,12 @@ SQL;
             ));
             $this->cards->moveCard($jump_the_gun['id'], 'events_discard');
             $this->notifyPlayerHand($player_id, array($jump_the_gun['id']));
+            $player_id = $this->activeNextPlayerCustom();
+            $player_id = $this->skipEscapedPlayers($player_id);
         } else {
             $player_id = $this->skipEscapedPlayers($player_id);
         }
-        self::giveExtraTime( $player_id );
+        self::giveExtraTime( $human_player_id );
         $heads_up = $this->getActiveEvent('heads-up');
         $actions = $heads_up ? 5 : 4;
         if ($this->getPlayerLoot('mirror', $player_id)) {
@@ -4178,7 +4365,7 @@ SQL;
                 if (isset($rolls[1]) || isset($rolls[2])) {
                     $this->moveCatToken($player_id);
                     self::notifyAllPlayers('message', clienttranslate('${player_name} must pick up the cat token before escaping'), [
-                        'player_name' => self::getActivePlayerName()
+                        'player_name' => $this->getActivePlayerNameCustom()
                     ]);
                 }
             }
@@ -4190,7 +4377,7 @@ SQL;
         ]);
 
         self::incStat(1, 'turns_number');
-        self::incStat(1, 'turns_number', $player_id);
+        self::incStat(1, 'turns_number', $human_player_id);
 
         $this->undoSavepoint();
         $this->setGameStateValue('undoAllowed', 1);
@@ -4206,7 +4393,9 @@ SQL;
 
     function stEndTradeOtherPlayer() {
         $trade = $this->getTrade();
-        $this->gamestate->changeActivePlayer( $trade['current_player'] );
+        if ($this->getSoloMultiCharacters() <= 1) {
+            $this->gamestate->changeActivePlayer( $trade['current_player'] );
+        }
         $this->deleteTrade();
         $this->gamestate->nextState( 'nextAction' );
     }
@@ -4214,11 +4403,16 @@ SQL;
     function stSwitchRookMove() {
         // Switch active player between Rook and chosen player who must accept move / draw tools if laboratory...
         $destination_tile = self::getGameStateValue('rookDestinationTile');
+        $multi_characters = $this->getSoloMultiCharacters();
         if ($destination_tile > 0) {
-            // Activate other player
-            $player_id = self::getGameStateValue('specialChoiceArg');
-            $this->gamestate->changeActivePlayer( $player_id );
-            $this->gamestate->nextState( 'confirmRookMove' );
+            if ($multi_characters > 1) {
+                $this->confirmRookMove();
+            } else {
+                // Activate other player
+                $player_id = self::getGameStateValue('specialChoiceArg');
+                $this->gamestate->changeActivePlayer( $player_id );
+                $this->gamestate->nextState( 'confirmRookMove' );
+            }
         } else { // Activate Rook
             $player_id = self::getGameStateValue('currentPlayer');
             $this->gamestate->changeActivePlayer( $player_id );

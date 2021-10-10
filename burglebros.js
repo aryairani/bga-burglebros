@@ -72,6 +72,31 @@ function (dojo, declare) {
 
             this.zones = {};
 
+            // If solo multi-characters options, copy overall player board to instanciate virtual player boards
+            if ( gamedatas.solo_characters > 1 ) {
+                var active_player_id = $('player_boards').firstElementChild.id.split('_').slice(-1).pop();
+                for (var char_index = 1; char_index <= gamedatas.solo_characters - 1; char_index++) {
+                    var player_id = parseInt(active_player_id) + char_index;
+                    var player_board = $('player_boards').firstElementChild.cloneNode(true);
+                    if (!$('overall_player_board_' + player_id)) {
+                        player_board.id = 'overall_player_board_' + player_id;
+                        var child_nodes = player_board.getElementsByTagName("*");
+                        for (i = 0; i < child_nodes.length; i++) {
+                            var node = child_nodes[i];
+                            node.id = node.id.replace(active_player_id, player_id);
+                            if (node.tagName === 'IMG') {
+                                node.src = '';
+                            } else if (node.tagName === 'A') {
+                                node.href = '#player_board_' + player_id;
+                                node.innerHTML = gamedatas.players[player_id]['player_name'];
+                                node.target = '';
+                                node.style.color = '#' + gamedatas.players[player_id]['player_color'];
+                            }
+                        }
+                        dojo.place(player_board, $('player_boards'), 'last');
+                    }
+                }
+            }
             // Setting up player boards
             this.playerHands = {};
             for (var playerId in gamedatas.players) {
@@ -91,7 +116,7 @@ function (dojo, declare) {
                 hand.image_items_per_row = 2;
                 hand.onItemCreate = dojo.hitch(this, 'createCardZone', hand);
                 hand.centerItems = true;
-                if (me) {
+                if (me || gamedatas.solo_characters > 1) {
                     hand.setSelectionMode(1);
                     hand.setSelectionAppearance('class');
                     dojo.connect( hand, 'onChangeSelection', this, 'handleCardSelected');
@@ -142,7 +167,7 @@ function (dojo, declare) {
                     // Patrol back
                     this[patrolKey].addItemType(51, 51, g_gamethemeurl + 'img/patrol.jpg', 51);
                 } else {
-                    // Create custom Patrol cards zztodo
+                    // Create custom Patrol cards
                     var tiles_count = gamedatas.square_size * gamedatas.square_size;
                     for (var i = 0; i <= tiles_count - 1; i++) {
                         var id = patrolKey + this.gamedatas.patrol_names[i].name; // floor1A1...
@@ -219,6 +244,10 @@ function (dojo, declare) {
             }
 
             this.showFloor(this.currentFloor());
+
+            if (gamedatas.solo_characters > 1) {
+                this.activatePlayer(gamedatas.active_player_id);
+            }
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -248,8 +277,12 @@ function (dojo, declare) {
                 break;
             case 'chooseCharacter':
                 // If hand is already loaded, don't reload because it adds extra cards on [random walls x random w/ advanced]
-                if (this.myHand.count() == 0)
-                    this.loadPlayerHand(this.myHand, args.args.cards, [], false);
+                var player_id = args.args.player_id;
+                var hand_stock = player_id == this.player_id ? this.myHand : this.playerHands[player_id];
+                if (hand_stock.count() == 0)
+                    this.loadPlayerHand(hand_stock, args.args.cards, [], false);
+                // if (this.myHand.count() == 0)
+                //     this.loadPlayerHand(this.myHand, args.args.cards, [], false);
                 break;
             case 'cardChoice':
                 if (args.args.spotter_card && (this.isCardChoice('spotter1') || this.isCardChoice('spotter2'))) {
@@ -448,7 +481,7 @@ function (dojo, declare) {
                             var player_id = token.type_arg;
                             var player = players[player_id];
                             var character_type = player.character.type_arg - 1;
-                            this.addActionButton('button_player_' + player_id, ' ' + player.name + '\r\n(' + _(this.gamedatas.card_info[0][character_type]['title']) + ')', dojo.hitch(this, 'handlePlayerChoice', token['id']) );
+                            this.addActionButton('button_player_' + player_id, ' ' + player.player_name + '\r\n(' + _(this.gamedatas.card_info[0][character_type]['title']) + ')', dojo.hitch(this, 'handlePlayerChoice', token['id']) );
                             $('button_player_' + player_id).innerHTML = '<span style="white-space: pre;line-height: 25px;margin-left: 5px;">' + $('button_player_' + player_id).innerHTML + '</span>';
                             dojo.style('button_player_' + player_id, 'display', 'inline-flex');
                             var bg_col = character_type % 2,
@@ -457,7 +490,7 @@ function (dojo, declare) {
                                 meeple_id : 'action_bar_' + token['id'],
                                 meeple_background : g_gamethemeurl + '/img/meeples.png',
                                 meeple_bg_pos : -(bg_col * 35) + 'px ' + -(bg_row * 50) + 'px',
-                                player_color: this.gamedatas.players[player_id].color
+                                player_color: this.gamedatas.players[player_id].player_color
                             }), 'button_player_' + player_id, 'first');
                         }
                         if (args.context !== "squeak")  // cannot cancel Squeak event
@@ -503,6 +536,15 @@ function (dojo, declare) {
         changeMainBar: function(message) {
             this.removeActionButtons();
             $("pagemaintitletext").innerHTML = message;
+        },
+
+        getHandStock: function() {
+            if (this.gamedatas.solo_characters > 1) {
+                var active_player_id = this.gamedatas.active_player_id;
+                return active_player_id == this.player_id ? this.myHand : this.playerHands[active_player_id];
+            } else {
+                return this.myHand;
+            }
         },
 
         // Get card unique identifier based on its row and col
@@ -646,7 +688,8 @@ function (dojo, declare) {
                 meeple_id : id,
                 meeple_background : g_gamethemeurl + '/img/meeples.png',
                 meeple_bg_pos : -(bg_col * 35) + 'px ' + -(bg_row * 50) + 'px',
-                player_color: this.gamedatas.players[player_id].color
+                // player_color: this.gamedatas.players[player_id].color
+                player_color: this.gamedatas.players[player_id].player_color
             }), 'token_container');
         },
 
@@ -762,6 +805,7 @@ function (dojo, declare) {
 
         createPlayerBoard: function(id) {
             var tokenType = this.gamedatas.token_types['stealth'];
+            console.log("** createPlayerBoard", id);
             dojo.place(this.format_block('jstpl_player_zone', {
                 id : id,
             }), 'player_board_' + id);
@@ -771,10 +815,42 @@ function (dojo, declare) {
             zone.create( this, zoneId, 24, 24 );
             zone.setPattern( 'grid' );
             this.zones[zoneId] = zone;
-
             dojo.place(this.format_block('jstpl_player_escaped', {
                 id : id,
             }), 'player_board_' + id);
+        },
+
+        activatePlayer: function(active_player_id) {
+            // Solo multi-characters games >> Move active player's hand to the top and the other hands consecutively
+            var player_ids = Object.keys(this.gamedatas.players);
+            var index = player_ids.indexOf('' + active_player_id); // use of toString() wether active_player_id is int or str
+            if (index == -1) {
+                console.error("Coulnd't find this active player: ", active_player_id);
+                return;
+            }
+            this.gamedatas.active_player_id = active_player_id;
+            for (let wrap_index = 1; wrap_index <= player_ids.length; wrap_index++) {
+                let player_id = player_ids[index];
+                let node = $('player_hand_content_' + player_id);
+                let destination = $('player_hand_wrap_' + wrap_index);
+                let anim = this.slideToObject(node, destination, 1000);
+                let handStock = player_id == this.player_id ? this.myHand : this.playerHands[player_id];
+                // dojo.connect( anim, "onEnd", dojo.hitch(this, function(){
+                //     this.attachToHTML(node, destination);
+                //     console.log('handStock', handStock);
+                //     this.handStock.updateDisplay();
+                // }) );
+                anim.play();
+                this.attachToHTML(node, destination);
+                index = ++index >= player_ids.length ? 0 : index;
+            }
+        },
+        attachToHTML: function(child, parent) {
+            // Attach element to HTML parent (e.g. after slideTo) to force child to move with parent
+            console.log("attachToHTML", child, parent);
+            $(parent).appendChild( $(child) );
+            // $(child).removeAttribute("style");
+            dojo.style(child, 'position', 'inherit');
         },
 
         createGuardPath: function(floor, guard_path) {
@@ -959,7 +1035,7 @@ function (dojo, declare) {
 
         getCardTypeForName: function(type_id, name) {
             var deck_types = this.gamedatas.card_types[type_id].cards;
-            for(var idx = 0; idx < deck_types.length; idx++) {
+            for (var idx = 0; idx < deck_types.length; idx++) {
                 if (deck_types[idx].name === name) {
                     return deck_types[idx].index;
                 }
@@ -968,8 +1044,9 @@ function (dojo, declare) {
         },
 
         handContainsCard: function(type_id) {
-            var hand = this.gamedatas.players[this.player_id].hand;
-            for(var id in hand) {
+            var active_player_id = this.gamedatas.solo_characters > 1 ? this.gamedatas.active_player_id : this.player_id;
+            var hand = this.gamedatas.players[active_player_id].hand;
+            for (var id in hand) {
                 var card = hand[id];
                 if (card.type_arg == type_id) {
                     return true;
@@ -1117,6 +1194,7 @@ function (dojo, declare) {
         },
 
         showTradeDialog: function(opts) {
+            console.log("showTradeDialog", opts);
             var combinedOpts = dojo.mixin({
                 l_color: 'black',
                 r_color: 'black',
@@ -1129,6 +1207,7 @@ function (dojo, declare) {
                 confirm_title: _('Propose Trade'),
                 // Required: close_callback, confirm_callback
             }, opts);
+            if (!combinedOpts.l_color) combinedOpts.l_color = 'black';
             var dialog = new ebg.popindialog();
             dialog.create( 'proposeTradeDialog' );
             dialog.setTitle( combinedOpts.title );
@@ -1203,7 +1282,7 @@ function (dojo, declare) {
                 l_cards: p1.hand,
                 r_cards: p2.hand,
                 l_name: _('You'),
-                r_name: p2.name,
+                r_name: p2.player_name,
                 l_color: p1.color,
                 r_color: p2.color,
                 close_callback: dojo.hitch(this, function() {
@@ -1242,7 +1321,7 @@ function (dojo, declare) {
             var html = this.format_block('jstpl_trade_confirmation_dialog', {
                 p1_color: p1.color,
                 p2_color: p2.color,
-                p2_name: p2.name,
+                p2_name: p2.player_name,
             });
             
             dialog.setContent( html ); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
@@ -1557,7 +1636,14 @@ function (dojo, declare) {
                     var context = 'action';
                     // If acrobat is moving onto a guard, ask if player wants to use the special ability
                     var tile_has_guard = $(evt.target.id).parentNode.querySelectorAll('.token.guard').length > 0;
-                    if (intent == 'move' && this.gamedatas.gamestate.args.character.name == 'acrobat1' && tile_has_guard) {
+                    // ZZ multicharacters may not be the Acrobat :)
+                    if (this.gamedatas.solo_characters > 1) {
+                        var active_player_id = this.gamedatas.active_player_id;
+                        var is_acrobat = this.gamedatas['players'][active_player_id].character.name == 'acrobat1';
+                    } else {
+                        var is_acrobat = this.gamedatas.gamestate.args.character.name == 'acrobat1';
+                    }
+                    if (intent == 'move' && is_acrobat && tile_has_guard) {
                         this.multipleChoiceDialog(
                           _('Do you want to use your Acrobat ability?'), [_('Yes'), _('No')], 
                             dojo.hitch(this, function(choice) {
@@ -1676,9 +1762,11 @@ function (dojo, declare) {
 
         handleCardSelected: function(control_name, card_id) {
             console.log("handleCardSelected", control_name, card_id);
-            if (this.myHand.isSelected(card_id) && this.checkAction('playCard')) {
+            var handStock = this.getHandStock();
+            if (handStock.isSelected(card_id) && this.checkAction('playCard')) {
+                console.log("handleCardSelected inside");
                 this.ajaxcall('/burglebros/burglebros/playCard.html', { lock: true, id: card_id }, this, console.log, console.error);
-            } else if (!this.myHand.isSelected(card_id)) {
+            } else if (!handStock.isSelected(card_id)) {
                 this.handleCancelCardChoice();
             }
         },
@@ -1797,6 +1885,7 @@ function (dojo, declare) {
         {
             console.log( 'notifications subscriptions setup' );
             dojo.subscribe('characterChosen', this, 'notif_characterChosen');
+            dojo.subscribe('activatePlayer', this, 'notif_activatePlayer');
             dojo.subscribe('tokensPicked', this, 'notif_tokensPicked');
             dojo.subscribe('tokensPickedSync', this, 'notif_tokensPicked');
             this.notifqueue.setSynchronous( 'tokensPickedSync', 750 );
@@ -1840,6 +1929,12 @@ function (dojo, declare) {
         notif_characterChosen: function(notif) {
             console.log('** notif_characterChosen', notif.args);
             this.gamedatas.players[notif.args.player_id].character = notif.args.character;
+        },
+
+        notif_activatePlayer: function(notif) {
+            // Solo multicharacters, change layout to display active character first
+            console.log('** notif_activatePlayer', notif.args);
+            this.activatePlayer(notif.args.player_id);
         },
 
         notif_tokensPicked: function(notif) {
