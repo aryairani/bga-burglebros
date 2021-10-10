@@ -1000,7 +1000,8 @@ function (dojo, declare) {
 
         canPickUpKitty: function() {
             var type_id = this.getCardTypeForName(2, 'persian-kitty');
-            return this.tileContainsToken('cat') && this.handContainsCard(type_id);
+            // return this.tileContainsToken('cat') && this.handContainsCard(type_id);
+            return this.tileContainsToken('cat');
         },
 
         isCardChoice: function(name) {

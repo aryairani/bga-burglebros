@@ -2426,6 +2426,15 @@ SQL;
         }
         return null;
     }
+    function getLootOwner($name) {
+        $type_arg = $this->getCardTypeForName(2, $name);
+        $cards = $this->cards->getCardsOfTypeInLocation(2, $type_arg, 'hand');
+        if (count($cards) > 0) {
+            return array_values($cards)[0];
+        }
+        return null;
+
+    }
 
     function getPlayerTool($name, $player_id=null) {
         $type_arg = $this->getCardTypeForName(1, $name);
@@ -3921,6 +3930,14 @@ SQL;
             throw new BgaUserException(self::_('Tile does not contain the cat token'));
         }
         $this->moveTokens(array_keys($cat_tokens), 'deck');
+        $kitty_card = $this->getLootOwner('persian-kitty');
+        $kitty_owner = $kitty_card['location_arg'];
+        // If another player picked up the Persian Kitty, move the loot card to the new owner
+        if ($kitty_owner != $current_player_id) {
+            $this->cards->moveCard($kitty_card['id'], 'hand', $current_player_id);
+            $this->notifyPlayerHand($current_player_id);
+            $this->notifyPlayerHand($kitty_owner, array($kitty_card['id']));
+        }
         self::notifyAllPlayers('message', clienttranslate('${player_name} picked up the cat token'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
