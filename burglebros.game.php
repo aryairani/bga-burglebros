@@ -533,7 +533,6 @@ class burglebros extends Table
         if ($floor != 1) {
             throw new BgaUserException(self::_("Starting tile must be on the first floor"));
         }
-        // zz
         $this->performPeek($entrance['id'], 'effect');
 
         // Move first player token to entrance
@@ -4047,7 +4046,7 @@ SQL;
     function argChooseCharacter() {
         // Return basic (and if relevant advanced side) of each player character
         $cards = $this->getAvailableCharacters();
-        $player_id = $this->getSoloMultiCharacters() > 1 ? $this->getActivePlayerIdCustom() : 0;
+        $player_id = $this->getSoloMultiCharacters() > 1 ? $this->getCurrentPlayerIdCustom() : 0;
         return array(
             'cards' => $cards,
             'floor' => 1,
@@ -4213,7 +4212,7 @@ SQL;
     function stChooseCharacter() {
         // Move on if the game only use basic characters
         if ($this->gamestate->table_globals[100] == 1) {
-            $this->gamestate->nextState('');
+            $this->gamestate->nextState('chooseCharacter');
         }
         $this->gamestate->setAllPlayersMultiactive();
     }
