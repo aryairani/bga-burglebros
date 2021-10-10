@@ -2043,7 +2043,7 @@ SQL;
 
     function checkCameras($params) {
         $video_loop = $this->getActiveEvent('video-loop');
-        if ($video_loop) {
+        if ($video_loop || self::getGameStateValue('empPlayer') != 0) {
             return;
         }
         $player_clause = '';
