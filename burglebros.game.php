@@ -533,6 +533,7 @@ class burglebros extends Table
         if ($floor != 1) {
             throw new BgaUserException(self::_("Starting tile must be on the first floor"));
         }
+        // zz
         $this->performPeek($entrance['id'], 'effect');
 
         // Move first player token to entrance
@@ -2780,12 +2781,16 @@ SQL;
 
         $this->handleTilePeek($to_peek);
         $tile_name = $patrol_names[$to_peek['location_arg']]['name'];
-        // TODO: Add tile type?
+        $tile_type = $this->getDisplayedCardName($to_peek['type']);
         // $players = self::loadPlayersBasicInfos();
         $players = $this->loadPlayersInfos();
-        self::notifyAllPlayers('message', clienttranslate('${player_name} peeked tile ${tile_name} on floor ${floor}'), [
+        $message = $variant == 'effect' ? 
+            clienttranslate('${player_name} reveal tile ${tile_name} (${tile_type}) on floor ${floor}') : 
+            clienttranslate('${player_name} peeked tile ${tile_name} (${tile_type}) on floor ${floor}');
+        self::notifyAllPlayers('message', $message, [
             'player_name' => $players[$current_player_id]['player_name'],
             'tile_name' => $tile_name,
+            'tile_type' => $tile_type,
             'floor' => $floor,
         ]);
         $this->flipTile( $floor, $to_peek['location_arg'] );
