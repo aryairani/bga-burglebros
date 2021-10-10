@@ -3923,9 +3923,8 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            //zz
-            $type_arg = $this->getCardTypeForName(3, 'jump-the-gun');
-            $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
+            // $type_arg = $this->getCardTypeForName(3, 'jump-the-gun');
+            // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
                 self::notifyAllPlayers('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
