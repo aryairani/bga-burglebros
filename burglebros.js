@@ -694,7 +694,15 @@ function (dojo, declare) {
         },
 
         moveToken: function(token_type, token) {
-            console.log('moveToken', token);
+            // console.log('moveToken', token_type, token);
+            // Show floor before moving token to avoid vertical display
+            if (token.location == 'tile') {
+                var node = $('tile_' + token.location_arg + '_container');
+                if (node) {
+                    var floor = node.parentNode.id.slice(-1);
+                    this.showFloor(floor);
+                }
+            }
             if (token_type === 'player') {
                 var meepleZoneId = 'tile_' + token.location_arg + '_meeples';
                 // Guarantee meeple token is created
@@ -847,7 +855,7 @@ function (dojo, declare) {
         },
         attachToHTML: function(child, parent) {
             // Attach element to HTML parent (e.g. after slideTo) to force child to move with parent
-            console.log("attachToHTML", child, parent);
+            // console.log("attachToHTML", child, parent);
             $(parent).appendChild( $(child) );
             // $(child).removeAttribute("style");
             dojo.style(child, 'position', 'inherit');
