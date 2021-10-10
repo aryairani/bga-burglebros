@@ -132,7 +132,35 @@ $game_options = array(
                     ),
                 ),
         'default' => 1,
-    )
+    ),
+
+    104 => array(
+        'name' => totranslate('[DEV] Solo multi-characters'),    
+        'values' => array(
+            1 => array( 
+                'name' => totranslate('--- Play only one character ---'),
+            ),
+            2 => array( 
+                'name' => totranslate('Play 2 characters')
+            ),
+            3 => array(
+                'name' => totranslate('Play 3 characters'),
+            ),
+            4 => array(
+                'name' => totranslate('Play 4 characters'),
+            ),
+        ),
+        'default' => 1,
+        'displaycondition' => array(
+             // Note: do not display this option unless these conditions are met
+             array(
+                 'type' => 'maxplayers',
+                 'value' => 1,
+                 'message' => totranslate('Solo variants can be played at 1 player only.')
+             ),
+        ),
+        'notdisplayedmessage' => totranslate('Solo variants are only available with 1 player')
+    ),
 );
 
 $game_preferences = array(
