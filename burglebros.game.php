@@ -4340,17 +4340,16 @@ SQL;
         $player_id = $this->activeNextPlayerCustom();
         $jump_the_gun = $this->getActiveEvent('jump-the-gun');
         if ($jump_the_gun) {
+            $players = $this->loadPlayersInfos();
             $player_id = $this->skipEscapedPlayers($player_id);
             self::notifyAllPlayers('message', clienttranslate( 'Skipped ${player_name}\'s turn' ), array(
-                'player_name' => self::getPlayerNameById($player_id)
+                'player_name' => $players[$player_id]['player_name'],
             ));
             $this->cards->moveCard($jump_the_gun['id'], 'events_discard');
             $this->notifyPlayerHand($player_id, array($jump_the_gun['id']));
             $player_id = $this->activeNextPlayerCustom();
-            $player_id = $this->skipEscapedPlayers($player_id);
-        } else {
-            $player_id = $this->skipEscapedPlayers($player_id);
         }
+        $player_id = $this->skipEscapedPlayers($player_id);
         self::giveExtraTime( $human_player_id );
         $heads_up = $this->getActiveEvent('heads-up');
         $actions = $heads_up ? 5 : 4;
