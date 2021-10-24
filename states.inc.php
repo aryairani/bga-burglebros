@@ -101,7 +101,7 @@ $machinestates = array(
         'args' => 'argPlayerTurn',
         'updateGameProgression' => true,
         'possibleactions' => array( 'hack', 'move', 'peek', 'addSafeDie', 'rollSafeDice', 'playCard', 'characterAction', 'trade', 'pickUpCat', 'takeCards', 'pass', 'escape', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'endTurn' => 10, 'nextPlayer' => 12, 'cardChoice' => 13, 'tileChoice' => 14, 'playerChoice' => 15, 'proposeTrade' => 16, 'takeCards' => 24, 'specialChoice' => 20, 'rookChoice' => 25, 'restartTurn' => 9, 'gameOver' => 90 )
+        'transitions' => array( 'endAction' => 21, 'endTurn' => 10, 'nextPlayer' => 12, 'cardChoice' => 13, 'tileChoice' => 14, 'playerChoice' => 15, 'proposeTrade' => 16, 'takeCards' => 24, 'specialChoice' => 20, 'rookChoice' => 25, 'chooseAlarm' => 20, 'restartTurn' => 9, 'gameOver' => 90 )
     ),    
 
     10 => array(
@@ -120,7 +120,7 @@ $machinestates = array(
         'type' => 'game',
         'action' => 'stMoveGuard',
         'updateGameProgression' => true,
-        'transitions' => array( 'nextPlayer' => 12, 'gameOver' => 90 )
+        'transitions' => array( 'nextPlayer' => 12, 'chooseAlarm' => 20, 'gameOver' => 90 )
     ),
 
     12 => array(
@@ -139,7 +139,7 @@ $machinestates = array(
         'args' => 'argCardChoice',
         'updateGameProgression' => true,
         'possibleactions' => array( 'selectCardChoice', 'cancelCardChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'endTurn' => 10, 'tileChoice' => 14, 'restartTurn' => 9, 'gameOver' => 90 )
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'endTurn' => 10, 'tileChoice' => 14, 'restartTurn' => 9, 'chooseAlarm' => 20, 'gameOver' => 90 )
     ),
 
     14 => array(
@@ -149,7 +149,7 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argTileChoice',
         'possibleactions' => array( 'selectTileChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10, 'switchRookMove' => 25 )
+        'transitions' => array( 'endAction' => 21, 'tileChoice' => 14, 'restartTurn' => 9, 'endTurn' => 10, 'switchRookMove' => 25, 'chooseAlarm' => 20 )
     ),
 
     15 => array(
@@ -159,7 +159,7 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argPlayerChoice',
         'possibleactions' => array( 'selectPlayerChoice', 'cancelPlayerChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'proposeTrade' => 16, 'specialChoice' => 20, 'restartTurn' => 9 )
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'proposeTrade' => 16, 'specialChoice' => 20, 'chooseAlarm' => 20, 'restartTurn' => 9 )
     ),
 
     16 => array(
@@ -206,7 +206,7 @@ $machinestates = array(
         'args' => 'argSpecialChoice',
         'updateGameProgression' => true,
         'possibleactions' => array( 'selectSpecialChoice', 'cancelSpecialChoice' ),
-        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'tileChoice' => 14, 'switchRookMove' => 25, 'gameOver' => 90 )
+        'transitions' => array( 'endAction' => 21, 'nextAction' => 9, 'tileChoice' => 14, 'playerTurn' => 9, 'moveGuard' => 11, 'chooseAlarm' => 20, 'switchRookMove' => 25, 'gameOver' => 90 )
     ),
 
     21 => array(
@@ -260,7 +260,7 @@ $machinestates = array(
         'type' => 'activeplayer',
         'args' => 'argConfirmRookMove',
         'possibleactions' => array( 'confirmRookMove', 'cancelRookMove' ),
-        'transitions' => array( 'switchRookMove' => 25, 'gameOver' => 90, 'tileChoice' => 14 )
+        'transitions' => array( 'switchRookMove' => 25, 'gameOver' => 90, 'tileChoice' => 14, 'chooseAlarm' => 20 )
     ),
     
     90 => array(

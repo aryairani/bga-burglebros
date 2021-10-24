@@ -64,6 +64,8 @@ class burglebros extends Table
             'undoAllowed' => 36,
             'rookDestinationTile' => 37,
             'currentPlayer' => 38,
+            'remainingMoves' => 39,
+            'stateAfterAlarm' => 40,
 
             // Options
             'characterAssignment' => 100,
@@ -174,6 +176,8 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'undoAllowed', 0 );
         self::setGameStateInitialValue( 'rookDestinationTile', 0 );
         self::setGameStateInitialValue( 'currentPlayer', $current_player_id );
+        self::setGameStateInitialValue( 'remainingMoves', 0 );
+        self::setGameStateInitialValue( 'stateAfterAlarm', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -750,11 +754,40 @@ SQL;
         return self::getObjectListFromDB($sql);
     }
 
+    function getFloorClosestAlarmTiles($floor) {
+        // Return all the closest alarms of the guard on the chosen floor
+        $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
+        $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+        $alarm_tiles = $this->getFloorAlarmTiles($floor);
+        if (count($alarm_tiles) > 1) {
+            $paths = [];
+            $shortest_path_length = $this->getFloorCount() == 4 ? 16 : 25;
+            foreach ($alarm_tiles as $alarm_tile) {
+                $path = $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $alarm_tile['location_arg']);
+                $paths[] = $path;
+                $shortest_path_length = min($shortest_path_length, count($path));
+            }
+            // Keep only the shortest paths
+            $paths = array_filter($paths, function($path) use($shortest_path_length) { 
+                return count($path) == $shortest_path_length;
+            });
+            return array_map(function($path) {
+                return end($path);
+            }, $paths);
+        } elseif (count($alarm_tiles) == 1) {
+
+            return [$alarm_tiles[0]];
+        } else {
+            return [];
+        }
+    }
+
     function nextPatrol($floor, $force=FALSE) {
         $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
         $alarm_tiles = $this->getFloorAlarmTiles($floor);
         $has_alarms = count($alarm_tiles) > 0;
         $draw_patrol = !$has_alarms || $force;
+        $special_choice = FALSE;
         
         if ($draw_patrol) {
             $patrol = "patrol".$floor;
@@ -793,21 +826,24 @@ SQL;
 
         if ($has_alarms) {
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
+            $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
 
-            $min_count = 100; // longest is 6, but I'm paranoid
-            $tile_id = null;
-            foreach ($alarm_tiles as $tile) {
-                $path = $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $tile['location_arg']);
-                if (count($path) < $min_count) {
-                    // TODO: Allow players to choose guard's path
-                    $min_count = count($path); 
-                    $tile_id = $tile['id'];
-                }
+            // Get all the alarm tiles if any and find the closest (player may have to choose if more than 1)
+            $alarm_tiles = $this->getFloorClosestAlarmTiles($floor);
+            if (count($alarm_tiles) == 1) {
+                $alarm_tile = reset($alarm_tiles);
+                $tile_id = $alarm_tile['id'];
+            } elseif (count($alarm_tiles) > 1 && !$force) {
+                $tile_id = NULL;
+                $special_choice = TRUE;
             }
         }
-
-        $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
-        $this->moveToken($patrol_token['id'], 'tile', $tile_id, TRUE);
+        if ($tile_id) {
+            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
+            $this->moveToken($patrol_token['id'], 'tile', $tile_id, TRUE);
+        }
+        return $special_choice;
     }
 
     function removePatrolPerPlayerCount($patrol) {
@@ -1059,14 +1095,23 @@ SQL;
     }
 
     function moveGuard($floor, $movement) {
-        $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
-        $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+        // Force movement reset after chosing the closest alarm
+        $remaining_moves = self::getGameStateValue('specialChoiceArg');
+        if ($remaining_moves > 0) {
+            $movement = $remaining_moves;
+            self::setGameStateValue('specialChoiceArg', 0);
+        }
         $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
         $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
-        // If alarm on the same tile as the Guard, activate next Patrol
+        $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
+        $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+        // If patrol token is on the same tile as the Guard (e.g. because of an event), activate next Patrol
         if ($guard_tile['id'] === $patrol_tile['id']) {
             $this->performGuardMovementEffects($guard_token, $guard_tile['id']);
-            $this->nextPatrol($floor);
+            if ($this->nextPatrol($floor)) {        // alarm choice on multiple alarms
+                self::setGameStateValue('specialChoiceArg', $movement);
+                return TRUE;
+            }
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
             $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
         }
@@ -1076,7 +1121,6 @@ SQL;
         if (count($donuts) > 0) {
             $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
             $this->notifyTileCards($guard_tile['id']);
-            return;
         }
 
         $path = $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $patrol_tile['location_arg']);
@@ -1091,9 +1135,12 @@ SQL;
                     break;
                 }
                 if ($tile_id == $patrol_token['location_arg']) {
-                    $this->nextPatrol($floor);
+                    if ($this->nextPatrol($floor)) {        // tile choice on multiple alarms
+                        self::setGameStateValue('specialChoiceArg', $movement);
+                        return TRUE;
+                    }
                     if ($movement > 0) {
-                        $this->moveGuard($floor, $movement);
+                        return $this->moveGuard($floor, $movement);
                     }
                 }
                 if ($movement <= 0) {
@@ -1845,16 +1892,22 @@ SQL;
     }
 
     function hackOrTrigger($tile) {
+        $tile_choice = FALSE;
+        $special_choice = FALSE;
         if ($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || $this->hackerDoesNotTrigger($tile) || self::getGameStateValue('empPlayer') != 0) {
-            return FALSE;
-        }
-
-        if ($this->canHack($tile)) {
-            return TRUE;
+            // $tile_choice = FALSE;
+            // return FALSE;
         } else {
-            $this->triggerAlarm($tile, TRUE);
-            return FALSE;
+            if ($this->canHack($tile)) {
+                $tile_choice = TRUE;
+            } else {
+                $special_choice = $this->triggerAlarm($tile, TRUE);
+            }
         }
+        return array(
+            'tile_choice' => $tile_choice,
+            'special_choice' => $special_choice,
+        );
     }
 
     function handleTilePeek($tile) {
@@ -1915,6 +1968,7 @@ SQL;
         $motion_entered = false;
         $tile_choice = false;
         $tile_choice_id = $id;
+        $special_choice = false;
         $player_id = $context == 'rook1' ? self::getGameStateValue('specialChoiceArg') : $player_token['type_arg'];
         $crowbar = $this->tokensInTile('crowbar', $id);
         $rook1_action = $context == 'rook1';
@@ -1957,12 +2011,16 @@ SQL;
         } elseif ($type == 'fingerprint') {
             if (!$crowbar) {
                 $this->setupGuardToken($guard_token, $floor);
-                $tile_choice = $this->hackOrTrigger($tile);
+                $result = $this->hackOrTrigger($tile);
+                $tile_choice = $result['tile_choice'];
+                $special_choice = $result['special_choice'];
             }
         } elseif ($type == 'laser') {
             if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile)) {
                 $this->setupGuardToken($guard_token, $floor);
-                $tile_choice = $actions_remaining >= (2 + $action_penalty) || $this->hackOrTrigger($tile);
+                $result = $this->hackOrTrigger($tile);
+                $tile_choice = $actions_remaining >= (2 + $action_penalty) || $result['tile_choice'];
+                $special_choice = $result['special_choice'];
             }
         } elseif ($type == 'motion') {
             if (!$crowbar) {
@@ -2016,7 +2074,9 @@ SQL;
                 $motion_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$exit_id'");
                 $motion_entered = $motion_entered !== false ? $motion_entered : self::getGameStateValue('motionTileEntered');
                 if ($motion_entered && $motion_bit) {
-                    $exiting_choice = $this->hackOrTrigger($player_tile);
+                    $result = $this->hackOrTrigger($tile);
+                    $exiting_choice = $result['tile_choice'];
+                    $special_choice = $result['special_choice'];
                     if ($tile_choice && $exiting_choice) {
                         self::setGameStateValue('motionTileExitChoice', $tile_choice_id);
                     }
@@ -2037,7 +2097,8 @@ SQL;
         }
         return array(
             'perform_move' => !$cancel_move,
-            'tile_choice' => $tile_choice ? $tile_choice_id : FALSE
+            'tile_choice' => $tile_choice ? $tile_choice_id : FALSE,
+            'special_choice' => $special_choice,
         );
     }
 
@@ -2087,6 +2148,8 @@ SQL;
         $this->pickTokensForTile('alarm', $tile['id']);
         self::notifyAllPlayers('message', clienttranslate( 'An alarm was triggered' ), array());
         self::incStat(1, 'alarm_triggered');
+        // Let player choose the closest alarm if relevant
+        return $this->nextPatrol($floor);
     }
 
     function handleToolEffectDebug($name) {
@@ -2224,6 +2287,7 @@ SQL;
         $type = $this->getCardType($card);
         $card_choice = FALSE;
         $tile_choice = FALSE;
+        $special_choice = FALSE;
         $player_choice = FALSE;
         $max_floor = $this->getFloorCount();
         if ($type == 'brown-out') {
@@ -2231,7 +2295,7 @@ SQL;
                 $token_ids = $this->getTokensOnFloor('alarm', $floor);
                 $this->moveTokens($token_ids, 'deck');
                 foreach ($token_ids as $id) {
-                    $this->nextPatrol($floor);
+                    $this->nextPatrol($floor, TRUE);
                 }
             }
         } elseif($type == 'buddy-system') {
@@ -2265,7 +2329,7 @@ SQL;
                 $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor + 1))[0];
                 if ($guard_token['location'] == 'deck') {
                     $this->setupPatrol($guard_token, $floor + 1);
-                    $this->nextPatrol($floor + 1);
+                    $special_choice = $this->nextPatrol($floor + 1);
                 }
             }
         } elseif($type == 'go-with-your-gut') {
@@ -2333,7 +2397,7 @@ SQL;
             foreach ($laboratories as $tile_id => $tile) {
                 $tile_bit = 1 << $tile['safe_die'];
                 if (($tile_entered & $tile_bit) != 0x0) {
-                    $this->triggerAlarm($tile);
+                    $special_choice = $this->triggerAlarm($tile);
                 }
             }
         } elseif ($type == 'switch-signs') {
@@ -2354,7 +2418,7 @@ SQL;
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
             
             $this->performGuardMovementEffects($guard_token, $patrol_token['location_arg']);
-            $this->nextPatrol($floor);
+            $special_choice = $this->nextPatrol($floor);
         } elseif ($type == 'squeak') {
             // Guard moves 1 tile towards the closest player
             $tile = $this->getPlayerTile($player_id);
@@ -2388,7 +2452,7 @@ SQL;
                     $this->performGuardMovementEffects($guard_token, $tile_id);
                     $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
                     if ($tile_id == $patrol_token['location_arg'])
-                        $this->nextPatrol($floor);                    
+                        $special_choice = $this->nextPatrol($floor);                    
                 }
             } else {
                 $player_choice = 4;
@@ -2404,6 +2468,7 @@ SQL;
         return array(
             'card_choice' => $card_choice,
             'tile_choice' => $tile_choice,
+            'special_choice' => $special_choice,
             'player_choice' => $player_choice
         );
     }
@@ -2483,6 +2548,7 @@ SQL;
             self::incStat(1, 'special_ability_use', self::getCurrentPlayerId());
         }
         $tile_choice = FALSE;
+        $special_choice = FALSE;
         $discard = TRUE;
         if($type == 'acrobat1') {
             $this->validateSelection('tile', $selected_type);
@@ -2564,7 +2630,7 @@ SQL;
                         $horizontal = ($tcol == $pcol && $tcol == $wcol && abs($trow - $prow) == 1) && min($trow, $prow) == $wrow;
                         if (($wall['vertical'] == 1 && $vertical) || ($wall['vertical'] == 0 && $horizontal)) {
                             self::DbQuery("DELETE FROM wall WHERE id = '$selected_id'");
-                            $this->triggerAlarm($player_tile);
+                            $special_choice = $this->triggerAlarm($player_tile);
                             // Notify players to remove wall
                             self::notifyAllPlayers('removeWall', '', array(
                                 'wall_id' => $selected_id,
@@ -2607,7 +2673,7 @@ SQL;
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
                 throw new BgaUserException(self::_('This tile is not adjacent'));
             }
-            $this->triggerAlarm($tile);
+            $special_choice = $this->triggerAlarm($tile);
         } elseif($type == 'peekhole') {
             $this->validateSelection('tile', $selected_type);
             $this->performPeek($selected_id, 'peekhole');
@@ -2666,7 +2732,7 @@ SQL;
                 $this->pickTokensForTile('thermal', $other_tile['id']);
             }
             if (self::getGameStateValue('empPlayer') == 0) {
-                $this->triggerAlarm($tile, FALSE, TRUE);
+                $special_choice = $this->triggerAlarm($tile, FALSE, TRUE);
             }
         } elseif ($type == 'virus') {
             $this->validateSelection('tile', $selected_type);
@@ -2725,7 +2791,10 @@ SQL;
                 $this->notifyPlayerHand($this->getCurrentPlayerIdCustom(), array($card['id']));
             }
         }
-        return $tile_choice;
+        return array(
+            'tile_choice' => $tile_choice,
+            'special_choice' => $special_choice,
+        );
     }
 
     function handleSelectTileChoice($selected) {
@@ -2733,8 +2802,9 @@ SQL;
         $player_id = $this->getCurrentPlayerIdCustom();
         $tile = $this->tiles->getCard(self::getGameStateValue('tileChoice'));
         $type = $tile['type'];
+        $special_choice = FALSE;
         if ($selected == 0) { // trigger
-            $this->triggerAlarm($tile);
+            $special_choice = $this->triggerAlarm($tile);
         } elseif($selected == 1) { // hack
             if (!$this->canHack($tile)) {
                 throw new BgaUserException(self::_('Cannot hack this tile'));
@@ -2763,7 +2833,10 @@ SQL;
                 'player_name' => self::getCurrentPlayerName()
             ]);
         }
-        return $tile;
+        return array(
+            'tile' => $tile,
+            'special_choice' => $special_choice
+        );
     }
 
     function performPeek($tile_id, $variant='peek') {
@@ -2847,7 +2920,7 @@ SQL;
         if (!$invisible_suit) {
             $this->checkCameras(array('player_id'=>$player_token['id']));
         }
-        return $move_result['tile_choice'];
+        return $move_result;
     }
 
     function allPlayersEscaped() {
@@ -2999,8 +3072,9 @@ SQL;
                 $this->performGuardMovementEffects($guard_token, $path[1]);
                 $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
                 // If squeak move led the guard to his final destination, draw a new patrol card
-                if ($path[1] == $patrol_token['location_arg'])
-                    $this->nextPatrol($floor);                
+                if ($path[1] == $patrol_token['location_arg']) {
+                    $this->nextPatrol($floor, TRUE);                
+                }
             }
             $this->endAction();
         }
@@ -3025,7 +3099,21 @@ SQL;
                 'other_name' => $players[$choice_arg]['player_name'],
             ]);      
             $this->gamestate->nextState('switchRookMove');
-        } else if ($type == 'rigger') {
+        } elseif ($type == 'closest_alarm') {
+            $active_player_id = $this->getCurrentPlayerIdCustom();
+            $player_tile = $this->getPlayerTile($active_player_id);
+            $floor = $player_tile['location'][5];
+            $alarm_tiles = $this->getFloorClosestAlarmTiles($floor);
+            if (!in_array($selected, $alarm_tiles))
+                throw new BgaUserException(self::_("You must choose one of the closest alarms"));
+            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
+            $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
+            self::setGameStateValue('specialChoice', 0);
+            // Resume to the expected state
+            $expected_state = $this->state_after_alarms[self::getGameStateValue('stateAfterAlarm')];
+            self::setGameStateValue('stateAfterAlarm', 0);
+            $this->gamestate->nextState( $expected_state );
+        } elseif ($type == 'rigger') {
             $tool = $this->cards->getCard($choice_arg);
         }
     }
@@ -3322,12 +3410,18 @@ SQL;
         } elseif ($actions_remaining < 1) {
             throw new BgaUserException(self::_("You have no actions remaining"));
         } else {
-            $tile_choice = $this->performMove($tile_id, $context);
+            $result = $this->performMove($tile_id, $context);
+            $tile_choice = $result['tile_choice'];
+            $special_choice = $result['special_choice'];
             if (self::getGameStateValue('stealthDepleted')) {
                 $this->gamestate->nextState('gameOver');
             } else if ($tile_choice) {
                 self::setGameStateValue('tileChoice', $tile_choice);
                 $this->gamestate->nextState('tileChoice');
+            } else if ($special_choice) {
+                self::setGameStateValue('specialChoice', 2);
+                self::setGameStateValue('stateAfterAlarm', 21);
+                $this->gamestate->nextState('chooseAlarm');
             } else {
                 $this->endAction();
             }
@@ -3486,12 +3580,18 @@ SQL;
             self::checkAction('selectCardChoice');
         $card_choice = self::getGameStateValue('cardChoice');
         $card = $card_choice > 0 ? $this->cards->getCard($card_choice) : null;
-        $tile_choice = $this->handleSelectCardChoice($card, $type, $id);
+        $result = $this->handleSelectCardChoice($card, $type, $id);
+        $tile_choice = $result['tile_choice'];
+        $special_choice = $result['special_choice'];
         if (self::getGameStateValue('stealthDepleted')) {
             $this->gamestate->nextState('gameOver');
         } elseif ($tile_choice) {
             self::setGameStateValue('tileChoice', $tile_choice);
             $this->gamestate->nextState('tileChoice');
+        } elseif ($special_choice) {
+            self::setGameStateValue('specialChoice', 2);
+            self::setGameStateValue('stateAfterAlarm', 9);
+            $this->gamestate->nextState('chooseAlarm');
         } else {
             if ($card['type'] == 3) {
                 $this->gamestate->nextState('endTurn');    
@@ -3546,7 +3646,8 @@ SQL;
 
     function selectTileChoice($selected) {
         self::checkAction('selectTileChoice');
-        $tile = $this->handleSelectTileChoice($selected);
+        $result = $this->handleSelectTileChoice($selected);
+        $tile = $result['tile'];
         // Check if this is a Rook move
         $rook_destination_tile = self::getGameStateValue('rookDestinationTile');
         if ($rook_destination_tile > 0) {
@@ -3557,6 +3658,10 @@ SQL;
             if ($tile['type'] == 'motion' && $motion_exit > 0) {
                 self::setGameStateValue('tileChoice', $motion_exit);
                 $this->gamestate->nextState('tileChoice');
+            } elseif ($result['special_choice']) {
+                self::setGameStateValue('specialChoice', 2);
+                self::setGameStateValue('stateAfterAlarm', 9);
+                $this->gamestate->nextState('chooseAlarm');
             } else {
                 self::setGameStateValue('tileChoice', 0);
                 $this->endAction();
@@ -3609,13 +3714,21 @@ SQL;
                     throw new BgaUserException(self::_('Tile already has an alarm token'));
                 }
                 $this->moveToken(array_values($character_alarms)[0]['id'], 'deck');
-                $this->triggerAlarm($player_tile);
+                if ($this->triggerAlarm($player_tile)) {
+                    self::setGameStateValue('specialChoice', 2);
+                    self::setGameStateValue('stateAfterAlarm', 9);
+                    $this->gamestate->nextState('chooseAlarm');
+                }
             } else {
                 if (count($tile_alarms) == 0) {
                     throw new BgaUserException(self::_('Tile does not have an alarm token'));
                 }
                 $this->moveToken(array_values($tile_alarms)[0]['id'], 'card', $character['id']);
-                $this->nextPatrol($player_tile['location'][5]);
+                if ($this->nextPatrol($player_tile['location'][5])) {
+                    self::setGameStateValue('specialChoice', 2);
+                    self::setGameStateValue('stateAfterAlarm', 9);
+                    $this->gamestate->nextState('chooseAlarm');
+                }
             }
             self::setGameStateValue('characterAbilityUsed', 1);
             self::incStat(1, 'special_ability_use', $human_player_id);
@@ -3979,6 +4092,10 @@ SQL;
             } elseif ($event_result['player_choice']) {
                 self::setGameStateValue('playerChoice', $event_result['player_choice']);
                 $this->gamestate->nextState('playerChoice');
+            } elseif ($event_result['special_choice']) {
+                self::setGameStateValue('specialChoice', 2);
+                self::setGameStateValue('stateAfterAlarm', 11);
+                $this->gamestate->nextState('chooseAlarm');
             } elseif (self::getGameStateValue('drawToolsPlayer') > 0) {
                 $this->gamestate->nextState('endAction');
             } else {
@@ -4168,9 +4285,14 @@ SQL;
         $choice_arg = self::getGameStateValue('specialChoiceArg');
         $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
         $type = $this->special_choices[$special_choice];
+        $args['show_cancel'] = TRUE;
         if ($type == 'rook1') {
             $args['choice_name'] = clienttranslate('Orders');
             $args['choice_description'] = clienttranslate('an adjacent tile to move the player');
+        } elseif ($type == 'closest_alarm') {
+            $args['choice_name'] = clienttranslate('Guard move');
+            $args['choice_description'] = clienttranslate('on of the closest alarm to set the Guard destination');
+            $args['show_cancel'] = FALSE;
         }
         return $args;
     }
@@ -4263,8 +4385,9 @@ SQL;
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $type = $player_tile['type'];
+        $special_choice = FALSE;
         if ($type == 'thermo' && self::getGameStateValue('empPlayer') == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
-            $this->triggerAlarm($player_tile);
+            $special_choice = $this->triggerAlarm($player_tile);
         }
         if (self::getGameStateValue('acrobatEnteredGuardTile')) {
             $this->deductTileStealth($player_tile['id'], 'acrobat');
@@ -4274,7 +4397,13 @@ SQL;
         self::notifyAllPlayers('message', clienttranslate('${player_name} ended their turn'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
-        $this->gamestate->nextState( 'moveGuard' );
+        if ($special_choice) {
+            self::setGameStateValue('specialChoice', 2);
+            self::setGameStateValue('stateAfterAlarm', 11);
+            $this->gamestate->nextState( 'chooseAlarm' );
+        } else {
+            $this->gamestate->nextState( 'moveGuard' );
+        }
     }
 
     function stMoveGuard() {
@@ -4282,6 +4411,7 @@ SQL;
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $floor = $player_tile['location'][5];
+        $choose_alarm = FALSE;
         $shift_change = $this->getActiveEvent('shift-change');
         if ($shift_change) {
             $max_floor = $this->getFloorCount();
@@ -4292,7 +4422,7 @@ SQL;
                         $alarms = count($this->getFloorAlarmTiles($other_floor));
                         $movement = self::getGameStateValue("patrolDieCount$other_floor") + $alarms;
                         $this->notifyGuardMovement($other_floor, $movement, $alarms > 0, TRUE);
-                        $this->moveGuard($other_floor, $movement);
+                        $choose_alarm = $this->moveGuard($other_floor, $movement);
                     }
                 }
             }
@@ -4325,11 +4455,15 @@ SQL;
                     $has_event = TRUE;
                 }
                 $this->notifyGuardMovement($floor, $movement, $alarms > 0, $has_event);
-                $this->moveGuard($floor, $movement);
+                $choose_alarm = $this->moveGuard($floor, $movement);
             }
         }
         if (self::getGameStateValue('stealthDepleted')) {
             $this->gamestate->nextState('gameOver');
+        } elseif ($choose_alarm) {
+            self::setGameStateValue('specialChoice', 2);  // refer to $this->special_choices in material.inc
+            self::setGameStateValue('stateAfterAlarm', 11);
+            $this->gamestate->nextState('chooseAlarm');
         } else {
             $this->gamestate->nextState( 'nextPlayer' );
         }
@@ -4339,6 +4473,7 @@ SQL;
         $human_player_id = self::getCurrentPlayerId();
         $player_id = $this->activeNextPlayerCustom();
         $jump_the_gun = $this->getActiveEvent('jump-the-gun');
+        $special_choice = FALSE;
         if ($jump_the_gun) {
             $players = $this->loadPlayersInfos();
             $player_id = $this->skipEscapedPlayers($player_id);
@@ -4382,7 +4517,7 @@ SQL;
             $this->notifyRoll($rolls, 'chihuahua');
             if (isset($rolls[6])) {
                 $tile = $this->getPlayerTile($player_id);
-                $this->triggerAlarm($tile);
+                $special_choice = $this->triggerAlarm($tile);
             }
         }
 
@@ -4411,7 +4546,13 @@ SQL;
         $this->undoSavepoint();
         $this->setGameStateValue('undoAllowed', 1);
 
-        $this->gamestate->nextState( 'playerTurn' );
+        if ($special_choice) {
+            self::setGameStateValue('specialChoice', 2);
+            self::setGameStateValue('stateAfterAlarm', 9);
+            $this->gamestate->nextState( 'chooseAlarm' );
+        } else {
+            $this->gamestate->nextState( 'playerTurn' );
+        }
     }
 
     function stNextTradePlayer() {

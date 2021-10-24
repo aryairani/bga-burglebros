@@ -212,7 +212,14 @@ $this->token_types = array(
 
 $this->player_choices = array('none', 'trade', 'rook1', 'rook2', 'squeak');
 
-$this->special_choices = array('none', 'rook1');
+$this->special_choices = array('none', 'rook1', 'closest_alarm');
+
+// Resume the right state after chooseAlarm
+$this->state_after_alarms = array(
+  9 => 'playerTurn',
+  11 => 'moveGuard',
+  21 => 'endAction',
+);
 
 $this->clockwise_mappings = [
   'LU' => [

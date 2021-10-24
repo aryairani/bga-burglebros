@@ -505,7 +505,8 @@ function (dojo, declare) {
                         this.addActionButton('button_cancel', _('Cancel move'), 'handleCancelRookMove');
                         break;
                     case 'specialChoice':
-                        this.addActionButton('button_cancel', _('Cancel'), 'handleCancelSpecialChoice');
+                        if (args.show_cancel)
+                            this.addActionButton('button_cancel', _('Cancel'), 'handleCancelSpecialChoice');
                         break;
                 }
                 if (args && 'undo_allowed' in args) {
