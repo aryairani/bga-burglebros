@@ -320,6 +320,7 @@ class burglebros extends Table
         // $sql = "SELECT player_id id, player_score score, player_stealth_tokens stealth_tokens FROM player ";
         // $result['players'] = self::getCollectionFromDb( $sql );
         $result['players'] = $this->loadPlayersInfos();
+        // var_dump($result['players']);
         foreach ($result['players'] as $player_id => &$player) {
             $player['hand'] = $this->cards->getPlayerHand($player_id);
             $player['character'] = $this->getPlayerCharacter($player_id);
@@ -832,8 +833,9 @@ SQL;
             // Get all the alarm tiles if any and find the closest (player may have to choose if more than 1)
             $alarm_tiles = $this->getFloorClosestAlarmTiles($floor);
             if (count($alarm_tiles) == 1) {
-                $alarm_tile = reset($alarm_tiles);
-                $tile_id = $alarm_tile['id'];
+                // $alarm_tile = reset($alarm_tiles);
+                // $tile_id = $alarm_tile['id'];
+                $tile_id = reset($alarm_tiles);
             } elseif (count($alarm_tiles) > 1 && !$force) {
                 $tile_id = NULL;
                 $special_choice = TRUE;
@@ -4002,22 +4004,24 @@ SQL;
         self::setGameStateValue('characterAbilityUsed', 1);
         if ($this->getSoloMultiCharacters() > 1) {
             $current_player_id =  self::getGameStateValue('currentPlayer');
+            $rook_player_id = self::getCurrentPlayerId();
         } else {
             $current_player_id =  self::getCurrentPlayerId();
             self::notifyAllPlayers('message', clienttranslate('${player_name} accepts the move'), [
                 'player_name' => self::getActivePlayerName(),
-            ]);                                            
+            ]);
+            $rook_player_id = self::getGameStateValue('currentPlayer');
         }
-        self::incStat(1, 'special_ability_use', $current_player_id);
+        self::incStat(1, 'special_ability_use', $rook_player_id);
 
         $choice_arg = self::getGameStateValue('specialChoiceArg');
         $selected = self::getGameStateValue('rookDestinationTile');
         $player_token = $this->getPlayerToken($choice_arg);
-        $tile_choice = $this->performMove($selected, 'rook1', $choice_arg);
+        $move_result = $this->performMove($selected, 'rook1', $choice_arg);
         if (self::getGameStateValue('stealthDepleted')) {
             $this->gamestate->nextState('gameOver');
-        } else if ($tile_choice) {
-            self::setGameStateValue('tileChoice', $tile_choice);
+        } else if ($move_result['tile_choice']) {
+            self::setGameStateValue('tileChoice', $move_result['tile_choice']);
             $this->gamestate->nextState('tileChoice');
         } else {
             self::setGameStateValue('rookDestinationTile', 0);
@@ -4584,8 +4588,10 @@ SQL;
                 $this->gamestate->nextState( 'confirmRookMove' );
             }
         } else { // Activate Rook
-            $player_id = self::getGameStateValue('currentPlayer');
-            $this->gamestate->changeActivePlayer( $player_id );
+            if ($multi_characters <= 1) {
+                $player_id = self::getGameStateValue('currentPlayer');
+                $this->gamestate->changeActivePlayer( $player_id );
+            }
             if ($destination_tile == -1) { // other player cancelled the move
                 self::setGameStateValue('rookDestinationTile', 0);
                 $this->endAction(0);
