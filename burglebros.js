@@ -422,7 +422,7 @@ function (dojo, declare) {
                             this.addActionButton( 'button_pickup' , _('Pick Up Cat'), 'handlePickUpCat' );
                         }
                         this.addCharacterAction();
-                        this.addActionButton( 'button_pass', _('Pass'), 'handlePassClick' );
+                        this.addActionButton( 'button_pass', _('End turn'), 'handlePassClick' );
                         break;
                     case 'cardChoice':
                         if (this.isCardChoice('thermal-bomb')) {
