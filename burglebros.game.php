@@ -833,9 +833,10 @@ SQL;
             // Get all the alarm tiles if any and find the closest (player may have to choose if more than 1)
             $alarm_tiles = $this->getFloorClosestAlarmTiles($floor);
             if (count($alarm_tiles) == 1) {
-                // $alarm_tile = reset($alarm_tiles);
+                $alarm_tile = reset($alarm_tiles);
+                $tile_id = array_key_exists('id', $alarm_tile) ? $alarm_tile['id'] : $alarm_tile;
                 // $tile_id = $alarm_tile['id'];
-                $tile_id = reset($alarm_tiles);
+                // $tile_id = reset($alarm_tiles);
             } elseif (count($alarm_tiles) > 1 && !$force) {
                 $tile_id = NULL;
                 $special_choice = TRUE;
@@ -2058,7 +2059,7 @@ SQL;
                 $this->notifyMovement($player_id, $lower_tile, 'walkway');
             }
         } elseif ($type == 'thermo' && $this->getPlayerLoot('isotope', $player_id)) {
-            if (!$crowbar) {
+            if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
                 $this->setupGuardToken($guard_token, $floor);
                 $this->triggerAlarm($tile);
             }
