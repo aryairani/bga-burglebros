@@ -1124,6 +1124,7 @@ SQL;
         if (count($donuts) > 0) {
             $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
             $this->notifyTileCards($guard_tile['id']);
+            return;
         }
 
         $path = $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $patrol_tile['location_arg']);
