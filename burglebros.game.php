@@ -2021,9 +2021,13 @@ SQL;
         } elseif ($type == 'laser') {
             if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile)) {
                 $this->setupGuardToken($guard_token, $floor);
-                $result = $this->hackOrTrigger($tile);
-                $tile_choice = $actions_remaining >= (2 + $action_penalty) || $result['tile_choice'];
-                $special_choice = $result['special_choice'];
+                if ($actions_remaining >= (2 + $action_penalty)) {
+                    $tile_choice = TRUE;
+                } else {
+                    $result = $this->hackOrTrigger($tile);
+                    $tile_choice = $result['tile_choice'];
+                    $special_choice = $result['special_choice'];
+                }
             }
         } elseif ($type == 'motion') {
             if (!$crowbar) {
@@ -3418,10 +3422,10 @@ SQL;
             $special_choice = $result['special_choice'];
             if (self::getGameStateValue('stealthDepleted')) {
                 $this->gamestate->nextState('gameOver');
-            } else if ($tile_choice) {
+            } elseif ($tile_choice) {
                 self::setGameStateValue('tileChoice', $tile_choice);
                 $this->gamestate->nextState('tileChoice');
-            } else if ($special_choice) {
+            } elseif ($special_choice) {
                 self::setGameStateValue('specialChoice', 2);
                 self::setGameStateValue('stateAfterAlarm', 21);
                 $this->gamestate->nextState('chooseAlarm');
