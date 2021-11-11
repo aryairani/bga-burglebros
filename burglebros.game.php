@@ -1199,7 +1199,12 @@ SQL;
     }
 
     function getPlayerStealth($player_id) {
-        return self::getUniqueValueFromDB("SELECT player_stealth_tokens FROM player WHERE player_id = '$player_id'");
+        if ($this->getSoloMultiCharacters() > 1) {
+            $players = $this->loadPlayersInfos();
+            return $players[$player_id]['stealth_tokens'];
+        } else {
+            return self::getUniqueValueFromDB("SELECT player_stealth_tokens FROM player WHERE player_id = '$player_id'");
+        }
     }
 
     function atriumGuardsDebug($tile_id) {
