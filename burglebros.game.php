@@ -834,7 +834,7 @@ SQL;
             $alarm_tiles = $this->getFloorClosestAlarmTiles($floor);
             if (count($alarm_tiles) == 1) {
                 $alarm_tile = reset($alarm_tiles);
-                $tile_id = array_key_exists('id', $alarm_tile) ? $alarm_tile['id'] : $alarm_tile;
+                $tile_id = isset($alarm_tile['id']) ? $alarm_tile['id'] : $alarm_tile;
                 // $tile_id = $alarm_tile['id'];
                 // $tile_id = reset($alarm_tiles);
             } elseif (count($alarm_tiles) > 1 && !$force) {
