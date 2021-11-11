@@ -2081,7 +2081,7 @@ SQL;
                 $motion_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$exit_id'");
                 $motion_entered = $motion_entered !== false ? $motion_entered : self::getGameStateValue('motionTileEntered');
                 if ($motion_entered && $motion_bit) {
-                    $result = $this->hackOrTrigger($tile);
+                    $result = $this->hackOrTrigger($player_tile);
                     $exiting_choice = $result['tile_choice'];
                     $special_choice = $result['special_choice'];
                     if ($tile_choice && $exiting_choice) {
