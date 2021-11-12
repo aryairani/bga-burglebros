@@ -2564,7 +2564,7 @@ SQL;
         $tile_choice = FALSE;
         $special_choice = FALSE;
         $discard = TRUE;
-        if($type == 'acrobat1') {
+        if ($type == 'acrobat1') {
             $this->validateSelection('tile', $selected_type);
             // Don't do tile_choice here, since we'll never trigger an alarm
             $this->performMove($selected_id, 'acrobat1');
@@ -2574,7 +2574,8 @@ SQL;
             $tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $floor = $selected_id;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
-            $tile_choice = $this->performMove($other_tile['id'], 'acrobat2');
+            $result = $this->performMove($other_tile['id'], 'acrobat2');
+            $tile_choice = $result['tile_choice'];
         } else if ($type == 'blueprints') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
@@ -2664,7 +2665,8 @@ SQL;
             if (isset($flipped[$tile['id']])) {
                 throw new BgaUserException(self::_('This tile is already visible'));
             }
-            $tile_choice = $this->performMove($selected_id, 'event');
+            $result = $this->performMove($selected_id, 'event');
+            $tile_choice = $result['tile_choice'];
         } elseif($type == 'hawk1') {
             $this->validateSelection('tile', $selected_type);
             $this->performPeek($selected_id, 'hawk1');
