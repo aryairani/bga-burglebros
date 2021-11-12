@@ -57,14 +57,16 @@ class BurgleBrosBoard extends APP_GameClass
         $sql = "INSERT INTO tile (card_type,card_type_arg,card_location,safe_die) VALUES ";
         self::DbQuery($sql.implode($values, ','));
 
-        $this->setupTiles();
+        $this->setupTiles($options);
         $this->setupWalls();
 	}
 
-    function setupTiles() {
+    function setupTiles($options) {
+    	$option_one_deadbolt = $options[106] == 2;
         $safes = $this->game->tiles->getCardsOfType('safe');
         $stairs = $this->game->tiles->getCardsOfType('stairs');
         $shafts = $this->game->tiles->getCardsOfType('shaft');
+        $deadbolts = $this->game->tiles->getCardsOfType('deadbolt');
         $size = $this->game->getSquareSize();
         $size_sq = $size * $size - 1;
         $max_floor = $this->game->getFloorCount();
@@ -89,6 +91,9 @@ class BurgleBrosBoard extends APP_GameClass
             $safe = array_shift($safes);
             $stair = array_shift($stairs);
             $card_ids = array($safe['id'], $stair['id']);
+            if ($option_one_deadbolt) {
+            	$card_ids[] = array_shift($deadbolts)['id'];
+            }
             if (count($shifted_shafts) > 0) {
             	$shaft = array_shift($shifted_shafts);
             	$card_ids[] = $shaft['id'];
@@ -99,6 +104,8 @@ class BurgleBrosBoard extends APP_GameClass
         // Grab tiles per floor "deck" and shuffle (14 for square size of 4 cards || 22 for square size of 5 cards)
         $square_size = $this->game->getSquareSize();
         $cards_to_draw = $square_size === 4 ? 14 : 22;
+        if ($option_one_deadbolt)
+        	--$cards_to_draw;
         for ($floor=1; $floor <= $max_floor; $floor++) {
             $this->game->tiles->pickCardsForLocation($cards_to_draw, 'deck', "floor$floor");
             $this->game->tiles->shuffle("floor$floor");
@@ -123,10 +130,6 @@ class BurgleBrosBoard extends APP_GameClass
 		} else {
 			self::DbQuery("DELETE FROM wall WHERE floor = '$floor'");
 		}
-		// // Fort Knox, need to randomize the Shaft position
-		// if ($this->game->getSquareSize() === 5) {
-		// 	$this->setupTiles();
-		// }
 		$this->setupWalls(TRUE, $floor);
 	}
 

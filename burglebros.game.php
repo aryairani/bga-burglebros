@@ -73,6 +73,7 @@ class burglebros extends Table
             'scenario' => 102,
             'randomWalls' => 103,
             'soloMultiCharacters' => 104,
+            'deadboltDistribution' => 106,
         ) ); 
 
         // Initialize module classes

@@ -113,7 +113,8 @@ $game_options = array(
                     ),
                     3 => array(
                         'name' => totranslate('The Fort Knox Job'),
-                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid)')
+                        'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid)'),
+                        'nobeginner' => true // this option is not recommended for beginners
                     ),
                 ),
         'default' => 1,
@@ -135,7 +136,7 @@ $game_options = array(
     ),
 
     104 => array(
-        'name' => totranslate('[DEV] Solo multi-characters'),    
+        'name' => totranslate('Solo multi-characters'),    
         'values' => array(
             1 => array( 
                 'name' => totranslate('--- Play only one character ---'),
@@ -160,6 +161,22 @@ $game_options = array(
              ),
         ),
         'notdisplayedmessage' => totranslate('Solo variants are only available with 1 player')
+    ),
+
+    // 105 would be a wrapper for all the house rules if more than 1
+    106 => array(
+        'name' => totranslate('Deadbolts distribution'),    
+        'values' => array(
+            1 => array( 
+                'name' => totranslate('Fully random'),
+            ),
+            2 => array( 
+                'name' => totranslate('1 deadbolt per floor'),
+                'description' => totranslate('Put 1 deadbolt on each floor for The Bank Job and The Office Job and max 2 deadbolts per floor for the Fort Knox Job'),
+                 'beta' => true  // This option is in beta version right now.
+            ),
+        ),
+        'default' => 1,
     ),
 );
 
