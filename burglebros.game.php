@@ -4038,6 +4038,7 @@ SQL;
             self::setGameStateValue('tileChoice', $move_result['tile_choice']);
             $this->gamestate->nextState('tileChoice');
         } else {
+            self::setGameStateValue('specialChoiceArg', 0);
             self::setGameStateValue('rookDestinationTile', 0);
             $this->gamestate->nextState('switchRookMove');
         }
