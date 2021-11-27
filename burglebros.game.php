@@ -3376,7 +3376,17 @@ SQL;
             self::DbQuery("UPDATE card SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
             self::DbQuery("UPDATE token SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
             self::DbQuery("UPDATE token SET card_type_arg='$sid' WHERE card_type_arg ='$id'" );
-            
+            self::DbQuery("UPDATE solo_characters SET player_id='$sid' WHERE player_id ='$id'" );
+            $multi_characters = $this->getSoloMultiCharacters();
+            for ($i=1; $i < $multi_characters; $i++) {
+                ++$sid;
+                ++$id;
+                self::DbQuery("UPDATE solo_characters SET player_id='$sid' WHERE player_id ='$id'" );
+                self::DbQuery("UPDATE card SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
+                self::DbQuery("UPDATE token SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
+                self::DbQuery("UPDATE token SET card_type_arg='$sid' WHERE card_type_arg ='$id'" );
+                self::DbQuery("UPDATE solo_characters SET player_id='$sid' WHERE player_id ='$id'" );
+            }
             ++$sid;
         }
         var_dump("done with last id: $sid");
