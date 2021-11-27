@@ -1293,8 +1293,8 @@ function (dojo, declare) {
                 r_cards: p2.hand,
                 l_name: _('You'),
                 r_name: p2.player_name,
-                l_color: p1.color,
-                r_color: p2.color,
+                l_color: p1.player_color,
+                r_color: p2.player_color,
                 close_callback: dojo.hitch(this, function() {
                     this.handleCancelTrade();
                 }),
