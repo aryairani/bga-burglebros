@@ -111,7 +111,7 @@ $machinestates = array(
         'args' => 'argPlayerTurn',
         'action' => 'stEndTurn',
         'updateGameProgression' => true,
-        'transitions' => array( 'moveGuard' => 11 )
+        'transitions' => array( 'moveGuard' => 11, 'chooseAlarm' => 20 )
     ), 
 
     11 => array(
