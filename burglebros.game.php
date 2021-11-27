@@ -461,6 +461,19 @@ class burglebros extends Table
             return self::getActivePlayerName();
         }
     }
+    public function getPlayerBeforeCustom($player_id) {
+        $multi_characters = $this->getSoloMultiCharacters();
+        if ($multi_characters > 1) {
+            $human_player_id = self::getCurrentPlayerId();
+            if ($human_player_id == $player_id) {
+                return $human_player_id + $multi_characters - 1;
+            } else {
+                return --$player_id;
+            }
+        } else {
+            return self::getPlayerBefore($player_id);
+        }
+    }
 
     public function activeNextPlayerCustom() {
         $multi_characters = $this->getSoloMultiCharacters();
@@ -2326,7 +2339,7 @@ SQL;
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $tile['id']);
         } elseif($type == 'dead-drop') {
-            $prev_player_id = self::getPlayerBefore($player_id);
+            $prev_player_id = self::getPlayerBeforeCustom($player_id);
             $cards = $this->cards->getCardsOfTypeInLocation(1, null, 'hand', $player_id) +
                 $this->cards->getCardsOfTypeInLocation(2, null, 'hand', $player_id);
             $this->cards->moveCards(array_keys($cards), 'hand', $prev_player_id);
