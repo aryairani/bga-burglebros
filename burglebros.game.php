@@ -4073,6 +4073,7 @@ SQL;
             'player_name' => self::getActivePlayerName(),
         ]);
         self::setGameStateValue('rookDestinationTile', -1);
+        self::setGameStateValue('specialChoiceArg', 0);
         $this->gamestate->nextState('switchRookMove');
     }
 
