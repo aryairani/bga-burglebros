@@ -66,6 +66,7 @@ class burglebros extends Table
             'currentPlayer' => 38,
             'remainingMoves' => 39,
             'stateAfterAlarm' => 40,
+            'moveDecreaseAfterAlarm' => 41,
 
             // Options
             'characterAssignment' => 100,
@@ -179,6 +180,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'currentPlayer', $current_player_id );
         self::setGameStateInitialValue( 'remainingMoves', 0 );
         self::setGameStateInitialValue( 'stateAfterAlarm', 0 );
+        self::setGameStateInitialValue( 'moveDecreaseAfterAlarm', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -3455,9 +3457,11 @@ SQL;
             if (self::getGameStateValue('stealthDepleted')) {
                 $this->gamestate->nextState('gameOver');
             } elseif ($tile_choice) {
+                self::setGameStateValue('moveDecreaseAfterAlarm', 1);
                 self::setGameStateValue('tileChoice', $tile_choice);
                 $this->gamestate->nextState('tileChoice');
             } elseif ($special_choice) {
+                self::incGameStateValue('actionsRemaining', -1);
                 self::setGameStateValue('specialChoice', 2);
                 self::setGameStateValue('stateAfterAlarm', 21);
                 $this->gamestate->nextState('chooseAlarm');
@@ -3698,8 +3702,13 @@ SQL;
                 self::setGameStateValue('tileChoice', $motion_exit);
                 $this->gamestate->nextState('tileChoice');
             } elseif ($result['special_choice']) {
+                $move_decrease = self::getGameStateValue('moveDecreaseAfterAlarm');
+                if ($move_decrease > 0) {
+                    self::incGameStateValue('actionsRemaining', -$move_decrease);
+                    self::setGameStateValue('moveDecreaseAfterAlarm', 0);
+                }
                 self::setGameStateValue('specialChoice', 2);
-                self::setGameStateValue('stateAfterAlarm', 9);
+                self::setGameStateValue('stateAfterAlarm', 21);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
                 self::setGameStateValue('tileChoice', 0);
