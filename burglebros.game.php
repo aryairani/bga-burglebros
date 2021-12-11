@@ -908,6 +908,8 @@ SQL;
     function endAction($action_cost = 1) {
         $actions_remaining = self::incGameStateValue('actionsRemaining', -$action_cost);
         self::setGameStateValue('firstAction', 0);
+        // Force special choice reset to avoid guard infinite move
+        self::setGameStateValue('specialChoiceArg', 0);
         $this->gamestate->nextState('endAction');
     }
 
@@ -3886,7 +3888,7 @@ SQL;
         $player_cards = [$p1_ids, $p2_ids];
         foreach ($player_cards as $p_ids) {
             foreach ($this->cards->getCards($p_ids) as $id => $card) {
-                if ($card['type_arg'] == $gold_type) {
+                if ($card['type'] == 2 && $card['type_arg'] == $gold_type) {
                     if ($has_gold_bar) {
                         throw new BgaUserException(self::_('One player cannot hold the two gold bars, please propose another trade'));
                     } else {
