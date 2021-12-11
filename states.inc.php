@@ -250,7 +250,7 @@ $machinestates = array(
         'description' => '',
         'type' => 'game',
         'action' => 'stSwitchRookMove',
-        'transitions' => array( 'confirmRookMove' => 26, 'endAction' => 21, 'switchRookMove' => 25 )
+        'transitions' => array( 'confirmRookMove' => 26, 'endAction' => 21, 'switchRookMove' => 25, 'tileChoice' => 14 )
     ),
 
     26 => array(
