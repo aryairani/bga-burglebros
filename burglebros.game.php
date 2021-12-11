@@ -2367,7 +2367,7 @@ SQL;
             if (count($peekable) > 1) {
                 $card_choice = TRUE;
             } elseif(count($peekable) == 1) {
-                $tile_choice = $this->performMove($peekable[0]['id'], 'event');
+                $tile_choice = $this->performMove($peekable[0]['id'], 'event')['tile_choice'];
             } 
         } elseif($type == 'heads-up') {
             $next_player = $this->getPlayerAfter($player_id);
