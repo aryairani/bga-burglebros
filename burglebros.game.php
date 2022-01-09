@@ -2043,7 +2043,7 @@ SQL;
                 $special_choice = $result['special_choice'];
             }
         } elseif ($type == 'laser') {
-            if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile)) {
+            if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile) && self::getGameStateValue('empPlayer') == 0) {
                 $this->setupGuardToken($guard_token, $floor);
                 if ($actions_remaining >= (2 + $action_penalty)) {
                     $tile_choice = TRUE;
