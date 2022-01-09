@@ -2807,12 +2807,15 @@ SQL;
             $player_token = $this->getPlayerToken($current_player_id);
             $player_tile = $this->getPlayerTile($current_player_id, $player_token);
             $floor = $player_tile['location'][5];
-            $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
-            $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
-            if ($this->isTileAdjacent($tile, $guard_tile, null, 'guard')) {
-                $this->performGuardMovementEffects($guard_token, $selected_id, TRUE);
+            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
+            $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
+            // $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
+            // $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+            if ($this->isTileAdjacent($tile, $patrol_tile, null, 'guard')) {
+                $this->moveToken($patrol_token['id'], 'tile', $selected_id, TRUE);
+                // $this->performGuardMovementEffects($guard_token, $selected_id, TRUE);
             } else {
-                throw new BgaUserException(self::_("This tile is not adjacent"));
+                throw new BgaUserException(self::_("This tile is not adjacent to the guard destination"));
             }
         }
         if ($card['type'] != 0) {
