@@ -512,9 +512,16 @@ function (dojo, declare) {
                 if (args && 'undo_allowed' in args) {
                     this.gamedatas.undo_allowed = args.undo_allowed;
                 }
-                if (this.gamedatas.undo_allowed == 1) {
-                    this.addActionButton('button_undo', _('Restart turn'), 'handleRestartTurnClick', null, false, 'red');
-                    this.addTooltip('button_undo', _("You can restart your turn if you did not reveal any hidden information nor did not triggered any random event (die roll...)"), '');
+                if (this.gamedatas.undo_allowed > 0) {
+                    if (this.gamedatas.undo_allowed == 1) {
+                        var btn_label = _('Restart turn');
+                        var btn_tooltip = _("You can restart your turn if you did not reveal any hidden information nor did not triggered any random event (die roll...)");
+                    } else {
+                        var btn_label = _('Undo last actions');
+                        var btn_tooltip = _("You can undo the last actions you made up to the last action that revealed any hidden information nor triggered any random event (die roll...)");
+                    }
+                    this.addActionButton('button_undo', btn_label, 'handleRestartTurnClick', null, false, 'red');
+                    this.addTooltip('button_undo', btn_tooltip, '');
                 }
             }
         },

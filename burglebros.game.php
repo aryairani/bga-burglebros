@@ -910,6 +910,11 @@ SQL;
         self::setGameStateValue('firstAction', 0);
         // Force special choice reset to avoid guard infinite move
         self::setGameStateValue('specialChoiceArg', 0);
+        // If irrerversible action, save a new restore point and change state of undo allowed to "last actions only"
+        if (self::getGameStateValue('undoAllowed') == 0) {
+            $this->undoSavepoint();
+            self::setGameStateValue('undoAllowed', 2);
+        }
         $this->gamestate->nextState('endAction');
     }
 
@@ -4420,6 +4425,8 @@ SQL;
                 'tooltip' => $this->getCardTooltip($card),
             ]);
             $this->notifyPlayerHand($draw_tools_player_id);
+            $this->undoSavepoint();
+            self::setGameStateValue('undoAllowed', 2);
             $this->gamestate->nextState($next_state);
         } else {
             self::setGameStateValue('undoAllowed', 0);
@@ -4432,6 +4439,8 @@ SQL;
             $this->cards->pickCardForLocation('tools_deck', 'choice');
             $this->reshuffleDeckIfEmpty('tools');
             $this->cards->pickCardForLocation('tools_deck', 'choice');
+            $this->undoSavepoint();
+            self::setGameStateValue('undoAllowed', 2);
             $this->gamestate->nextState('drawTools');
         }
         self::setGameStateValue('firstAction', 0);
