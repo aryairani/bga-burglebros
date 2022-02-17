@@ -1643,9 +1643,13 @@ function (dojo, declare) {
                 this.ajaxcall('/burglebros/burglebros/selectPlayerChoice.html', { lock: true, selected: player_id }, this, console.log, console.error);
             } else if(this.gamedatas.gamestate.name == 'specialChoice' && dojo.hasClass(evt.target, 'tile') && this.checkAction('selectSpecialChoice')) {
                 this.ajaxcall('/burglebros/burglebros/selectSpecialChoice.html', { lock: true, selected: id }, this, console.log, console.error);
-            } else if(this.gamedatas.gamestate.name == 'specialChoice' && dojo.hasClass(evt.target, 'tile-meeples') && this.checkAction('selectSpecialChoice')) {
-                // Handle front edge case when player clicks on meeple zone instead of tile zone, find the tile div
+            } else if(this.gamedatas.gamestate.name == 'specialChoice' && (dojo.hasClass(evt.target, 'tile-meeples') || dojo.hasClass(evt.target, 'tile-tokens')) && this.checkAction('selectSpecialChoice')) {
+                // Handle front edge case when player clicks on meeple or token zone instead of tile zone, find the tile div
                 id = $(evt.target.id).parentNode.querySelectorAll('.tile')[0].id.split('_')[1];
+                this.ajaxcall('/burglebros/burglebros/selectSpecialChoice.html', { lock: true, selected: id }, this, console.log, console.error);
+            } else if(this.gamedatas.gamestate.name == 'specialChoice' && dojo.hasClass(evt.target, 'token') && this.checkAction('selectSpecialChoice')) {
+                // Handle front edge case when player clicks on a token zone instead of tile zone, find the tile div
+                id = $(evt.target.id).parentNode.parentNode.querySelectorAll('.tile')[0].id.split('_')[1];
                 this.ajaxcall('/burglebros/burglebros/selectSpecialChoice.html', { lock: true, selected: id }, this, console.log, console.error);
             } else {
                 var intent = this.intent || 'move';
@@ -1654,7 +1658,7 @@ function (dojo, declare) {
                     var context = 'action';
                     // If acrobat is moving onto a guard, ask if player wants to use the special ability
                     var tile_has_guard = $(evt.target.id).parentNode.querySelectorAll('.token.guard').length > 0;
-                    // ZZ multicharacters may not be the Acrobat :)
+                    // Multicharacters may not be the Acrobat :)
                     if (this.gamedatas.solo_characters > 1) {
                         var active_player_id = this.gamedatas.active_player_id;
                         var is_acrobat = this.gamedatas['players'][active_player_id].character.name == 'acrobat1';
