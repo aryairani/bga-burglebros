@@ -1006,7 +1006,8 @@ function (dojo, declare) {
         },
 
         canTrade: function() {
-            return this.gamedatas.gamestate.args.other_players > 0;
+            // return this.gamedatas.gamestate.args.other_players > 0;
+            return this.gamedatas.gamestate.args.tradable;
         },
 
         canTakeCards: function() {

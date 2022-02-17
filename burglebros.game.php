@@ -652,9 +652,23 @@ class burglebros extends Table
             $player_tile['location'][5] == $max_floor && $this->openSafes() == $safes_needed;
     }
 
+    function canTrade($player_tile, $players_on_tile) {
+        if (count($players_on_tile) == 1) {
+            return FALSE;
+        } else {
+            $players_ids = array_column($players_on_tile, 'type_arg');
+            $players_array = implode("','", $players_ids);
+            // Check that any player has some tools (1) or loot (2) in their hand
+            $sql = "SELECT card_id FROM card WHERE card_type IN ('1','2') AND card_location='hand' AND card_location_arg IN ('$players_array')";
+            $result = self::getCollectionFromDB( $sql );
+            return count($result) > 0;
+        }
+    }
+
     function gatherCurrentData($current_player_id) {
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
+        $players_on_tile = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $player_tile['id']);
         $character = $this->getPlayerCharacter($current_player_id);
         $character['name'] = $this->getCardType($character);
         $actions_remaining = self::getGameStateValue('actionsRemaining'); 
@@ -664,8 +678,9 @@ class burglebros extends Table
         return array(
             'escape' => $this->canEscape($player_tile),
             'peekable' => $this->getPeekableTiles($player_tile),
+            'tradable' => $this->canTrade($player_tile, $players_on_tile),
             'player_token' => $player_token,
-            'other_players' => count($this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $player_tile['id'])) - 1,
+            'other_players' => count($players_on_tile) - 1,
             'character' => $character,
             'character_action_enabled' => $this->characterActionEnabled($current_player_id, $character),
             'tile' => $player_tile,
