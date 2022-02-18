@@ -4055,6 +4055,16 @@ SQL;
                 break;
             }
         }
+        // If drawn card is the cursed goblet, player lose one stealth
+        foreach ($r_ids as $card_id) {
+            $new_card = $this->cards->getCard($card_id);
+            if ($this->getCardType($new_card) == 'cursed-goblet') {
+                $stealth = $this->getPlayerStealth($current_player_id);
+                if ($stealth > 0) {
+                    $this->decrementPlayerStealth($current_player_id);
+                }
+            }
+        }
         $this->cards->moveCards($l_ids, 'tile', $player_tile['id']);
         $this->cards->moveCards($r_ids, 'hand', $current_player_id);
         $this->notifyPlayerHand($current_player_id);
