@@ -4010,6 +4010,8 @@ SQL;
             }
         }
         $draw_tools_next_player = self::getGameStateValue('drawToolsNextPlayer');
+        // Save the drawn tools
+        $this->undoSavepoint();
         if ($draw_tools_next_player > 0 && $draw_tools_next_player != $current_player_id) {
             $this->gamestate->nextState('drawToolsOtherPlayer');
         } else {
