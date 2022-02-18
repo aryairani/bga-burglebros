@@ -102,7 +102,7 @@ $this->card_info = array(
     array('name'=>'throw-voice', 'choice_description' => self::_('an adjacent tile to move the guard destination to'), 'title' => clienttranslate('Throw voice'), 'tooltip' => clienttranslate('Move the Guard destination into an adjacent tile from its current location.')),
     array('name'=>'time-lock', 'title' => clienttranslate('Time lock'), 'tooltip' => clienttranslate('Players cannot move up or down through stairs for one round. Leave this in front of you and remove at the start of your next turn.')),
     array('name'=>'video-loop', 'title' => clienttranslate('Video loop'), 'tooltip' => clienttranslate('All camera tiles are disabled for one round. Leave this in front of you and remove at the start of your next turn.')),
-    array('name'=>'where-is-he', 'title' => clienttranslate('Where is he?'), 'tooltip' => clienttranslate('Guard on you floor jumps to his current destination.')),
+    array('name'=>'where-is-he', 'title' => clienttranslate('Where is he?'), 'tooltip' => clienttranslate('Guard on your floor jumps to his current destination.')),
   ),
 );
 
