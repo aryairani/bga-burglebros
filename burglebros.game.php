@@ -672,9 +672,9 @@ class burglebros extends Table
         $character = $this->getPlayerCharacter($current_player_id);
         $character['name'] = $this->getCardType($character);
         $actions_remaining = self::getGameStateValue('actionsRemaining'); 
-        $actions_description = $actions_remaining > 0 ?
-            self::_("${actions_remaining} actions, free actions,") :
-            self::_('free actions');
+        // $actions_description = $actions_remaining > 0 ?
+        //     self::_("${actions_remaining} actions") :
+        //     '';
         return array(
             'escape' => $this->canEscape($player_tile),
             'peekable' => $this->getPeekableTiles($player_tile),
@@ -688,7 +688,7 @@ class burglebros extends Table
             'tile_cards' => $this->cards->getCardsInLocation('tile', $player_tile['id']),
             'floor' => $player_tile['location'][5],
             'actions_remaining' => $actions_remaining,
-            'actions_description' => $actions_description,
+            // 'actions_description' => $actions_description,
             'undo_allowed' => self::getGameStateValue('undoAllowed'),
         );
     }

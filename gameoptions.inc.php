@@ -195,6 +195,20 @@ $game_preferences = array(
                 )
             )
     ),
+    101 => array(
+            'name' => totranslate('Confirm meeple move'),
+            'needReload' => true,
+            'values' => array(
+                1 => array( 
+                    'name' => totranslate( 'Each time' ),
+                    'description' => totranslate('The game will ask you to confirm your move if you do not use the action button')
+                ),
+                2 => array( 
+                    'name' => totranslate( 'Never' ),
+                    'description' => totranslate('You can click on an adjacent tile to move directly your meeple')  
+                )
+            )
+    ),
 );
 
 

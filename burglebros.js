@@ -400,6 +400,9 @@ function (dojo, declare) {
                         if (this.canEscape()) {
                             this.addActionButton( 'button_escape', _('Escape'), dojo.hitch(this, 'handleEscape') );
                         }
+                        if (this.canMove()) {
+                            this.addActionButton( 'button_move', _('Move'), dojo.hitch(this, 'handleMoveClick') );
+                        }
                         if (this.canPeek()) {
                             this.addActionButton( 'button_peek', _('Peek'), dojo.hitch(this, 'handlePeekClick') );
                         }
@@ -821,7 +824,6 @@ function (dojo, declare) {
 
         createPlayerBoard: function(id) {
             var tokenType = this.gamedatas.token_types['stealth'];
-            console.log("** createPlayerBoard", id);
             dojo.place(this.format_block('jstpl_player_zone', {
                 id : id,
             }), 'player_board_' + id);
@@ -870,7 +872,7 @@ function (dojo, declare) {
         },
 
         createGuardPath: function(floor, guard_path) {
-            console.log('guard_path', guard_path);
+            // console.log('guard_path', guard_path);
             if (guard_path === null)
                 return false;
             // Create a SVG path preview on the floor preview zone
@@ -963,7 +965,9 @@ function (dojo, declare) {
         canEscape: function() {
             return this.gamedatas.gamestate.args.escape && this.actionsRemaining() >= 1;
         },
-
+        canMove: function() {
+            return this.actionsRemaining() >= 1;
+        },
         canPeek: function() {
             return this.gamedatas.gamestate.args.peekable.length > 0 && this.actionsRemaining() >= 1;
         },
@@ -1603,6 +1607,18 @@ function (dojo, declare) {
             $(id).style.opacity = 0;
         },
 
+        updatePreference: function(prefId, newValue) {
+            // Select preference value in control:
+            dojo.query('#preference_control_' + prefId + ' > option[value="' + newValue
+            // Also select fontrol to fix a BGA framework bug:
+                + '"], #preference_fontrol_' + prefId + ' > option[value="' + newValue
+                + '"]').forEach((value) => dojo.attr(value, 'selected', true));
+            // Generate change event on control to trigger callbacks:
+            const newEvt = document.createEvent('HTMLEvents');
+            newEvt.initEvent('change', false, true);
+            $('preference_control_' + prefId).dispatchEvent(newEvt);
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -1652,9 +1668,10 @@ function (dojo, declare) {
                 id = $(evt.target.id).parentNode.parentNode.querySelectorAll('.tile')[0].id.split('_')[1];
                 this.ajaxcall('/burglebros/burglebros/selectSpecialChoice.html', { lock: true, selected: id }, this, console.log, console.error);
             } else {
-                var intent = this.intent || 'move';
-                if (this.checkAction(intent)) {
-                    var url = '/burglebros/burglebros/' + intent + '.html';
+                var intent = this.intent || 'default';
+                var action = intent == 'default' ? 'move' : intent;
+                if (this.checkAction(action)) {
+                    var url = '/burglebros/burglebros/' + action + '.html';
                     var context = 'action';
                     // If acrobat is moving onto a guard, ask if player wants to use the special ability
                     var tile_has_guard = $(evt.target.id).parentNode.querySelectorAll('.token.guard').length > 0;
@@ -1665,27 +1682,47 @@ function (dojo, declare) {
                     } else {
                         var is_acrobat = this.gamedatas.gamestate.args.character.name == 'acrobat1';
                     }
-                    if (intent == 'move' && is_acrobat && tile_has_guard) {
+                    if ( (intent == 'move' || intent == 'default') && is_acrobat && tile_has_guard ) {
                         this.multipleChoiceDialog(
-                          _('Do you want to use your Acrobat ability?'), [_('Yes'), _('No')], 
+                          _('Do you want to use your Acrobat ability?'), [_('Yes'), _('No'), _('Cancel move')], 
                             dojo.hitch(this, function(choice) {
-                                context = choice == 0 ? 'acrobat1' : context;
-                                this.ajaxcall( url, { lock: true, id: id, context: context }, this, function( result ) {} );
+                                if (choice != 2) {
+                                    context = choice == 0 ? 'acrobat1' : context;
+                                    this.ajaxcall( url, { lock: true, id: id, context: context }, this, function( result ) {} );
+                                }
                         }));
                     } else {
-                        // Normal move
-                        this.ajaxcall(url, { lock: true, id: id, context: context }, this, function() {
-                            console.log('success', arguments);
-                            // location.reload();
-                        }, function() {
-                            console.log('error', arguments);
-                            if (intent == 'peek' && arguments[0]) {
-                                // Reset intent to Peek after error
-                                this.intent = 'peek';
+                        if (intent == 'default') {
+                            if (this.prefs[101].value == 1) {
+                                this.multipleChoiceDialog(
+                                    _('Do you really want to move?') + '<br>' + _('You can change this dialog appearance in your game options.'), [_('Yes, only this time'), _('Yes, and never ask again'), _('No')], 
+                                    dojo.hitch(this, function(choice) {
+                                        // Check that player wants to move
+                                        if (choice < 2) {
+                                            // Change player option to remove this confirmation dialog
+                                            if (choice == 1) {
+                                                this.updatePreference(101, 2);
+                                            }
+                                            this.ajaxcall( url, { lock: true, id: id, context: context }, this, function( result ) {} );                                        
+                                        }
+                                }));
+                            } else {
+                                this.ajaxcall( url, { lock: true, id: id, context: context }, this, function( result ) {} );   
                             }
-                        });
+                        } else {
+                            // Normal move
+                            this.ajaxcall(url, { lock: true, id: id, context: context }, this, function() {
+                                console.log('success', arguments);
+                            }, function() {
+                                console.log('error', arguments);
+                                if (intent == 'peek' && arguments[0]) {
+                                    // Reset intent to Peek after error
+                                    this.intent = 'peek';
+                                }
+                            });
+                        }
                     }
-                    this.intent = 'move';
+                    this.intent = 'default';
                 }
             }
         },
@@ -1704,9 +1741,16 @@ function (dojo, declare) {
             this.addActionButton('button_cancel', _('Cancel'), 'handleCancelClick');
         },
 
-        handleCancelClick: function(evt) {
+        handleMoveClick: function(evt) {
             dojo.stopEvent(evt);
             this.intent = 'move';
+            this.changeMainBar('Select an adjacent tile to move to');
+            this.addActionButton('button_cancel', _('Cancel'), 'handleCancelClick');
+        },
+
+        handleCancelClick: function(evt) {
+            dojo.stopEvent(evt);
+            this.intent = 'default';
             this.updatePageTitle();
         },
 
