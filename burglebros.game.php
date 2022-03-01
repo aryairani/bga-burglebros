@@ -1990,14 +1990,14 @@ SQL;
         $action = clienttranslate('moves to');
         $reason = null;
         if ($context == 'deadbolt') {
-            $action = 'stayed in';
-            $reason = 'didn\'t have enough actions to enter the Deadbolt';
+            $action = clienttranslate('stayed in');
+            $reason = clienttranslate('didn\'t have enough actions to enter the Deadbolt');
         } else if ($context == 'keypad') {
-            $action = 'stayed in';
-            $reason = 'didn\'t roll a 6 to enter the Keypad';
+            $action = clienttranslate('stayed in');
+            $reason = clienttranslate('didn\'t roll a 6 to enter the Keypad');
         } else if ($context == 'walkway') {
-            $action = 'fell to';
-            $reason = 'revealed a Walkway';
+            $action = clienttranslate('fell to');
+            $reason = clienttranslate('revealed a Walkway');
         }
         $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
         $tile_name = $patrol_names[$tile['location_arg']]['name'];
