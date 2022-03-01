@@ -114,12 +114,24 @@ class burglebros extends Table
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
+        $option_level = $options[101];
+        switch ($option_level) {
+            case 1:
+                $option_stealth_count = 6;
+                break;
+            case 3:
+                $option_stealth_count = 1;
+                break;
+            default:
+                $option_stealth_count = 3;
+                break;
+        }
+        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_stealth_tokens) VALUES ";
         $values = array();
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
-            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
+            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."','$option_stealth_count"."')";
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -198,18 +210,6 @@ class burglebros extends Table
 
         $option_character = $options[100];
         $option_characters_advanced = $option_character == 2 || $option_character == 4;
-        $option_level = $options[101];
-        switch ($option_level) {
-            case 1:
-                $option_stealth_count = 6;
-                break;
-            case 3:
-                $option_stealth_count = 1;
-                break;
-            default:
-                $option_stealth_count = 3;
-                break;
-        }
         $this->createDecks($this->card_types, $this->card_info, $option_characters_advanced);
         if ($this->getSquareSize() == 4) {
             $this->createDecks($this->patrol_types, $this->patrol_info);
