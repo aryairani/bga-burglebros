@@ -981,7 +981,7 @@ SQL;
         );
     }
 
-    function isTileAdjacent($tile, $other_tile, $walls=null, $variant='move') {
+    function isTileAdjacent($tile, $other_tile, $walls=null, $variant='move', $throw_exception=TRUE) {
         $detail = $this->tileAdjacencyDetail($tile, $other_tile, $walls);
 
         $same_floor = $detail['same_floor'];
@@ -990,6 +990,11 @@ SQL;
         
         if ($variant == 'guard') {
             return ($same_floor && $adjacent && !$blocked);
+        } elseif($variant == 'acrobat1_enabled') {
+            $flipped = $this->getFlippedTiles($tile['location'][5]);
+            $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
+            return ($same_floor && $adjacent && !$blocked) || 
+                    $secret_door;
         } elseif($variant == 'peek') {
             return ($same_floor && $adjacent && !$blocked) ||
                 $this->stairsAreAdjacent($tile, $other_tile) ||
@@ -1015,7 +1020,11 @@ SQL;
             $service_duct = $tile['type'] == 'service-duct' && $other_tile['type'] == 'service-duct' && $tile['id'] != $other_tile['id'] && isset($flipped[$tile['id']]) && !($adjacent && !$blocked) ;
             $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
             if ($painting && !($variant == 'hawk2') && (($secret_door && $blocked) || $service_duct)) {
-                throw new BgaUserException(self::_('Cannot move this way while holding the Painting'));
+                if ($throw_exception) {
+                    throw new BgaUserException(self::_('Cannot move this way while holding the Painting'));
+                } else {
+                    return FALSE;
+                }
             }
             return ($same_floor && $adjacent && !$blocked) ||
                 $secret_door || $service_duct ||
@@ -3234,8 +3243,39 @@ SQL;
             $floor = $player_tile['location'][5];
             $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
-
-            if (!$this->isTileAdjacent($guard_tile, $player_tile, null, 'guard')) {
+            // Check guard on the same floor
+            $guard_adjacent = $this->isTileAdjacent($guard_tile, $player_tile, null, 'acrobat1_enabled');
+            // Check guard on upper or lower floor through stairs
+            $max_floor = $this->getFloorCount();
+            if ($floor > 1) { // check lower floor
+                $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor - 1))[0];
+                $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+                $guard_adjacent = $guard_adjacent ||
+                    $this->stairsAreAdjacent($player_tile, $guard_tile) || 
+                    $this->stairsAreAdjacent($guard_tile, $player_tile) ||
+                    $this->thermalBombStairsAreAdjacent($player_tile, $guard_tile) ||
+                    $this->walkwayIsAdjacent($player_tile, $guard_tile);
+            }
+            if ($floor < $max_floor)  { // check upper floor
+                $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor + 1))[0];
+                $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+                $guard_adjacent = $guard_adjacent ||
+                    $this->stairsAreAdjacent($player_tile, $guard_tile) || 
+                    $this->stairsAreAdjacent($guard_tile, $player_tile) ||
+                    $this->thermalBombStairsAreAdjacent($player_tile, $guard_tile) ||
+                    $this->walkwayIsAdjacent($player_tile, $guard_tile);
+            }
+            // Check if a guard is on other side of the Service Duct
+            if ($player_tile['type'] == 'service-duct') {
+                $service_ducts = self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM tile WHERE flipped=1 AND card_type='service-duct'");
+                foreach ($service_ducts as $id => $service_duct) {
+                    if ($id == $player_tile['id'])
+                        continue;
+                    $guard_token = array_values($this->tokens->getCardsOfType('guard', $service_duct['location'][5]))[0];;
+                    $guard_adjacent = $guard_adjacent || ($guard_token['location_arg'] == $id);
+                }
+            }
+            if ( !$guard_adjacent ) {
                 return FALSE;
             }
         } else if($type == 'acrobat2') {
