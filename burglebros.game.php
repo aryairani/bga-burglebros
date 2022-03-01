@@ -4386,7 +4386,7 @@ SQL;
             $args['choice_description'] = clienttranslate('an adjacent tile to move the player');
         } elseif ($type == 'closest_alarm') {
             $args['choice_name'] = clienttranslate('Guard move');
-            $args['choice_description'] = clienttranslate('on of the closest alarm to set the Guard destination');
+            $args['choice_description'] = clienttranslate('one of the closest alarm to set the Guard destination');
             $args['show_cancel'] = FALSE;
         }
         return $args;
