@@ -1267,16 +1267,19 @@ SQL;
     }
 
     function handlePlayerEnteredGuardSight($tile, $player_id = null) {
+        $invisible_suit = self::getGameStateValue('invisibleSuitActive') == 1;
+        if ($invisible_suit) {
+            return;
+        }
+
         $guard_token = array_values($this->tokens->getCardsOfType('guard', $tile['location'][5]))[0];
         $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
 
-        // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $player_id != null ? $player_id : self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         
         $is_guard_tile = $tile['id'] == $guard_token['location_arg'];
-        // TODO: I'm not sure if this variable is needed
         $is_player_tile = $tile['id'] == $player_token['location_arg'];
         
         if ($is_guard_tile && $is_player_tile) {
