@@ -690,6 +690,7 @@ class burglebros extends Table
             'actions_remaining' => $actions_remaining,
             // 'actions_description' => $actions_description,
             'undo_allowed' => self::getGameStateValue('undoAllowed'),
+            'kitty_escaped' => $this->isKittyEscaped(),
         );
     }
 
@@ -2999,11 +3000,15 @@ SQL;
         return count($this->tokens->getCardsOfTypeInLocation('player', null, 'roof')) == $players_count;
     }
 
+    function isKittyEscaped() {
+        return count($this->tokens->getCardsOfTypeInLocation('cat', null, 'tile')) > 0;
+    }
+
     function checkWin() {
         $safes_needed = $this->getGameStateValue('scenario') == 2 ? 2 : 3;
         $all_safes_opened = $this->openSafes() == $safes_needed;
         $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(2, null, 'tile')) == 0 &&
-            count($this->tokens->getCardsOfTypeInLocation('cat', null, 'tile')) == 0;
+            !$this->isKittyEscaped();
         return $all_safes_opened && $all_loot_escaped;
     }
 
@@ -4186,7 +4191,7 @@ SQL;
             $this->notifyPlayerHand($current_player_id);
             $this->notifyPlayerHand($kitty_owner, array($kitty_card['id']));
         }
-        self::notifyAllPlayers('message', clienttranslate('${player_name} picked up the cat token'), [
+        self::notifyAllPlayers('catPicked', clienttranslate('${player_name} picked up the cat token'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         $this->endAction(0);
@@ -4201,7 +4206,7 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(3, 'jump-the-gun');
+            // $type_arg = $this->getCardTypeForName(3, 'freight-elevator');
             // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
@@ -4667,7 +4672,7 @@ SQL;
                 $this->notifyRoll($rolls, 'persian-kitty');
                 if (isset($rolls[1]) || isset($rolls[2])) {
                     $this->moveCatToken($player_id);
-                    self::notifyAllPlayers('message', clienttranslate('${player_name} must pick up the cat token before escaping'), [
+                    self::notifyAllPlayers('catEscaped', clienttranslate('${player_name} must pick up the cat token before escaping'), [
                         'player_name' => $this->getActivePlayerNameCustom()
                     ]);
                 }

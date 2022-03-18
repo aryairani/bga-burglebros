@@ -189,6 +189,13 @@
 #myhand .stockitem, .player_hand .stockitem, #trade_dialog .stockitem {
     background-size: 240px;
 }
+#card_kitty_warning {
+    transform: scale(2);
+    width: 20px;
+    margin: 10px 0px 0px 10px;
+    text-shadow: 1px 0px 1px #ccc, 0px 1px 1px #eee;
+}
+
 .spectatorMode #player_hand_wrap_1 {
     display: none;
 }

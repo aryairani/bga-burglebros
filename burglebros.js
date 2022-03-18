@@ -603,12 +603,16 @@ function (dojo, declare) {
             var card_type = Math.floor(card_type_id / 100);
             if (card_type === 0) { // Character
                 dojo.place('<div id="card_' + card.id + '_tokens" class="card-zone"></div>', card_div_id);
-
                 var zone = new ebg.zone();
                 var zoneId = 'card_' + card.id + '_tokens';
                 zone.create( this, zoneId, 24, 24 );
                 zone.setPattern( 'grid' );
                 this.zones[zoneId] = zone;
+            } else if (card_type_id == 210) {
+                dojo.place('<div id="card_kitty_warning"></div>', card_div_id);
+                if (this.gamedatas.gamestate.args.kitty_escaped) {
+                    this.catEscaped();
+                }
             }
         },
 
@@ -751,6 +755,10 @@ function (dojo, declare) {
             } else if (token && token.location === 'roof') {
                 this.fadeOutAndDestroy('meeple_' + token.id);
             }
+        },
+
+        catEscaped: function() {
+            $("card_kitty_warning").innerHTML = _("Escaped");
         },
 
         createGuardToken: function(token_id) {
@@ -1954,6 +1962,8 @@ function (dojo, declare) {
             dojo.subscribe('activatePlayer', this, 'notif_activatePlayer');
             dojo.subscribe('tokensPicked', this, 'notif_tokensPicked');
             dojo.subscribe('tokensPickedSync', this, 'notif_tokensPicked');
+            dojo.subscribe('catEscaped', this, 'notif_catEscaped');
+            dojo.subscribe('catPicked', this, 'notif_catPicked');
             this.notifqueue.setSynchronous( 'tokensPickedSync', 750 );
             dojo.subscribe('decrementStealth', this, 'notif_decrementStealth');
             dojo.subscribe('tileFlipped', this, 'notif_tileFlipped');
@@ -2029,6 +2039,13 @@ function (dojo, declare) {
                     this.gamedatas[type + '_tokens'][tokenId] = token;
                 }
             }
+        },
+        notif_catEscaped: function(notif) {
+            this.catEscaped();
+        },
+        notif_catPicked: function(notif) {
+            // $("card_kitty_warning").innerHTML("");
+            dojo.empty("card_kitty_warning");
         },
 
         notif_decrementStealth: function(notif) {
