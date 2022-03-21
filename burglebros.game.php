@@ -464,17 +464,26 @@ class burglebros extends Table
         }
     }
     public function getPlayerBeforeCustom($player_id) {
+        $escaped_players = $this->getEscapedPlayers();
         $multi_characters = $this->getSoloMultiCharacters();
-        if ($multi_characters > 1) {
-            $human_player_id = self::getCurrentPlayerId();
-            if ($human_player_id == $player_id) {
-                return $human_player_id + $multi_characters - 1;
+        $security_loop = 10; // 4 should be enough because only 4 players but, well, you never know
+        while ($security_loop > 0) {
+            if ($multi_characters > 1) {
+                $human_player_id = self::getCurrentPlayerId();
+                if ($human_player_id == $player_id) {
+                    $player_before = $human_player_id + $multi_characters - 1;
+                } else {
+                    $player_before = --$player_id;
+                }
             } else {
-                return --$player_id;
+                $player_before = self::getPlayerBefore($player_id);
             }
-        } else {
-            return self::getPlayerBefore($player_id);
+            if (!in_array($player_before, $escaped_players)) {
+                return $player_before;
+            }
+            --$security_loop;
         }
+        return $player_id;
     }
 
     public function activeNextPlayerCustom() {
@@ -2596,6 +2605,10 @@ SQL;
         return $this->tiles->getCard($player_token['location_arg']);
     }
 
+    function getEscapedPlayers() {
+        return array_column($this->tokens->getCardsOfTypeInLocation('player', null, 'roof'), 'type_arg');
+    }
+
     function validateSelection($expected_type, $selected_type) {
         if ($expected_type != $selected_type) {
             if ($expected_type == 'button') {
@@ -4206,7 +4219,7 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(3, 'freight-elevator');
+            // $type_arg = $this->getCardTypeForName(3, 'dead-drop');
             // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
