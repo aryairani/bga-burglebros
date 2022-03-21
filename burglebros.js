@@ -1572,7 +1572,7 @@ function (dojo, declare) {
         },
 
         setupCrystalBallCards: function(event_cards) {
-            this.elementDragged = null;
+            this.crystalBallUsed = false;
             for (var i in event_cards) {
                 var card = event_cards[i];
                 dojo.place( this.eventCardHtml(card, '_' + card.id, 'crystal_ball_card', true), 'crystal_ball_cards' );
@@ -1599,6 +1599,7 @@ function (dojo, declare) {
             }
         },
         moveEventCard(e) {
+            this.crystalBallUsed = true;
             var container = e.target.parentNode;
             var previous_card = e.target.previousElementSibling;
             var next_card = e.target.nextElementSibling;
@@ -1858,9 +1859,15 @@ function (dojo, declare) {
         },
 
         handleMultipleIdCardChoiceButton: function(e) {
-            var ids = [];
+            this.ids = [];
             if (this.isCardChoice('crystal-ball')) {
-                dojo.query('#crystal_ball_cards .crystal_ball_card').forEach( (node) => ids.push(node.id.split("_").pop()) );
+                dojo.query('#crystal_ball_cards .crystal_ball_card').forEach( (node) => this.ids.push(node.id.split("_").pop()) );
+                if (!this.crystalBallUsed) {
+                    this.confirmationDialog( _('You didn\'t change the event order, do you want to keep them this way?'), dojo.hitch( this, function() {
+                        this.handleCardChoiceButton(this.ids.join(";"), null);
+                    } ) );
+                    return;
+                }
             } else if (this.isCardChoice('stethoscope')) {
                 // Push old value first then new value
                 ids.push( dojo.query('.icon_die.selected')[0].id.split('_').pop() );
@@ -1868,7 +1875,7 @@ function (dojo, declare) {
                 this.hideElement('wrapper_rolled_dice_stethoscope');
                 this.fadeOutAndDestroy('wrapper_rolled_dice_stethoscope');
             }
-            this.handleCardChoiceButton(ids.join(";"), null);
+            this.handleCardChoiceButton(this.ids.join(";"), null);
         },
 
         handleCardChoiceButton: function(id, callback) {
