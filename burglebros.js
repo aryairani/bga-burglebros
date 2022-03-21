@@ -1464,7 +1464,7 @@ function (dojo, declare) {
         drawToolsAndDiscard: function(cards) {
             var dialog = new ebg.popindialog();
             dialog.create( 'drawToolsAndDiscardDialog' );
-            dialog.setTitle( _("Choose a Card to Discard") );
+            dialog.setTitle( _("Choose a Card to Keep") );
             dialog.hideCloseIcon();
             
             var html = this.format_block('jstpl_draw_tools_dialog', {});
@@ -1483,13 +1483,13 @@ function (dojo, declare) {
             
             // Now that the dialog has been displayed, you can connect your method to some dialog elements
             // Example, if you have an "OK" button in the HTML of your dialog:
-            dojo.connect( $('draw_tools_discard_button'), 'onclick', this, function(evt) {
+            dojo.connect( $('draw_tools_keep_button'), 'onclick', this, function(evt) {
                 evt.preventDefault();
                 var selected = tools_stock.getSelectedItems();
                 if (selected.length == 0) {
-                    this.showMessage(_("You must select a tool to discard"), 'error');
+                    this.showMessage(_("You must select a tool to keep"), 'error');
                 } else {
-                    this.handleDiscardToolButton(selected[0].id, function() {
+                    this.handleKeepToolButton(selected[0].id, function() {
                         tools_stock.destroy();
                         dialog.destroy();
                     });
@@ -1937,9 +1937,9 @@ function (dojo, declare) {
             }
         },
 
-        handleDiscardToolButton: function(id, callback) {
-            if (this.checkAction('discardTool')) {
-                this.ajaxcall('/burglebros/burglebros/discardTool.html', { lock: true, selected: id }, this, callback || console.log, console.error);
+        handleKeepToolButton: function(id, callback) {
+            if (this.checkAction('keepTool')) {
+                this.ajaxcall('/burglebros/burglebros/keepTool.html', { lock: true, selected: id }, this, callback || console.log, console.error);
             }
         },
         

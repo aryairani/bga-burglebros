@@ -4061,16 +4061,16 @@ SQL;
         $this->gamestate->nextState('nextAction');
     }
 
-    function discardTool($selected) {
-        self::checkAction('discardTool');
+    function keepTool($selected) {
+        self::checkAction('keepTool');
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $tools = $this->cards->getCardsOfTypeInLocation(1, null, 'choice');
         foreach ($tools as $tool_id => $tool) {
             if ($tool_id == $selected) {
-                $this->cards->moveCard($tool_id, 'tools_discard');
-            } else {
                 $this->cards->moveCard($tool_id, 'hand', $current_player_id);
                 $this->notifyPlayerHand($current_player_id);
+            } else {
+                $this->cards->moveCard($tool_id, 'tools_discard');
             }
         }
         $draw_tools_next_player = self::getGameStateValue('drawToolsNextPlayer');

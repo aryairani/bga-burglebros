@@ -219,11 +219,11 @@ $machinestates = array(
 
     22 => array(
         'name' => 'drawToolsAndDiscard',
-        'description' => clienttranslate('${actplayer} must choose a tool to discard'),
-        'descriptionmyturn' => clienttranslate('${you} must choose a tool to discard'),
+        'description' => clienttranslate('${actplayer} must choose a tool'),
+        'descriptionmyturn' => clienttranslate('${you} must choose a tool'),
         'type' => 'activeplayer',
         'args' => 'argDrawToolsAndDiscard',
-        'possibleactions' => array( 'discardTool', 'restartTurn' ),
+        'possibleactions' => array( 'keepTool', 'restartTurn' ),
         'transitions' => array( 'drawToolsOtherPlayer' => 23, 'nextAction' => 9, 'endTurn' => 10, 'restartTurn' => 9 )
     ),
 

@@ -194,10 +194,10 @@
       self::ajaxResponse();
     }
 
-    public function discardTool() {
+    public function keepTool() {
       self::setAjaxMode();
       $selected = self::getArg( "selected", AT_posint, true );
-      $this->game->discardTool($selected);
+      $this->game->keepTool($selected);
       self::ajaxResponse();
     }
 
