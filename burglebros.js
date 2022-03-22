@@ -1870,8 +1870,8 @@ function (dojo, declare) {
                 }
             } else if (this.isCardChoice('stethoscope')) {
                 // Push old value first then new value
-                ids.push( dojo.query('.icon_die.selected')[0].id.split('_').pop() );
-                ids.push( e.target.id.split('_').pop() );
+                this.ids.push( dojo.query('.icon_die.selected')[0].id.split('_').pop() );
+                this.ids.push( e.target.id.split('_').pop() );
                 this.hideElement('wrapper_rolled_dice_stethoscope');
                 this.fadeOutAndDestroy('wrapper_rolled_dice_stethoscope');
             }
