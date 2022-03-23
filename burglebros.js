@@ -136,6 +136,11 @@ function (dojo, declare) {
                 // Bind actions to player board
                 dojo.connect( $('player_' + playerId + '_geolocate'), 'onclick', dojo.hitch(this, 'showPlayer', playerId));
                 this.addTooltip('player_' + playerId + '_geolocate', '', _("Click to find the player meeple on the board"));
+                if (playerId == this.player_id) {
+                    dojo.removeClass('player_' + playerId + '_distribution', 'hidden');
+                    dojo.connect( $('player_' + playerId + '_distribution'), 'onclick', dojo.hitch(this, 'showDistribution', playerId));
+                    this.addTooltip('player_' + playerId + '_distribution', '', _("Click to show the current discovered card distribution"));
+                }
             }
 
             // Setup tiles and patrols
@@ -656,7 +661,7 @@ function (dojo, declare) {
                 preview_col: preview_col
             }), 'floor' + floor.toString() + '_preview', 'first');
 
-            if (tile.type != 'back' && tile.type != 'shaft') {                
+            if (tile.type != 'back' && tile.type != 'shaft') {               
                 var tooltipHtml = this.format_block('jstpl_tile_tooltip', {
                     id : tile.id, 
                     bg_image: g_gamethemeurl + 'img/tiles.jpg',
@@ -706,7 +711,6 @@ function (dojo, declare) {
                 meeple_id : id,
                 meeple_background : g_gamethemeurl + '/img/meeples.png',
                 meeple_bg_pos : -(bg_col * 35) + 'px ' + -(bg_row * 50) + 'px',
-                // player_color: this.gamedatas.players[player_id].color
                 player_color: this.gamedatas.players[player_id].player_color
             }), 'token_container');
         },
@@ -864,11 +868,6 @@ function (dojo, declare) {
                 let destination = $('player_hand_wrap_' + wrap_index);
                 let anim = this.slideToObject(node, destination, 1000);
                 let handStock = player_id == this.player_id ? this.myHand : this.playerHands[player_id];
-                // dojo.connect( anim, "onEnd", dojo.hitch(this, function(){
-                //     this.attachToHTML(node, destination);
-                //     console.log('handStock', handStock);
-                //     this.handStock.updateDisplay();
-                // }) );
                 anim.play();
                 this.attachToHTML(node, destination);
                 index = ++index >= player_ids.length ? 0 : index;
@@ -1125,6 +1124,73 @@ function (dojo, declare) {
                     dojo.removeClass(node, "bounce");
                 })
             }, 2000);  
+        },
+
+        showDistribution: function() {
+            // Create the new dialog over the play zone. You should store the handler in a member variable to access it later
+            this.distributionDialog = new ebg.popindialog();
+            this.distributionDialog.create( 'tile_distribution' );
+            this.distributionDialog.setTitle( _("Room distribution") );
+
+            var display_tiles = [];
+            var flipped_tiles = this.gamedatas.flipped_tiles;
+            for (id in flipped_tiles) {
+                var tile = flipped_tiles[id];
+                (display_tiles[tile.type] = display_tiles[tile.type] || []).push({
+                    'type' : tile.type,
+                    'floor' : parseInt(tile.location.slice(-1), 10),
+                    'location' : this.gamedatas.patrol_names[tile.location_arg]['name'],
+                });
+            }
+
+            // Create the HTML of my dialog. 
+            var html = this.format_block( 'jstpl_distribution_dialog_header', {
+                room_type: _('Room type'),
+                discovered: _('Discovered'),
+                floor_1: _('Floor 1'),
+                floor_2: _('Floor 2'),
+                floor_3: _('Floor 3'),
+            } );
+
+            var tiles = this.gamedatas.tile_distribution;
+            for (type in tiles) {
+                var tile = tiles[type];
+                var name = tile['name'];
+                // Concatenate all the locations of display_tiles where type = type and floor = floor zz
+                var floors = {};
+                for (var i = 1; i <= 3; i++) {
+                    // floors[i] = display_tiles.filter(tile => tile.type == type && tile.floor == i).join(" ");
+                    if (display_tiles[type]) {
+                        floors[i] = display_tiles[type].filter(tile => tile.floor == i).map(tile => tile.location).join(" ");  
+                    } else {
+                        floors[i] = "";
+                    }
+                }
+                var discovered = display_tiles[type] ? display_tiles[type].length : 0;
+                html += this.format_block( 'jstpl_distribution_dialog_row', { 
+                    room_type: name,
+                    discovered: discovered + '/' + tile['nb'],
+                    floor_1: floors[1],
+                    floor_2: floors[2],
+                    floor_3: floors[3],
+                    type_class: type,
+                } );
+            }
+
+            html += this.format_block( 'jstpl_distribution_dialog_footer', { 
+                close_button: _('Close')
+            } );
+
+            // Show the dialog
+            this.distributionDialog.setContent( html ); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
+            this.distributionDialog.show();
+
+            // Now that the dialog has been displayed, you can connect your method to some dialog elements
+            // Example, if you have an "OK" button in the HTML of your dialog:
+            dojo.connect( $('close_button'), 'onclick', this, function(evt){
+                evt.preventDefault();
+                this.distributionDialog.destroy();
+            } );
         },
 
         playerEscaped: function(player_id)  {
@@ -2094,6 +2160,7 @@ function (dojo, declare) {
                 floor = tile.location[5];
                 deck = 'floor' + floor;
             this.gamedatas[deck][tile.location_arg] = tile;
+            this.gamedatas.flipped_tiles = notif.args.flipped_tiles;
             this.showFloor(floor);
             this.playTileOnTable(floor, tile);
             this.undo_allowed = notif.args.undo_allowed;

@@ -668,6 +668,7 @@
     font-style: italic;
 }
 
+/* Dialogs */
 #trade_dialog, #spotter_dialog, .dialog {
     display: flex;
     flex-direction: column;
@@ -676,6 +677,21 @@
 .dialog-content {
     display: flex;
     flex-direction: row;
+}
+
+#distribution_dialog th {
+    font-weight: bold;
+    text-align: center;
+    background-color: #3A5A6E;
+    color: #FFF;
+}
+#distribution_dialog th, #distribution_dialog td {
+    padding: 3px;
+    text-align: center;
+}
+#distribution_dialog .first_column {
+    font-weight: bold;
+    text-align: left;
 }
 
 .trade-container {
@@ -740,6 +756,8 @@
 #player_boards .action_button {
     font-size: 1.3em;
     cursor: pointer;
+    display: inline-block;
+    margin: 0 10px 0 0;
 }
 
 /* Dice */

@@ -107,7 +107,11 @@ var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_I
 
 */
 
-var jstpl_player_zone = '<div id="player_${id}_buttons" class="player-zone"><div id="player_${id}_geolocate" class="action_button">&target;</div></div><hr><div id="player_${id}_tokens" class="player-zone"></div>';
+var jstpl_player_zone = '<div id="player_${id}_buttons" class="player-zone">' +
+    '<div id="player_${id}_geolocate" class="action_button">&target;</div>' +
+    '<div id="player_${id}_distribution" class="action_button hidden">&#x2339;</div>' +
+    '</div><hr>' +
+    '<div id="player_${id}_tokens" class="player-zone"></div>';
 var jstpl_player_escaped = '<div id="player_${id}_escaped" class="player-zone hidden"></div>';
 
 var jstpl_tile_container = '<div id="tile_${id}_container" class="tile-container" style="left: ${x}px; top: ${y}px;" aria-label="${name}">\n' +
@@ -183,6 +187,36 @@ var jstpl_trade_dialog = '<div id="trade_dialog" class="dialog">\n' +
 '    <div class="dialog-footer">\n' +
 '        <a href="#" id="trade_cancel_button" class="bgabutton bgabutton_gray">${cancel_title}</a>&nbsp;&nbsp;\n' +
 '        <a href="#" id="trade_confirm_button" class="bgabutton bgabutton_blue">${confirm_title}</a>\n' +
+'    </div>\n' +
+'</div>';
+
+var jstpl_distribution_dialog_header = '<div id="distribution_dialog" class="dialog">\n' +
+'    <div class="dialog-content">\n' +
+'    <table class="tg">' +
+'    <thead>' +
+'      <tr>' +
+'        <th class=first_column>${room_type}</th>' +
+'        <th>${discovered}</th>' +
+'        <th>${floor_1}</th>' +
+'        <th>${floor_2}</th>' +
+'        <th class="last_column">${floor_3}</th>' +
+'      </tr>' +
+'    </thead>' +
+'    <tbody>';
+
+var jstpl_distribution_dialog_row = '' +
+'    <tr><td class="first_column ${type_class}">${room_type}</td>\n' +
+'    <td class="${type_class}">${discovered}</td>\n' +
+'    <td class="${type_class}">${floor_1}</td>\n' +
+'    <td class="${type_class}">${floor_2}</td>\n' +
+'    <td class="${type_class}">${floor_3}</td></tr>\n';
+
+var jstpl_distribution_dialog_footer = 
+'    </tbody>\n' +
+'    </table>\n' +
+'    </div>\n' +
+'    <div class="dialog-footer">\n' +
+'        <a href="#" id="close_button" class="bgabutton bgabutton_blue">${close_button}</a>\n' +
 '    </div>\n' +
 '</div>';
 

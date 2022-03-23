@@ -321,9 +321,7 @@ class burglebros extends Table
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         // $sql = "SELECT player_id id, player_score score, player_stealth_tokens stealth_tokens FROM player ";
-        // $result['players'] = self::getCollectionFromDb( $sql );
         $result['players'] = $this->loadPlayersInfos();
-        // var_dump($result['players']);
         foreach ($result['players'] as $player_id => &$player) {
             $player['hand'] = $this->cards->getPlayerHand($player_id);
             $player['character'] = $this->getPlayerCharacter($player_id);
@@ -347,13 +345,8 @@ class burglebros extends Table
         $result['solo_characters'] = $this->getSoloMultiCharacters();
         $result['active_player_id'] = $this->getCurrentPlayerIdCustom();
 
-        $tiles = array();
-        $index = 0;
-        foreach ( $this->tile_types as $type => $nbr ) {
-            $tiles [] = array('id'=> $index, 'type' => $type);
-            $index++;
-        }
-        $result['tile_types'] = $tiles;
+        $result['tile_distribution'] = $this->tile_distribution;
+        $result['flipped_tiles'] = $this->getFlippedTiles();
 
         $tokens = array();
         foreach ( $this->token_types as $index => $desc ) {
@@ -375,10 +368,8 @@ class burglebros extends Table
         
         $safe_tokens = $this->tokens->getCardsOfType('crack');
         foreach ($safe_tokens as $id => &$value) {
-            // $floor = $value['type_arg'];
             $safe_id = $value['location_arg'];
             $value['die_num'] = $this->getSafeDie($safe_id);
-            // $value['die_num'] = self::getGameStateValue("safeDieCount$floor");
         }
         $result['crack_tokens'] = $safe_tokens;
 
@@ -736,8 +727,12 @@ class burglebros extends Table
         return self::getObjectListFromDB("SELECT * from wall");
     }
 
-    function getFlippedTiles($floor) {
-        return self::getCollectionFromDB("SELECT card_id id, safe_die FROM tile WHERE card_location='floor$floor' and flipped=1", true);
+    function getFlippedTiles($floor = null) {
+        if ($floor) {
+            return self::getCollectionFromDB("SELECT card_id id, safe_die FROM tile WHERE card_location='floor$floor' and flipped=1", true);       
+        } else {
+            return self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM tile WHERE flipped=1");
+        }
     }
 
     function getTiles($floor) {
@@ -927,6 +922,7 @@ SQL;
             'tile' => $this->findTileOnFloor($floor, $location_arg),
             'floor' => $floor,
             'undo_allowed' => self::getGameStateValue('undoAllowed'),
+            'flipped_tiles' => $this->getFlippedTiles(),
         ));
     }
 

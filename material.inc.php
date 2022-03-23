@@ -195,6 +195,29 @@ $this->tile_types = array(
   'walkway' => array(1, 2, 3),
 );
 
+$this->tile_distribution = array(
+  'safe' => array('name' => self::_('Safe'), 'nb' => 3),
+  'stairs' => array('name' => self::_('Stairs'), 'nb' => 3),
+  'walkway' => array('name' => self::_('Walkway'), 'nb' => 3),
+  'laboratory' => array('name' => self::_('Laboratory'), 'nb' => 2),
+  'lavatory' => array('name' => self::_('Lavatory'), 'nb' => 1),
+  'service-duct' => array('name' => self::_('Service Duct'), 'nb' => 2),
+  'secret-door' => array('name' => self::_('Secret Door'), 'nb' => 2),
+  'fingerprint-computer' => array('name' => self::_('Fingerprint Computer'), 'nb' => 1),
+  'laser-computer' => array('name' => self::_('Laser Computer'), 'nb' => 1),
+  'motion-computer' => array('name' => self::_('Motion Computer'), 'nb' => 1),
+  'camera' => array('name' => self::_('Camera'),'nb' => 4),
+  'laser' => array('name' => self::_('Laser'), 'nb' => 3),
+  'motion' => array('name' => self::_('Motion'), 'nb' => 3),
+  'detector' => array('name' => self::_('Detector'), 'nb' => 3),
+  'fingerprint' => array('name' => self::_('Fingerprint'), 'nb' => 3),
+  'thermo' => array('name' => self::_('Thermo'), 'nb' => 3),
+  'keypad' => array('name' => self::_('Keypad'), 'nb' => 3),
+  'deadbolt' => array('name' => self::_('Deadbolt'), 'nb' => 3),
+  'foyer' => array('name' => self::_('Foyer'), 'nb' => 2),
+  'atrium' => array('name' => self::_('Atrium'), 'nb' => 2),
+);
+
 $this->token_types = array(
   array('name' => 'alarm', 'color' => '#CE5638'),
   array('name' => 'cat', 'color' => '#8E8644'),
