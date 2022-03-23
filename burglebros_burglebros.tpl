@@ -107,7 +107,7 @@ var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_I
 
 */
 
-var jstpl_player_zone = '<div id="player_${id}_tokens" class="player-zone"></div>';
+var jstpl_player_zone = '<div id="player_${id}_buttons" class="player-zone"><div id="player_${id}_geolocate" class="action_button">&target;</div></div><hr><div id="player_${id}_tokens" class="player-zone"></div>';
 var jstpl_player_escaped = '<div id="player_${id}_escaped" class="player-zone hidden"></div>';
 
 var jstpl_tile_container = '<div id="tile_${id}_container" class="tile-container" style="left: ${x}px; top: ${y}px;" aria-label="${name}">\n' +

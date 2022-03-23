@@ -99,6 +99,18 @@
     to { box-shadow: 0px 0px 3px 4px lime; }
 }
 
+/* Bounce effect to drag attention, inspired from http://bl.ocks.org/imkevinxu/4402301 */
+.bounce {
+  animation: bounce 1s .5s;
+}
+@keyframes bounce {
+  0% { transform: scale(1.1); opacity: 1 }
+  50% { transform: scale(1.6); opacity: .7; }
+  60% { transform: scale(0.6); opacity: 1 }
+  80% { transform: scale(1.2) }
+  100% { transform: scale(1) }
+}
+
 /* Logs */
 #logs .card_name {
     text-decoration: underline;
@@ -724,6 +736,10 @@
 .player-board.escaped {
     background-color: #BBB !important;
     transition: all 1s ease-in;
+}
+#player_boards .action_button {
+    font-size: 1.3em;
+    cursor: pointer;
 }
 
 /* Dice */

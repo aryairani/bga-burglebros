@@ -133,6 +133,9 @@ function (dojo, declare) {
                 // If player escaped, change playerboard
                 if (gamedatas.players[playerId]['escaped'])
                     this.playerEscaped(playerId);
+                // Bind actions to player board
+                dojo.connect( $('player_' + playerId + '_geolocate'), 'onclick', dojo.hitch(this, 'showPlayer', playerId));
+                this.addTooltip('player_' + playerId + '_geolocate', '', _("Click to find the player meeple on the board"));
             }
 
             // Setup tiles and patrols
@@ -1103,6 +1106,27 @@ function (dojo, declare) {
             }
         },
 
+        showPlayer: function(playerId) {
+            // Find player token, show floor and bounce the player token
+            var token = Object.values(this.gamedatas.player_tokens).filter(token => token.type_arg == playerId)[0];
+            var meeple_node = $('meeple_' + token.id);
+            if (token.location != 'tile' || !meeple_node) {
+                this.showMessage( _("This player's meeple is not on the board"), "error" );
+                return;
+            }
+            // Find and show player floor
+            var floor = meeple_node.closest('div.floor').id.slice(-1);
+            this.showFloor(floor);
+            // Bounce effect
+            dojo.addClass( meeple_node, 'bounce' );
+            setTimeout( function() {
+                var nodes = dojo.query(".meeple.bounce");
+                dojo.forEach( nodes, function (node, i) {
+                    dojo.removeClass(node, "bounce");
+                })
+            }, 2000);  
+        },
+
         playerEscaped: function(player_id)  {
             // Change display of player board when escaped
             dojo.addClass("overall_player_board_" + player_id, 'escaped');
@@ -1836,10 +1860,9 @@ function (dojo, declare) {
         },
 
         handleCardSelected: function(control_name, card_id) {
-            console.log("handleCardSelected", control_name, card_id);
+            // console.log("handleCardSelected", control_name, card_id);
             var handStock = this.getHandStock();
             if (handStock.isSelected(card_id) && this.checkAction('playCard')) {
-                console.log("handleCardSelected inside");
                 this.ajaxcall('/burglebros/burglebros/playCard.html', { lock: true, id: card_id }, this, console.log, console.error);
             } else if (!handStock.isSelected(card_id)) {
                 this.handleCancelCardChoice();
