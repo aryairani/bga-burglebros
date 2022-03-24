@@ -64,7 +64,7 @@ function (dojo, declare) {
         
         setup: function( gamedatas )
         {
-            console.log( "Starting game setup", "gamedatas: ", gamedatas, "gamestate.args: ", this.gamedatas.gamestate.args );
+            console.log( "Starting game setup", "gamedatas: ", gamedatas );
             
             // Set up your game interface here, according to "gamedatas"
             window.gamedatas = gamedatas;
@@ -1156,10 +1156,9 @@ function (dojo, declare) {
             for (type in tiles) {
                 var tile = tiles[type];
                 var name = tile['name'];
-                // Concatenate all the locations of display_tiles where type = type and floor = floor zz
+                // Concatenate all the locations of display_tiles for each floor
                 var floors = {};
                 for (var i = 1; i <= 3; i++) {
-                    // floors[i] = display_tiles.filter(tile => tile.type == type && tile.floor == i).join(" ");
                     if (display_tiles[type]) {
                         floors[i] = display_tiles[type].filter(tile => tile.floor == i).map(tile => tile.location).join(" ");  
                     } else {
@@ -1183,6 +1182,19 @@ function (dojo, declare) {
 
             // Show the dialog
             this.distributionDialog.setContent( html ); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
+            // Hide last column if less than 3 floors
+            if (this.gamedatas.floor_count < 3) {
+                dojo.query('#distribution_dialog .last_column').addClass('hidden');
+            }
+            // Append current token count to each computer row
+            for (var token_id in this.gamedatas.generic_tokens) {
+                var token = this.gamedatas.generic_tokens[token_id];
+                if (token.type == 'hack' && token.location == 'tile') {
+                    var computer_type = flipped_tiles[token.location_arg]['type'];
+                    var wrapper = dojo.query("#distribution_dialog td." + computer_type)[0];
+                    this.createGenericToken(token, wrapper);
+                }
+            }
             this.distributionDialog.show();
 
             // Now that the dialog has been displayed, you can connect your method to some dialog elements

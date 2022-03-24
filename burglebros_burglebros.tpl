@@ -109,7 +109,7 @@ var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_I
 
 var jstpl_player_zone = '<div id="player_${id}_buttons" class="player-zone">' +
     '<div id="player_${id}_geolocate" class="action_button">&target;</div>' +
-    '<div id="player_${id}_distribution" class="action_button hidden">&#x2339;</div>' +
+    '<div id="player_${id}_distribution" class="action_button hidden">&#9783;</div>' +
     '</div><hr>' +
     '<div id="player_${id}_tokens" class="player-zone"></div>';
 var jstpl_player_escaped = '<div id="player_${id}_escaped" class="player-zone hidden"></div>';
@@ -209,7 +209,7 @@ var jstpl_distribution_dialog_row = '' +
 '    <td class="${type_class}">${discovered}</td>\n' +
 '    <td class="${type_class}">${floor_1}</td>\n' +
 '    <td class="${type_class}">${floor_2}</td>\n' +
-'    <td class="${type_class}">${floor_3}</td></tr>\n';
+'    <td class="${type_class} last_column">${floor_3}</td></tr>\n';
 
 var jstpl_distribution_dialog_footer = 
 '    </tbody>\n' +
