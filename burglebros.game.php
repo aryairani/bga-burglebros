@@ -2485,10 +2485,20 @@ SQL;
             $floor = $tile['location'][5];
             
             $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
+            $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
             
             $this->performGuardMovementEffects($guard_token, $patrol_token['location_arg']);
-            $special_choice = $this->nextPatrol($floor);
+
+            $donut_type_id = $this->getCardTypeForName(1, 'donuts');
+            $donuts = $this->cards->getCardsOfTypeInLocation(1, $donut_type_id, 'tile', $guard_tile['id']);
+            if (count($donuts) > 0) {
+                $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
+                $this->notifyTileCards($guard_tile['id']);
+                return;
+            } else {
+                $special_choice = $this->nextPatrol($floor);
+            }
         } elseif ($type == 'squeak') {
             // Guard moves 1 tile towards the closest player
             $tile = $this->getPlayerTile($player_id);
