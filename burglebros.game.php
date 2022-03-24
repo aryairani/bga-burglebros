@@ -2263,8 +2263,6 @@ SQL;
         } else {
             $choice = TRUE;
         }
-        $human_player_id = self::getCurrentPlayerId();
-        self::incStat(1, 'tools_used', $human_player_id);
         return $choice;
     }
 
@@ -2629,14 +2627,15 @@ SQL;
             $this->validateSelection('tile', $selected_type);
             // Don't do tile_choice here, since we'll never trigger an alarm
             $this->performMove($selected_id, 'acrobat1');
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } else if($type == 'acrobat2') {
             $this->validateSelection('button', $selected_type);
-            // $tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $floor = $selected_id;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
             $result = $this->performMove($other_tile['id'], 'acrobat2');
             $tile_choice = $result['tile_choice'];
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } else if ($type == 'blueprints') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
@@ -2731,13 +2730,14 @@ SQL;
         } elseif($type == 'hawk1') {
             $this->validateSelection('tile', $selected_type);
             $this->performPeek($selected_id, 'hawk1');
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'hawk2') {
             $this->validateSelection('tile', $selected_type);
-            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if ($this->hawk2PeekAllowed($player_tile, $this->tiles->getCard($selected_id))) {
                 $this->performPeek($selected_id, 'effect');
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'juicer1') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
@@ -2745,18 +2745,17 @@ SQL;
             if (!isset($flipped[$tile['id']])) {
                 throw new BgaUserException(self::_('You must reveal the tile first before setting an alarm'));
             }
-            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
                 throw new BgaUserException(self::_('This tile is not adjacent'));
             }
             $special_choice = $this->triggerAlarm($tile);
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'peekhole') {
             $this->validateSelection('tile', $selected_type);
             $this->performPeek($selected_id, 'peekhole');
         } elseif($type == 'peterman2') {
             $this->validateSelection('button', $selected_type);
-            // $tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $floor = $selected_id % 10;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
@@ -2767,9 +2766,9 @@ SQL;
             } else {
                 $this->performSafeDiceRoll($other_tile, TRUE);
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'raven1') {
             $this->validateSelection('tile', $selected_type);
-            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $tile = $this->tiles->getCard($selected_id);
             if ($player_tile['location']['5'] != $tile['location'][5]) {
@@ -2782,22 +2781,24 @@ SQL;
             } else {
                 throw new BgaUserException(self::_('Crow can be placed up to two tiles away'));
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'spotter1') {
             $this->validateSelection('button', $selected_type);
             if ($selected_id == 2) {
-                // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
                 $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
                 $floor = $player_tile['location'][5];
                 $deck = "patrol$floor".'_deck';
                 $top_patrol = $this->cards->getCardOnTop($deck);
                 $this->cards->insertCardOnExtremePosition($top_patrol['id'], $deck, FALSE);
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'spotter2') {
             $this->validateSelection('button', $selected_type);
             if ($selected_id == 2) {
                 $top_event = $this->cards->getCardOnTop('events_deck');
                 $this->cards->insertCardOnExtremePosition($top_event['id'], 'events_deck', FALSE);
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } elseif($type == 'thermal-bomb') {
             $this->validateSelection('button', $selected_type);
             // $tile = $this->getPlayerTile(self::getCurrentPlayerId());
@@ -3681,6 +3682,8 @@ SQL;
             if ($bust) {
                 throw new BgaUserException(self::_("You may not use tools while holding the Bust"));
             }
+            $human_player_id = self::getCurrentPlayerId();
+            self::incStat(1, 'tools_used', $human_player_id);
 
             $choice = $this->handleToolEffect($current_player_id, $card);
             if ($choice) {
@@ -3874,6 +3877,7 @@ SQL;
             self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
+            self::incStat(1, 'special_ability_use', $human_player_id);
         } else if($type == 'rigger2') {
             $stealth = $this->getPlayerStealth($current_player_id);
             if ($stealth <= 0) {
@@ -3884,6 +3888,7 @@ SQL;
             self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
+            self::incStat(1, 'special_ability_use', $human_player_id);
             $this->endAction(0);
         } else if($type == 'rook1') {
             self::setGameStateValue('playerChoice', 2); // Rook 1
@@ -3901,6 +3906,7 @@ SQL;
             if (!$top_card) {
                 throw new BgaUserException(self::_('Patrol deck is empty'));
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
             self::setGameStateValue('cardChoice', $character['id']);
             self::setGameStateValue('undoAllowed', 0);
             $this->gamestate->nextState('cardChoice');
@@ -3909,6 +3915,7 @@ SQL;
             if (!$top_card) {
                 throw new BgaUserException(self::_('Event deck is empty'));
             }
+            self::incStat(1, 'special_ability_use', $human_player_id);
             self::setGameStateValue('cardChoice', $character['id']);
             self::setGameStateValue('undoAllowed', 0);
             $this->gamestate->nextState('cardChoice');
@@ -4517,6 +4524,8 @@ SQL;
         } else {
             self::setGameStateValue('undoAllowed', 0);
             self::setGameStateValue('drawToolsPlayer', 0);
+            $human_player_id = $this->getActivePlayerId();
+            self::incStat( 1, 'tools_drawn', $human_player_id );
             if ($draw_tools_player_id != $current_player_id) {
                 self::setGameStateValue('drawToolsNextPlayer', $current_player_id);
                 $this->gamestate->changeActivePlayer($draw_tools_player_id);
