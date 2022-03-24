@@ -772,6 +772,14 @@
     cursor: pointer;
     display: inline-block;
     margin: 0 10px 0 0;
+    color: #333;
+    border: 1px solid #CCC;
+    background: #E8E8E8;
+    box-shadow: 0 0 5px -1px rgb(0 0 0 / 20%);
+    cursor: pointer;
+    vertical-align: middle;
+    padding: 4px;
+    text-align: center;
 }
 
 /* Dice */
