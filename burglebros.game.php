@@ -1768,7 +1768,8 @@ SQL;
             }
             // Show back current cracked safe floor (because patrolDieIncreased will show the 1st floor)
             self::notifyAllPlayers('showFloor', '', [
-                'floor' => $safe_tile['location'][5]
+                'floor' => $safe_tile['location'][5],
+                'delay' => false,
             ]);
         }
     }
@@ -4698,7 +4699,8 @@ SQL;
 
         $player_tile = $this->getPlayerTile($player_id);
         self::notifyAllPlayers('showFloor', '', [
-            'floor' => $player_tile['location'][5]
+            'floor' => $player_tile['location'][5],
+            'delay' => true,
         ]);
 
         self::incStat(1, 'turns_number');

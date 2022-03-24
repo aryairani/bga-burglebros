@@ -240,6 +240,37 @@ $game_preferences = array(
                 )
             )
     ),
+    103 => array(
+            'name' => totranslate('Auto switch to active floor'),
+            'needReload' => true,
+            'values' => array(
+                0 => array( 
+                    'name' => totranslate( 'Immediately' ),
+                    'description' => totranslate('Switch floor right after the previous action')  
+                ),
+                1 => array( 
+                    'name' => totranslate( 'After 1 second' ),
+                    'description' => totranslate('Wait for 1 second before switching floor')
+                ),
+                2 => array( 
+                    'name' => totranslate( 'After 2 seconds' ),
+                    'description' => totranslate('Wait for 2 seconds before switching floor')
+                ),
+                3 => array( 
+                    'name' => totranslate( 'After 3 seconds' ),
+                    'description' => totranslate('Wait for 3 seconds before switching floor')
+                ),
+                4 => array( 
+                    'name' => totranslate( 'After 4 seconds' ),
+                    'description' => totranslate('Wait for 4 seconds before switching floor')
+                ),
+                5 => array( 
+                    'name' => totranslate( 'After 5 seconds' ),
+                    'description' => totranslate('Wait for 5 seconds before switching floor')
+                )
+            ),
+            'default' => 1,
+    ),
 );
 
 
