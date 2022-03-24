@@ -195,6 +195,37 @@ $game_preferences = array(
                 )
             )
     ),
+    102 => array(
+            'name' => totranslate('Auto hide dice result'),
+            'needReload' => true,
+            'values' => array(
+                5 => array( 
+                    'name' => totranslate( 'After 5 seconds' ),
+                    'description' => totranslate('Automatically hide the die results after 5 seconds')
+                ),
+                4 => array( 
+                    'name' => totranslate( 'After 4 seconds' ),
+                    'description' => totranslate('Automatically hide the die results after 4 seconds')
+                ),
+                3 => array( 
+                    'name' => totranslate( 'After 3 seconds' ),
+                    'description' => totranslate('Automatically hide the die results after 3 seconds')
+                ),
+                2 => array( 
+                    'name' => totranslate( 'After 2 seconds' ),
+                    'description' => totranslate('Automatically hide the die results after 2 seconds')
+                ),
+                1 => array( 
+                    'name' => totranslate( 'After 1 second' ),
+                    'description' => totranslate('Automatically hide the die results after 1 second')
+                ),
+                0 => array( 
+                    'name' => totranslate( 'Never' ),
+                    'description' => totranslate('Click on the X button to close the dialog')  
+                )
+            ),
+            'default' => 5,
+    ),
     101 => array(
             'name' => totranslate('Confirm meeple move'),
             'needReload' => true,

@@ -1644,12 +1644,15 @@ function (dojo, declare) {
                     this.fadeOutAndDestroy(wrapper);  
                 } );
                 // Hide the dice after a few seconds
-                this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
-                    if (wrapper) {
-                        this.hideElement(wrapper);
-                        this.fadeOutAndDestroy(wrapper);                        
-                    }
-                }), 5000 );
+                var delay = this.prefs[102].value;
+                if (delay > 0) {
+                    this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
+                        if (wrapper) {
+                            this.hideElement(wrapper);
+                            this.fadeOutAndDestroy(wrapper);                        
+                        }
+                    }), delay * 1000 );                    
+                }
             }
         },
         setupStethoscope: function(rolls) {
