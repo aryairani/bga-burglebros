@@ -625,7 +625,6 @@ function (dojo, declare) {
         },
 
         playTileOnTable: function(floor, tile) {
-            // console.log('playTileOnTable', tile.type, tile.type != 'shaft');
             var div_id = 'tile_' + tile.id,
                 preview_div_id = 'tile_' + tile.id + '_preview';
             if ($(div_id)) {
@@ -638,11 +637,13 @@ function (dojo, declare) {
             if (tile.type != 'shaft') {
                 var bg_row = Math.floor(tile.type_arg / 2) * -100;
                 var bg_col = (tile.type_arg % 2) * -100;
+                var extra_classes = tile.id in this.gamedatas.flipped_tiles || tile.type == 'back' ? "" : "transparent";
                 dojo.place(this.format_block('jstpl_tile', {
                     id : tile.id, 
                     bg_image: g_gamethemeurl + 'img/tiles.jpg',
                     bg_position: bg_col.toString() + '% ' + bg_row.toString() + '%',
-                    name : tile.type + tile.safe_die
+                    name : tile.type + tile.safe_die,
+                    extra_classes: extra_classes,
                 }), div_id + '_container');
             } else {
                 dojo.place(this.format_block('jstpl_tile_shaft', {
@@ -1045,7 +1046,7 @@ function (dojo, declare) {
 
         currentFloor: function() {
             if (this.gamedatas.gamestate.args) {
-                return parseInt(this.gamedatas.gamestate.args.floor, 10);
+                return parseInt(this.gamedatas.gamestate.args.floor, 10) || 1;
             } else {
                 return 1;
             }
@@ -1634,7 +1635,7 @@ function (dojo, declare) {
             var wrapper = $(rolls_id).parentNode;
             this.displayElement(wrapper);
             if (!bStethoscope) {
-                // Show the close button and binnd the hiding event
+                // Show the close button and bind the hiding event
                 var close_button = wrapper.querySelector('.close_button');
                 dojo.removeClass(close_button, 'hidden');
                 dojo.connect(close_button, 'onclick', this, function(evt){
@@ -2111,18 +2112,18 @@ function (dojo, declare) {
         },
 
         notif_characterChosen: function(notif) {
-            console.log('** notif_characterChosen', notif.args);
+            // console.log('** notif_characterChosen', notif.args);
             this.gamedatas.players[notif.args.player_id].character = notif.args.character;
         },
 
         notif_activatePlayer: function(notif) {
             // Solo multicharacters, change layout to display active character first
-            console.log('** notif_activatePlayer', notif.args);
+            // console.log('** notif_activatePlayer', notif.args);
             this.activatePlayer(notif.args.player_id);
         },
 
         notif_tokensPicked: function(notif) {
-            console.log('** notif_tokensPicked', notif.args);
+            // console.log('** notif_tokensPicked', notif.args);
             var tokens = notif.args.tokens;
             for (var tokenId in tokens) {
                 var token = tokens[tokenId];
@@ -2152,12 +2153,11 @@ function (dojo, declare) {
             this.catEscaped();
         },
         notif_catPicked: function(notif) {
-            // $("card_kitty_warning").innerHTML("");
             dojo.empty("card_kitty_warning");
         },
 
         notif_decrementStealth: function(notif) {
-            console.log('notif_decrementStealth', notif.args);
+            // console.log('notif_decrementStealth', notif.args);
             var meeple_id = notif.args.meeple_id;
             // Display animation on meeple when gaining or losing Stealth token
             dojo.addClass('meeple_' + meeple_id, 'ripple');
@@ -2167,7 +2167,7 @@ function (dojo, declare) {
         },
 
         notif_tileFlipped: function(notif) {
-            console.log("notif_tileFlipped", notif.args);
+            // console.log("notif_tileFlipped", notif.args);
             var tile = notif.args.tile,
                 floor = tile.location[5];
                 deck = 'floor' + floor;
@@ -2294,17 +2294,6 @@ function (dojo, declare) {
                 var wall = notif.args.walls[wallIdx];
                 this.playWallOnTable(wall);
             }
-            // Update tiles to update shaft
-            // var tiles = notif.args.tiles;
-            // dojo.query(".tile-container").forEach( (e) => dojo.destroy(e) );
-            // for (var floor = 1; floor <= this.gamedatas.floor_count; floor++) {
-            //     var key = 'floor' + floor;
-            //     for ( var tileId in tiles[key]) {
-            //         var tile = tiles[key][tileId];
-            //         this.createTileContainer(floor, tile);
-            //         this.playTileOnTable(floor, tile);
-            //     }
-            // }
         },
 
         notif_removeWall: function(notif) {

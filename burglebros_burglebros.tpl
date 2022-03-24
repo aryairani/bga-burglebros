@@ -120,7 +120,7 @@ var jstpl_tile_container = '<div id="tile_${id}_container" class="tile-container
 '    <div id="tile_${id}_cards" class="tile-cards"></div>\n' +
 '</div>';
 
-var jstpl_tile = '<div id="tile_${id}" class="tile" style="background-image: url(${bg_image}); background-position: ${bg_position};"></div>';
+var jstpl_tile = '<div id="tile_${id}" class="tile ${extra_classes}" style="background-image: url(${bg_image}); background-position: ${bg_position};"></div>';
 var jstpl_tile_shaft = '<div id="tile_${id}" class="tile shaft"></div>';
 
 var jstpl_tile_tooltip = '<div id="tile_${id}_tooltip" class="tile tooltip" style="background-image: url(${bg_image}); background-position: ${bg_position};"></div>';

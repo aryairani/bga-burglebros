@@ -330,10 +330,6 @@ class burglebros extends Table
             $player_token = $this->getPlayerToken($player_id);
             $player['escaped'] = $player_token['location'] == 'roof';
         }
-  
-
-        // $character = $this->getPlayerCharacter($current_player_id);
-        // $character['name'] = $this->getCardType($character);
 
         $result = array_merge($result, $this->gatherCardData('card', $this->card_types, $this->card_info));
         $result = array_merge($result, $this->gatherCardData('patrol', $this->patrol_types, $this->patrol_info));
@@ -738,13 +734,16 @@ class burglebros extends Table
     function getTiles($floor) {
         $tiles = $this->tiles->getCardsInLocation("floor$floor", null, 'location_arg');
         $flipped = $this->getFlippedTiles($floor);
-        foreach ($tiles as &$tile) {
-            if (!isset($flipped[$tile['id']])) {
-                $tile['type'] = 'back'; // face-down
-                $tile['type_arg'] = 0;
-                $tile['safe_die'] = 0;
-            } else {
-                $tile['safe_die'] = $flipped[$tile['id']];
+        $state=$this->gamestate->state();
+        if ($state['name'] !== 'gameEnd') {
+            foreach ($tiles as &$tile) {
+                if (!isset($flipped[$tile['id']])) {
+                    $tile['type'] = 'back'; // face-down
+                    $tile['type_arg'] = 0;
+                    $tile['safe_die'] = 0;
+                } else {
+                    $tile['safe_die'] = $flipped[$tile['id']];
+                }
             }
         }
         return $tiles;
@@ -4757,12 +4756,21 @@ SQL;
     }
 
     function stGameOver() {
-        $tiles_unflipped = self::getCollectionFromDB("SELECT card_id FROM tile WHERE flipped=0");
-        self::setStat( count($tiles_unflipped), 'tiles_unflipped' );
         $sql = "SELECT player_id id, player_score score, player_stealth_tokens stealth_tokens FROM player ";
         $players = self::getCollectionFromDb( $sql );
         foreach ($players as $player_id => $player) {
             self::setStat( $player['stealth_tokens'], 'stealth_remaining', $player_id );
+        }
+        // Show unflipped tiles
+        $tiles_unflipped = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg FROM tile WHERE flipped=0 AND NOT card_location IN ('deck','oop')");
+        self::setStat( count($tiles_unflipped), 'tiles_unflipped' );
+        foreach ($tiles_unflipped as $tile_id => $tile) {
+            self::notifyAllPlayers('tileFlipped', '', array(
+                'tile' => $tile,
+                'floor' => $tile['location'][5],
+                'undo_allowed' => 0,
+                'flipped_tiles' => $this->getFlippedTiles(),
+            ));
         }
         $this->gamestate->nextState( 'endGame' );   
     }
