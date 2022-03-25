@@ -289,8 +289,6 @@ function (dojo, declare) {
                 var hand_stock = player_id == this.player_id || player_id == 0 ? this.myHand : this.playerHands[player_id];
                 if (hand_stock.count() == 0)
                     this.loadPlayerHand(hand_stock, args.args.cards, [], false);
-                // if (this.myHand.count() == 0)
-                //     this.loadPlayerHand(this.myHand, args.args.cards, [], false);
                 break;
             case 'cardChoice':
                 if (args.args.spotter_card && (this.isCardChoice('spotter1') || this.isCardChoice('spotter2'))) {
