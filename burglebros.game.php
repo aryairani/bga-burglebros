@@ -67,6 +67,7 @@ class burglebros extends Table
             'remainingMoves' => 39,
             'stateAfterAlarm' => 40,
             'moveDecreaseAfterAlarm' => 41,
+            'donutsDropped' => 42,
 
             // Options
             'characterAssignment' => 100,
@@ -193,6 +194,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'remainingMoves', 0 );
         self::setGameStateInitialValue( 'stateAfterAlarm', 0 );
         self::setGameStateInitialValue( 'moveDecreaseAfterAlarm', 0 );
+        self::setGameStateInitialValue( 'donutsDropped', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -1173,7 +1175,7 @@ SQL;
 
         $donut_type_id = $this->getCardTypeForName(1, 'donuts');
         $donuts = $this->cards->getCardsOfTypeInLocation(1, $donut_type_id, 'tile', $guard_tile['id']);
-        if (count($donuts) > 0) {
+        if (count($donuts) > 0 && self::getGameStateValue('donutsDropped') == 0) {
             $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
             $this->notifyTileCards($guard_tile['id']);
             return;
@@ -1718,15 +1720,19 @@ SQL;
         // Safe is open
         if ($cracked_count - 1 == ($size_sq - 1) * 2) { // remove a safe cracked count
             $this->pickTokensForTile('open', $safe_tile['id']);
+            $type = $this->getCardType($loot);
             if ($drop_loot) {
                 $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
                 $loot = $this->cards->pickCardForLocation('loot_deck', 'tile', $safe_tile['id']);
+                // Store that donuts was dropped and not used
+                if ($type == "donuts") {
+                    self::setGameStateValue('donutsDropped', 1);
+                }
                 $this->notifyTileCards($safe_tile['id']);
             } else {
                 self::setGameStateValue('drawToolsPlayer', $current_player_id);
                 $loot = $this->cards->pickCard('loot_deck', $current_player_id);
             }
-            $type = $this->getCardType($loot);
             if ($type == 'cursed-goblet' && !$drop_loot) {
                 $stealth = $this->getPlayerStealth($current_player_id);
                 if ($stealth > 0) {
@@ -4119,6 +4125,7 @@ SQL;
         self::checkAction('confirmTakeCards');
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
+        $new_card = $this->cards->getCard($card_id);
         // If player already has the gold bar, they cannot pick the other one
         $hand = $this->cards->getPlayerHand($current_player_id);
         foreach ($hand as $card_id => $card) {
@@ -4134,13 +4141,16 @@ SQL;
         }
         // If drawn card is the cursed goblet, player lose one stealth
         foreach ($r_ids as $card_id) {
-            $new_card = $this->cards->getCard($card_id);
             if ($this->getCardType($new_card) == 'cursed-goblet') {
                 $stealth = $this->getPlayerStealth($current_player_id);
                 if ($stealth > 0) {
                     $this->decrementPlayerStealth($current_player_id);
                 }
             }
+        }
+        // If picked up cards is the Donuts, reset global variable so it can be used
+        if ($this->getCardType($new_card) == 'donuts') {
+            self::setGameStateValue('donutsDropped', 0);
         }
         $this->cards->moveCards($l_ids, 'tile', $player_tile['id']);
         $this->cards->moveCards($r_ids, 'hand', $current_player_id);
