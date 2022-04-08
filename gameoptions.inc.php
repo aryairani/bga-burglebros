@@ -267,6 +267,10 @@ $game_preferences = array(
                 5 => array( 
                     'name' => totranslate( 'After 5 seconds' ),
                     'description' => totranslate('Wait for 5 seconds before switching floor')
+                ),
+                99 => array( 
+                    'name' => totranslate( 'Never' ),
+                    'description' => totranslate('You can change manually floor view')
                 )
             ),
             'default' => 1,

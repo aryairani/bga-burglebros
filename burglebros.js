@@ -2282,9 +2282,11 @@ function (dojo, declare) {
             console.log("notif_showFloor", notif.args);
             if (notif.args.delay) {
                 var delay = this.prefs[103].value;
-                this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
-                    this.showFloor(notif.args.floor);
-                }), delay * 1000 );
+                if (delay < 99) {
+                    this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
+                        this.showFloor(notif.args.floor);
+                    }), delay * 1000 );                    
+                }
             } else {
                 this.showFloor(notif.args.floor);
             }
