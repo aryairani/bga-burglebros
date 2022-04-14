@@ -1004,10 +1004,10 @@ SQL;
                     $secret_door;
         } elseif($variant == 'peek') {
             return ($same_floor && $adjacent && !$blocked) ||
-                $this->stairsAreAdjacent($tile, $other_tile) ||
-                $this->stairsAreAdjacent($other_tile, $tile) ||
+                $this->stairsAreAdjacent($tile, $other_tile, 'peek') ||
+                $this->stairsAreAdjacent($other_tile, $tile, 'peek') ||
                 $this->atriumIsAdjacent($tile, $other_tile) ||
-                $this->thermalBombStairsAreAdjacent($tile, $other_tile) ||
+                $this->thermalBombStairsAreAdjacent($tile, $other_tile, 'peek') ||
                 $this->walkwayIsAdjacent($tile, $other_tile);
         } elseif($variant == 'peekhole') {
             return ($same_floor && $adjacent) || $this->peekholeIsAdjacent($tile, $other_tile);
@@ -1042,9 +1042,9 @@ SQL;
         }
     }
 
-    function stairsAreAdjacent($to, $from) {
+    function stairsAreAdjacent($to, $from, $variant = 'move') {
         $time_lock = $this->getActiveEvent('time-lock');
-        if ($time_lock) {
+        if ($time_lock && $variant != 'peek') {
             return FALSE;
         }
         return $to['type'] == 'stairs' &&
@@ -1059,8 +1059,11 @@ SQL;
             (abs($to['location'][5] - $from['location'][5]) == 1 || abs($to['location'][5] - $from['location'][5]) == 1);
     }
 
-    function thermalBombStairsAreAdjacent($to, $from) {
-        // var_dump($from['location'] != $to['location']);
+    function thermalBombStairsAreAdjacent($to, $from, $variant = 'move') {
+        $time_lock = $this->getActiveEvent('time-lock');
+        if ($time_lock && $variant != 'peek') {
+            return FALSE;
+        }
         return $this->tokensInTile('thermal', $to['id']) &&
             $this->tokensInTile('thermal', $from['id']) &&
             $from['location'] != $to['location'];
