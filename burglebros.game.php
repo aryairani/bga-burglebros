@@ -2778,6 +2778,10 @@ SQL;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
             $add_or_roll = floor($selected_id / 10);
             if ($add_or_roll == 0) {
+                $actions_remaining = self::getGameStateValue('actionsRemaining');
+                if ($actions_remaining < 2) {
+                    throw new BgaUserException(self::_("Adding a die requires 2 actions"));
+                }
                 $this->performAddSafeDie($other_tile);
                 self::incGameStateValue('actionsRemaining', -1);
             } else {
