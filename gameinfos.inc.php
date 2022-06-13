@@ -123,9 +123,9 @@ $gameinfos = array(
 // Each paragraph must be wrapped with totranslate() for translation and should not contain html (plain text without formatting).
 // A good length for this text is between 100 and 150 words (about 6 to 9 lines on a standard display)
 'presentation' => array(
-//    totranslate("This wonderful game is about geometric shapes!"),
-//    totranslate("It was awarded best triangle game of the year in 2005 and nominated for the Spiel des Jahres."),
-//    ...
+   totranslate("Play a team of burglars who are going to rob a bank. You must explore each floor, find the safes and crack them. Once you have cracked all the safes and got all the loots, escape to the roof to be exfiltered before the guard gets you."),
+   totranslate("You can play up to 9 different characters with different abilities. Explore the rooms but beware, some rooms can trigger alarms and drag the guard attention. Use the abilities of the tools, the rooms or your character wisely so you can escape before you lose all your stealth tokens."),
+   totranslate("When you feel comfortable enough, try a new challenge with the Fort Knox scenario with a different distribution of floors and rooms."),
 ),
 
 // Games categories
