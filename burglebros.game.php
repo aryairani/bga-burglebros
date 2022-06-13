@@ -1720,7 +1720,6 @@ SQL;
         // Safe is open
         if ($cracked_count - 1 == ($size_sq - 1) * 2) { // remove a safe cracked count
             $this->pickTokensForTile('open', $safe_tile['id']);
-            $type = $this->getCardType($loot);
             if ($drop_loot) {
                 $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
                 $loot = $this->cards->pickCardForLocation('loot_deck', 'tile', $safe_tile['id']);
@@ -1733,6 +1732,7 @@ SQL;
                 self::setGameStateValue('drawToolsPlayer', $current_player_id);
                 $loot = $this->cards->pickCard('loot_deck', $current_player_id);
             }
+            $type = $this->getCardType($loot);
             if ($type == 'cursed-goblet' && !$drop_loot) {
                 $stealth = $this->getPlayerStealth($current_player_id);
                 if ($stealth > 0) {
