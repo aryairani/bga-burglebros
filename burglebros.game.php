@@ -1721,6 +1721,7 @@ SQL;
             if ($drop_loot) {
                 $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
                 $loot = $this->cards->pickCardForLocation('loot_deck', 'tile', $safe_tile['id']);
+                $type = $this->getCardType($loot);
                 // Store that donuts was dropped and not used
                 if ($type == "donuts") {
                     self::setGameStateValue('donutsDropped', 1);
@@ -4135,7 +4136,6 @@ SQL;
         self::checkAction('confirmTakeCards');
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
-        $new_card = $this->cards->getCard($card_id);
         // If player already has the gold bar, they cannot pick the other one
         $hand = $this->cards->getPlayerHand($current_player_id);
         foreach ($hand as $card_id => $card) {
