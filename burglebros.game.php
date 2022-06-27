@@ -2378,7 +2378,10 @@ SQL;
         } elseif ($type == 'change-of-plans') {
             $tile = $this->getPlayerTile($player_id);
             $floor = $tile['location'][5];
-            $this->nextPatrol($floor, TRUE);
+            // Shouldn't activate if active alarms (https://boardgamegeek.com/thread/1552574/official-frequently-asked-questions)
+            $alarm_tiles = $this->getFloorAlarmTiles($floor);
+            if (count($alarm_tiles) == 0)
+                $this->nextPatrol($floor, TRUE);
         } elseif ($type == 'crash') {
             $tile = $this->getPlayerTile($player_id);
             $floor = $tile['location'][5];
@@ -4252,7 +4255,7 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(3, 'dead-drop');
+            // $type_arg = $this->getCardTypeForName(3, 'change-of-plans');
             // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
