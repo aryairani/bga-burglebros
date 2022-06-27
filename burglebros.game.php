@@ -1737,10 +1737,8 @@ SQL;
                 $stealth = $this->getPlayerStealth($current_player_id);
                 if ($stealth > 0) {
                     $this->decrementPlayerStealth($current_player_id);
-                } else {
-                    self::setGameStateValue('stealthDepleted', 1);
-                    $this->gamestate->nextState('gameOver');
                 }
+                // Do not lose stealth if it is the last one
             } else if($type == 'gold-bar') {
                 $gold_type = $this->getCardTypeForName(2, 'gold-bar');
                 $other_gold = array_values($this->cards->getCardsOfTypeInLocation(2, $gold_type, 'loot_deck'))[0];
