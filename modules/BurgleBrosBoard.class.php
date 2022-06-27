@@ -41,12 +41,17 @@ class BurgleBrosBoard extends APP_GameClass
 	public function setupNewGame($players, $options) {
 		$index = 1;
         $values = array();
-        foreach ( $this->game->tile_types as $type => $dice ) {
+        // Playing the Office Job should use cards with white circles
+        $tile_types = $this->game->getGameStateValue('scenario') == 2 ? $this->game->tile_types_office_job : $this->game->tile_types;
+        // var_dump($tile_types);
+        foreach ( $tile_types as $type => $dice ) {
             foreach ($dice as $die) {
-                $values [] = "('$type',$index,'deck',$die)";
-                $index++;
+            	if ($die !== FALSE)
+	                $values [] = "('$type',$index,'deck',$die)";
+            	$index++;
             }
         }
+        // var_dump($values);
         // Check if the layout needs a shaft (black tile) - e.g. for Fort Knox      	
         $size = $this->game->getSquareSize();
         if ($size === 5) {
@@ -76,14 +81,6 @@ class BurgleBrosBoard extends APP_GameClass
 	        } else {
 	        	$shaft_location_arg = rand(0, $size_sq);
 	        }
-        }
-
-        // Remove an extra safe, an extra deadbolt and an extra stair if playing The Office Job
-        if ($this->game->getGameStateValue('scenario') == 2) {
-        	$safe = array_shift($safes);
-        	$stair = array_shift($stairs);
-        	$deadbolt = array_shift($deadbolts);
-        	$this->game->tiles->moveCards([$safe['id'], $stair['id'], $deadbolt['id']], "oop");
         }
 
         // Grab a safe and stair for each floor, and move to the floor "deck"

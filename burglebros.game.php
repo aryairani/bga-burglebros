@@ -343,7 +343,7 @@ class burglebros extends Table
         $result['solo_characters'] = $this->getSoloMultiCharacters();
         $result['active_player_id'] = $this->getCurrentPlayerIdCustom();
 
-        $result['tile_distribution'] = $this->tile_distribution;
+        $result['tile_distribution'] = $this->getGameStateValue('scenario') == 2 ? $this->tile_distribution_office_job : $this->tile_distribution;
         $result['flipped_tiles'] = $this->getFlippedTiles();
 
         $tokens = array();
@@ -3217,7 +3217,7 @@ SQL;
                 throw new BgaUserException(self::_("You must choose an alarm on the right floor"));
             if (!in_array($selected, $alarm_tiles))
                 throw new BgaUserException(self::_("You must choose one of the closest alarms"));
-            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
+            $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $selected_floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
             self::setGameStateValue('specialChoice', 0);    
             // Resume to the expected state
