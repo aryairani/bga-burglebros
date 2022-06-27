@@ -478,30 +478,28 @@ class burglebros extends Table
     public function activeNextPlayerCustom() {
         $multi_characters = $this->getSoloMultiCharacters();
         if ($multi_characters > 1) {
-            $current_player_id = $this->getCurrentPlayerIdCustom();
-            $human_player_id = self::getCurrentPlayerId();
-            // Increase player_id or loop back to human id
-            $current_player_id = ++$current_player_id >= $human_player_id + $multi_characters ? $human_player_id : $current_player_id;
-            self::setGameStateValue('currentPlayer', $current_player_id);
+            $next_player_id = $this->getPlayerAfterCustom();
+            self::setGameStateValue('currentPlayer', $next_player_id);
             self::notifyAllPlayers('activatePlayer', '', [
-                'player_id' => $current_player_id,
+                'player_id' => $next_player_id,
             ]);
-            return $current_player_id;
+            return $next_player_id;
         } else {
             return self::activeNextPlayer();
         }
     }
 
-    public function getNextCharacterId() {
-        $human_player_id = self::getCurrentPlayerId();
-        $current_player_id = $this->getCurrentPlayerIdCustom();
+    function getPlayerAfterCustom() {
         $multi_characters = $this->getSoloMultiCharacters();
-        if (++$current_player_id >= $human_player_id + $multi_characters) {
-            return $human_player_id;
+        if ($multi_characters > 1) {
+            $current_player_id = $this->getCurrentPlayerIdCustom();
+            $human_player_id = self::getCurrentPlayerId();
+            // Increase player_id or loop back to human id
+            $current_player_id = ++$current_player_id >= $human_player_id + $multi_characters ? $human_player_id : $current_player_id;
+            return $current_player_id;
         } else {
-            
+            return self::getPlayerAfter();
         }
-
     }
 
     function getAvailableCharacters() {
@@ -2415,7 +2413,7 @@ SQL;
                 $tile_choice = $this->performMove($peekable[0]['id'], 'event')['tile_choice'];
             } 
         } elseif($type == 'heads-up') {
-            $next_player = $this->getPlayerAfter($player_id);
+            $next_player = $this->getPlayerAfterCustom($player_id);
             $this->cards->moveCard($card['id'], 'hand', $next_player);
             $this->notifyPlayerHand($next_player);
         } elseif ($type == 'jury-rig') {
@@ -3501,6 +3499,11 @@ SQL;
             ++$sid;
         }
         var_dump("done with last id: $sid");
+    }
+
+    public function activatePlayer() {
+        // Set current player for multiplayer game
+        self::setGameStateValue('currentPlayer', 2318200);
     }
 
 //////////////////////////////////////////////////////////////////////////////
