@@ -3204,15 +3204,20 @@ SQL;
             ]);      
             $this->gamestate->nextState('switchRookMove');
         } elseif ($type == 'closest_alarm') {
-            $active_player_id = $this->getCurrentPlayerIdCustom();
-            $player_tile = $this->getPlayerTile($active_player_id);
-            $floor = $player_tile['location'][5];
-            $alarm_tiles = $this->getFloorClosestAlarmTiles($floor);
+            // Check each floor because shoplifting or cameras can trigger several alarms on multiple floors at a time
+            $selected_card = $this->tiles->getCard($selected);
+            $selected_floor = $selected_card['location'][5];
+            // $active_player_id = $this->getCurrentPlayerIdCustom();
+            // $player_tile = $this->getPlayerTile($active_player_id);
+            // $floor = $player_tile['location'][5];
+            $alarm_tiles = $this->getFloorClosestAlarmTiles($selected_floor);
+            if (count($alarm_tiles) <= 1)
+                throw new BgaUserException(self::_("You must choose an alarm on the right floor"));
             if (!in_array($selected, $alarm_tiles))
                 throw new BgaUserException(self::_("You must choose one of the closest alarms"));
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
-            self::setGameStateValue('specialChoice', 0);
+            self::setGameStateValue('specialChoice', 0);    
             // Resume to the expected state
             $expected_state = $this->state_after_alarms[self::getGameStateValue('stateAfterAlarm')];
             self::setGameStateValue('stateAfterAlarm', 0);
