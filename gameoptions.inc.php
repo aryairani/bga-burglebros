@@ -275,6 +275,21 @@ $game_preferences = array(
             ),
             'default' => 1,
     ),
+    104 => array(
+        'name' => totranslate('Show row and column indicator'),
+        'needReload' => true,
+        'values' => array(
+            1 => array( 
+                'name' => totranslate( 'Yes' ),
+                'description' => totranslate('Show row and column indicator')
+            ),
+            2 => array( 
+                'name' => totranslate( 'No' ),
+                'description' => ''
+            )
+        ),
+        'default' => 2,
+    ),
 );
 
 

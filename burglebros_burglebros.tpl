@@ -46,6 +46,8 @@
             <!-- BEGIN tiles -->
             <div id="floor{FLOOR}_tiles" class="floor_tiles">
                 <h3>Floor {FLOOR}</h3>
+                <div class="indicator_wrapper indicator_wrapper_horizontal" id="indicator_horizontal_floor{FLOOR}"></div>
+                <div class="indicator_wrapper indicator_wrapper_vertical" id="indicator_vertical_floor{FLOOR}"></div>
                 <div class="floor" id="floor{FLOOR}">
                 </div>
             </div>
@@ -110,6 +112,8 @@ var jstpl_tile_container = '<div id="tile_${id}_container" class="tile-container
 
 var jstpl_tile = '<div id="tile_${id}" class="tile ${extra_classes}" style="background-image: url(${bg_image}); background-position: ${bg_position};"></div>';
 var jstpl_tile_shaft = '<div id="tile_${id}" class="tile shaft"></div>';
+
+var jstpl_indicator = '<div class="indicator">${content}</div>';
 
 var jstpl_tile_tooltip = '<div id="tile_${id}_tooltip" class="tile tooltip" style="background-image: url(${bg_image}); background-position: ${bg_position};"></div>';
 

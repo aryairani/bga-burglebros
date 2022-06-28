@@ -150,6 +150,20 @@ function (dojo, declare) {
             this.patrolCounters = {};
             for(var floor = 1; floor <= gamedatas.floor_count; floor++) {
                 var key = 'floor' + floor;
+                // Row and column indicator
+                if (this.prefs[104].value == 1) {
+                    var letters = 'ABCDE';
+                    for (var i = 1; i <= gamedatas.square_size; i++) {
+                        dojo.place(this.format_block('jstpl_indicator', {
+                            content : letters[i-1]
+                        }), 'indicator_horizontal_' + key , 'last');
+                    }
+                    for (var i = 1; i <= gamedatas.square_size; i++) {
+                        dojo.place(this.format_block('jstpl_indicator', {
+                            content : i
+                        }), 'indicator_vertical_' + key , 'last');
+                    }
+                }
                 for ( var tileId in this.gamedatas[key]) {
                     var tile = this.gamedatas[key][tileId];
                     this.createTileContainer(floor, tile);
