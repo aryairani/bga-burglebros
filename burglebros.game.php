@@ -491,14 +491,14 @@ class burglebros extends Table
 
     function getPlayerAfterCustom() {
         $multi_characters = $this->getSoloMultiCharacters();
+        $current_player_id = $this->getCurrentPlayerIdCustom();
         if ($multi_characters > 1) {
-            $current_player_id = $this->getCurrentPlayerIdCustom();
             $human_player_id = self::getCurrentPlayerId();
             // Increase player_id or loop back to human id
             $current_player_id = ++$current_player_id >= $human_player_id + $multi_characters ? $human_player_id : $current_player_id;
             return $current_player_id;
         } else {
-            return self::getPlayerAfter();
+            return self::getPlayerAfter($current_player_id);
         }
     }
 
