@@ -198,6 +198,12 @@
 #player_hand_wrap_1, #board_wrap, .player_hand {
     text-align: center;
 }
+/* Mobile only, reduce zoom for Fort Knox */
+@media only screen and (max-width: 1440px) {
+    #board_wrap.size_5x5 {
+        zoom: 0.75;
+    }
+}
 #myhand .stockitem, .player_hand .stockitem, #trade_dialog .stockitem {
     background-size: 240px;
 }
@@ -257,6 +263,32 @@
 .tiles > *, .patrols > * {
     display: flex;
     flex-direction: column;
+}
+
+.floor_tiles > .indicator_wrapper {
+    display: inline-flex;
+}
+.indicator_wrapper_horizontal {
+    margin: 0 0 0 -10px;
+    width: 610px;
+}
+.size_5x5 .indicator_wrapper_horizontal {
+    margin: 0 0 0 -20px;
+    width: 780px;
+}
+.indicator_wrapper_vertical {
+    margin: 0 0 0 -20px;
+    flex-direction: column;
+    height: 620px;
+    position: absolute;
+    top: 320px;
+}
+.size_5x5 .indicator_wrapper_vertical {
+    height: 770px;
+}
+
+.indicator_wrapper > .indicator {
+    flex: 1 1 0;
 }
 
 .tiles > .hidden, .patrols > .hidden {
