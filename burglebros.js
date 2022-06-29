@@ -146,6 +146,7 @@ function (dojo, declare) {
             // Setup tiles and patrols
             if (gamedatas.square_size == 5) {
                 dojo.addClass('board_wrap', 'size_5x5');
+                dojo.addClass('spotter_card_wrapper', 'size_5x5');
             }
             this.patrolCounters = {};
             for(var floor = 1; floor <= gamedatas.floor_count; floor++) {
@@ -190,16 +191,7 @@ function (dojo, declare) {
                     this[patrolKey].addItemType(51, 51, g_gamethemeurl + 'img/patrol.jpg', 51);
                 } else {
                     // Create custom Patrol cards
-                    var tiles_count = gamedatas.square_size * gamedatas.square_size;
-                    for (var i = 0; i <= tiles_count - 1; i++) {
-                        var id = patrolKey + this.gamedatas.patrol_names[i].name; // floor1A1...
-                        dojo.place(this.format_block('jstpl_patrol_tile', {
-                            id : id,
-                        }), patrolKey);
-                        if (i == gamedatas.shaft_position) {
-                            dojo.addClass(id,'shaft');
-                        }
-                    }
+                    this.createPatrolCard(patrolKey, patrolKey);
                     dojo.addClass('patrol_wrapper' + floor, 'patrol_card_back');
                     dojo.addClass(patrolKey, 'hidden');
                 }
@@ -310,10 +302,16 @@ function (dojo, declare) {
                     if (card.type == 3) {
                         dojo.place( this.eventCardHtml(card), 'spotter_card' );
                     } else {
-                        var cardType = parseInt(card.type, 10);
-                        var cardIndex = parseInt(card.type_arg, 10) - 1;
-                        var id = ((cardType - 4) * 16) + cardIndex;
-                        dojo.place( this.patrolCardHtml(card, id, false), 'spotter_card' );
+                        if (this.gamedatas.square_size == 4) {
+                            var cardType = parseInt(card.type, 10);
+                            var cardIndex = parseInt(card.type_arg, 10) - 1;
+                            var id = ((cardType - 4) * 16) + cardIndex;
+                            dojo.place( this.patrolCardHtml(card, id, false), 'spotter_card' );
+                        } else {
+                            dojo.place( '<div id="patrol_wrapperspotter" class="patrol_wrapper whiteblock"><div id="patrolspotter" class="patrol"></div></div>', 'spotter_card')
+                            this.createPatrolCard('patrolspotter', 'patrolspotter');
+                            this.loadPatrolDiscard('spotter', card)
+                        }
                     }
                     this.addCardTooltip(card, 'event_card_dialog');
                     this.displayElement('temp_display');
@@ -1236,6 +1234,20 @@ function (dojo, declare) {
                 token_letter : token.letter
             }), 'player_' + player_id + '_escaped', 'first');
             dojo.style('generic_token_player_' + player_id + '_escaped', 'display', 'inline-block');
+        },
+
+        createPatrolCard: function(patrolKey, wrapper) {
+            // Create custom Patrol cards
+            var tiles_count = this.gamedatas.square_size * this.gamedatas.square_size;
+            for (var i = 0; i <= tiles_count - 1; i++) {
+                var id = patrolKey + this.gamedatas.patrol_names[i].name; // floor1A1...
+                dojo.place(this.format_block('jstpl_patrol_tile', {
+                    id : id,
+                }), wrapper);
+                if (i == this.gamedatas.shaft_position) {
+                    dojo.addClass(id,'shaft');
+                }
+            }
         },
 
         loadPatrolDiscard: function(floor, card) {

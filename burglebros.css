@@ -186,6 +186,10 @@
 #spotter_card #patrol_tooltip_l.card {
     background-size: 720px !important;
 }
+.size_5x5 #spotter_card {
+    margin: auto;
+    width: 130px;
+}
 .vertical_arrow {
     cursor: pointer;
     display: inline-flex;
