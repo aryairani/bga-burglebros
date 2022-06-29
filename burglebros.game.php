@@ -2115,7 +2115,7 @@ SQL;
                 foreach ($hand as $card_id => $card) {
                     if ($card['type'] == 1 || $card['type'] == 2) {
                         $this->setupGuardToken($guard_token, $floor);
-                        $this->triggerAlarm($tile);
+                        $special_choice = $this->triggerAlarm($tile);
                         break;
                     }
                 }
