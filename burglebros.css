@@ -201,7 +201,7 @@
 
 #player_hand_wrap_1, #board_wrap, .player_hand {
     text-align: center;
-    position: relative;
+    /*position: relative;*/
 }
 /* Mobile only, reduce zoom for Fort Knox */
 @media only screen and (max-width: 1440px) {
@@ -225,6 +225,7 @@
 
 .floor_container {
     display: flex;
+    position: relative;
     flex-direction: row;
     justify-content: center;
 }
