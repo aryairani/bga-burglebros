@@ -4184,10 +4184,9 @@ SQL;
         $this->cards->moveCards($r_ids, 'hand', $current_player_id);
         $this->notifyPlayerHand($current_player_id);
         $this->notifyTileCards($player_tile['id']);
-        self::notifyAllPlayers('message', clienttranslate('${player_name} picked up ${card_count} card${card_s} in their tile'), [
+        self::notifyAllPlayers('message', clienttranslate('${player_name} picked up ${card_count} cards in their tile'), [
             'player_name' => $this->getActivePlayerNameCustom(),
-            'card_count' => count($r_ids),
-            'card_s' => count($r_ids) == 1 ? '' : 's'
+            'card_count' => count($r_ids)
         ]);
         $this->endAction(0);
     }
