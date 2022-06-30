@@ -2367,7 +2367,8 @@ SQL;
                 }
             }
         } elseif($type == 'buddy-system') {
-            if (self::getPlayersNumber() > 1 || $this->getSoloMultiCharacters() > 1) {
+            if (self::getPlayersNumber() - count($this->getEscapedPlayers()) > 1 || 
+                $this->getSoloMultiCharacters() - count($this->getEscapedPlayers()) > 1) {
                 $card_choice = TRUE;
             }
         } elseif ($type == 'change-of-plans') {
