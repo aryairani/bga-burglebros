@@ -3151,6 +3151,12 @@ SQL;
             if ($meeple['type_arg'] == $current_player_id) {
                 throw new BgaUserException(self::_('You cannot choose yourself'));
             }
+            if ($meeple['location'] == 'roof') {
+                throw new BgaUserException(self::_('You cannot trade places with an escaped player'));
+            }
+            if ($meeple['location'] == 'hand') {
+                throw new BgaUserException(self::_('You cannot trade places when the other player has not entered yet the building'));
+            }
             $player_token = $this->getPlayerToken($current_player_id);
             $tmp_location = $meeple['location_arg'];
             $this->moveToken($meeple['id'], 'tile', $player_token['location_arg']);
