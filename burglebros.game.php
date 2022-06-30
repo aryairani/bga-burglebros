@@ -1610,12 +1610,12 @@ SQL;
         ));
     }
 
-    function performSafeDiceRollDebug($floor,$dice_count) {
+    function performSafeDiceRollDebug($floor, $dice_count) {
         $safe_tile = array_values($this->tiles->getCardsOfTypeInLocation('safe', null, "floor$floor"))[0];
         $this->performSafeDiceRoll($safe_tile,intval($dice_count));
     }
 
-    function performSafeDiceRoll($safe_tile, $drop_loot=FALSE) {
+    function performSafeDiceRoll($safe_tile, $drop_loot=0) {
         if ($safe_tile['type'] != 'safe') {
             throw new BgaUserException(self::_("Tile is not a safe"));
         }
@@ -1663,7 +1663,7 @@ SQL;
             $sql = "INSERT INTO token (card_type, card_type_arg, card_location, card_location_arg) VALUES ".implode(', ', $sql_values);
             self::DbQuery($sql);
             self::setGameStateValue('cardChoice', $stethoscope['id']);
-            $drop_loot = $drop_loot ? 1 : 0;
+            $drop_loot = $drop_loot > 0 ? $safe_tile['id'] : 0;
             self::setGameStateValue('dropLoot', $drop_loot);
             $this->gamestate->nextState('cardChoice');
             return true;
@@ -1672,8 +1672,7 @@ SQL;
         }
     }
 
-    function applyDieRoll($rolls=null, $safe_tile=null, $drop_loot=null) {
-        // $current_player_id = self::getCurrentPlayerId();
+    function applyDieRoll($rolls=null, $safe_tile=null, $drop_loot=0) {
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $size_sq = $this->getSquareSize();
         if ($rolls === null) {
@@ -1689,9 +1688,10 @@ SQL;
             $player_token = $this->getPlayerToken($current_player_id);
             $safe_tile = $this->getPlayerTile($current_player_id, $player_token);
         }
-        if ($drop_loot === null) {
+        if ($drop_loot === 0) {
             $drop_loot = self::getGameStateValue('dropLoot');
-            self::setGameStateValue('dropLoot', 0);
+        } else {
+            self::setGameStateValue('dropLoot', $drop_loot);
         }
         $floor = $safe_tile['location'][5];
         $tiles = $this->getTiles($floor);
@@ -1718,14 +1718,9 @@ SQL;
         // Safe is open
         if ($cracked_count - 1 == ($size_sq - 1) * 2) { // remove a safe cracked count
             $this->pickTokensForTile('open', $safe_tile['id']);
-            if ($drop_loot) {
-                $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
+            if ($drop_loot > 0) {
+                self::setGameStateValue('drawToolsPlayer', $safe_tile['id']);
                 $loot = $this->cards->pickCardForLocation('loot_deck', 'tile', $safe_tile['id']);
-                $type = $this->getCardType($loot);
-                // Store that donuts was dropped and not used
-                if ($type == "donuts") {
-                    self::setGameStateValue('donutsDropped', 1);
-                }
                 $this->notifyTileCards($safe_tile['id']);
             } else {
                 self::setGameStateValue('drawToolsPlayer', $current_player_id);
@@ -2418,6 +2413,11 @@ SQL;
             } 
         } elseif($type == 'heads-up') {
             $next_player = $this->getPlayerAfterCustom($player_id);
+            $player_token = $this->getPlayerToken($next_player);
+            while ($player_token['location'] == 'roof') {
+                $next_player = $this->getPlayerAfterCustom();
+                $player_token = $this->getPlayerToken($next_player);
+            }
             $this->cards->moveCard($card['id'], 'hand', $next_player);
             $this->notifyPlayerHand($next_player);
         } elseif ($type == 'jury-rig') {
@@ -2785,7 +2785,7 @@ SQL;
                 $this->performAddSafeDie($other_tile);
                 self::incGameStateValue('actionsRemaining', -1);
             } else {
-                $this->performSafeDiceRoll($other_tile, TRUE);
+                $this->performSafeDiceRoll($other_tile, $other_tile['id']);
             }
             self::incStat(1, 'special_ability_use', self::getCurrentPlayerId());
         } elseif($type == 'raven1') {
@@ -4100,12 +4100,26 @@ SQL;
         $tools = $this->cards->getCardsOfTypeInLocation(1, null, 'choice');
         foreach ($tools as $tool_id => $tool) {
             if ($tool_id == $selected) {
-                $this->cards->moveCard($tool_id, 'hand', $current_player_id);
-                $this->notifyPlayerHand($current_player_id);
+                $drop_loot = self::getGameStateValue('dropLoot');
+                $draw_tools_player_id = self::getGameStateValue('drawToolsPlayer');
+                if ($drop_loot > 0 && $drop_loot == $draw_tools_player_id) {
+                    $this->cards->moveCard($selected, 'tile', $drop_loot);
+                    $type = $this->getCardType($tool);
+                    // Store that donuts was dropped and not used
+                    if ($type == "donuts") {
+                        self::setGameStateValue('donutsDropped', 1);
+                    }
+                    $this->notifyTileCards($drop_loot);
+                    self::setGameStateValue('dropLoot', 0);
+                } else {
+                    $this->cards->moveCard($tool_id, 'hand', $current_player_id);
+                    $this->notifyPlayerHand($current_player_id);                    
+                }
             } else {
                 $this->cards->moveCard($tool_id, 'tools_discard');
             }
         }
+        self::setGameStateValue('drawToolsPlayer', 0);
         $draw_tools_next_player = self::getGameStateValue('drawToolsNextPlayer');
         // Save the drawn tools
         $this->undoSavepoint();
@@ -4152,8 +4166,9 @@ SQL;
                 break;
             }
         }
-        // If drawn card is the cursed goblet, player lose one stealth
+        // If drawn card is the cursed goblet, player loses one stealth
         foreach ($r_ids as $card_id) {
+            $new_card = $this->cards->getCard($card_id);
             if ($this->getCardType($new_card) == 'cursed-goblet') {
                 $stealth = $this->getPlayerStealth($current_player_id);
                 if ($stealth > 0) {
@@ -4534,35 +4549,51 @@ SQL;
         $draw_tools_player_id = self::getGameStateValue('drawToolsPlayer');
         $draw_two = $this->showRiggerToolSelection();
         $next_state = self::getGameStateValue('playerPass') == 1 ? 'endTurn' : 'nextAction';
+        $drop_loot = self::getGameStateValue('dropLoot');
         if ($draw_tools_player_id == 0) {
             $this->gamestate->nextState($next_state);
         } else if ($draw_tools_player_id != 0 && !$draw_two) {
             self::setGameStateValue('undoAllowed', 0);
             self::setGameStateValue('drawToolsPlayer', 0);
             $this->reshuffleDeckIfEmpty('tools');
-            $card = $this->cards->pickCard('tools_deck', $draw_tools_player_id);
-            $card_name = $this->getCardType($card);
-            $human_player_id = $this->getActivePlayerId();
-            self::incStat( 1, 'tools_drawn', $human_player_id );
-            self::notifyAllPlayers('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
-                'card_id' => $card['id'],
-                'card' => $card,
-                'player_name' => $players[$draw_tools_player_id]['player_name'],
-                'title' => $this->getDisplayedCardName($card_name),
-                'tooltip' => $this->getCardTooltip($card),
-            ]);
-            $this->notifyPlayerHand($draw_tools_player_id);
+            
+            // Check if tool should be dropped on the tile
+            if ($drop_loot > 0 && $drop_loot == $draw_tools_player_id) {
+                $tool = $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
+                $type = $this->getCardType($tool);
+                // Store that donuts was dropped and not used
+                if ($type == "donuts") {
+                    self::setGameStateValue('donutsDropped', 1);
+                }
+                self::setGameStateValue('dropLoot', 0);
+                $this->notifyTileCards($safe_tile['id']);
+            } else {
+                $card = $this->cards->pickCard('tools_deck', $draw_tools_player_id);
+                $card_name = $this->getCardType($card);
+                $human_player_id = $this->getActivePlayerId();
+                self::incStat( 1, 'tools_drawn', $human_player_id );
+                self::notifyAllPlayers('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
+                    'card_id' => $card['id'],
+                    'card' => $card,
+                    'player_name' => $players[$draw_tools_player_id]['player_name'],
+                    'title' => $this->getDisplayedCardName($card_name),
+                    'tooltip' => $this->getCardTooltip($card),
+                ]);
+                $this->notifyPlayerHand($draw_tools_player_id);
+            }
             $this->undoSavepoint();
             self::setGameStateValue('undoAllowed', 2);
             $this->gamestate->nextState($next_state);
         } else {
             self::setGameStateValue('undoAllowed', 0);
-            self::setGameStateValue('drawToolsPlayer', 0);
             $human_player_id = $this->getActivePlayerId();
             self::incStat( 1, 'tools_drawn', $human_player_id );
             if ($draw_tools_player_id != $current_player_id) {
                 self::setGameStateValue('drawToolsNextPlayer', $current_player_id);
-                $this->gamestate->changeActivePlayer($draw_tools_player_id);
+                // var_dump($drop_loot);
+                // var_dump($draw_tools_player_id);
+                if ($drop_loot == 0)
+                    $this->gamestate->changeActivePlayer($draw_tools_player_id);
             }
             $this->reshuffleDeckIfEmpty('tools');
             $this->cards->pickCardForLocation('tools_deck', 'choice');
