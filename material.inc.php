@@ -86,7 +86,7 @@ $this->card_info = array(
     array('name'=>'espresso', 'title' => clienttranslate('Expresso'), 'tooltip' => clienttranslate('The Guard on your floor has one additional movement this turn.')),
     array('name'=>'freight-elevator', 'title' => clienttranslate('Freight elevator'), 'tooltip' => clienttranslate('Fall up one floor. Does not count as entering the tile.')),
     array('name'=>'go-with-your-gut', 'choice_description' => self::_('an adjacent unexplored tile to move to'), 'title' => clienttranslate('Go with your gut'), 'tooltip' => clienttranslate('If you are adjacent to an explored tile, move into it now. Choose if there is more than one.')),
-    array('name'=>'gymnastics', 'title' => clienttranslate('Gymnastics'), 'tooltip' => clienttranslate('Walkay tiles act as stairs for one round. Leave this in front of you and remove it at the start of your next turn.')),
+    array('name'=>'gymnastics', 'title' => clienttranslate('Gymnastics'), 'tooltip' => clienttranslate('Walkway tiles act as stairs for one round. Leave this in front of you and remove it at the start of your next turn.')),
     array('name'=>'heads-up', 'title' => clienttranslate('Heads up!'), 'tooltip' => clienttranslate('The next player gains an additional action on their turn.')),
     array('name'=>'jump-the-gun', 'title' => clienttranslate('Jump the gun'), 'tooltip' => clienttranslate('Skip the next player\'s turn (including Guard Movement).')),
     array('name'=>'jury-rig', 'title' => clienttranslate('Jury-rig'), 'tooltip' => clienttranslate('Draw a tool.')),
