@@ -72,7 +72,7 @@ $this->card_info = array(
     array('name'=>'keycard', 'title' => clienttranslate('Keycard'), 'tooltip' => clienttranslate('Holder must be present to roll dice for cracking any safe.')),
     array('name'=>'mirror', 'title' => clienttranslate('Mirror'), 'tooltip' => clienttranslate('-1 action while holding the Mirror. Holder does not trigger Laser alarms.')),
     array('name'=>'painting', 'title' => clienttranslate('Painting'), 'tooltip' => clienttranslate('Holder may not travel through Secret Doors or Service Ducts.')),
-    array('name'=>'persian-kitty', 'title' => clienttranslate('Persian Kitty'), 'tooltip' => clienttranslate('Each turn roll a die. If 1 or 2, Kitty moves 1 tile towards the nearest alarm.')),
+    array('name'=>'persian-kitty', 'title' => clienttranslate('Persian Kitty'), 'tooltip' => clienttranslate('Each turn roll a die. If 1 or 2, Kitty moves 1 tile towards the nearest alarm. When "escaped", it doesn’t move. The owner of the loot must catch it before escape.')),
     array('name'=>'stamp', 'title' => clienttranslate('Stamp'), 'tooltip' => clienttranslate('When 3 actions or fewer are used by holder, trigger an event.')),
     array('name'=>'tiara', 'title' => clienttranslate('Tiara'), 'tooltip' => clienttranslate('Guards will see you from adjacent tiles while you are moving.')),
   ),
