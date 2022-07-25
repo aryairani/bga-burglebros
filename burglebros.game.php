@@ -2679,7 +2679,7 @@ SQL;
             $tile = $this->tiles->getCard($selected_id);
             // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
-            if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
+            if (!$this->isTileAdjacent($tile, $player_tile, null, 'peek')) {
                 throw new BgaUserException(self::_('Tile is not adjacent'));
             }
             // Check tile type is legitimate for crowbar
