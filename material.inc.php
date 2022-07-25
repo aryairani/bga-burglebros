@@ -245,7 +245,7 @@ $this->tile_distribution = array(
 // Playing the Office Job should use cards with white circles: Camera (3), Fingerprint (2), Laser (2), Motion (2), Thermo (2), Deadbolt (2), Keypad (2), Foyer (2), Secret Door (2), Service Duct (2), Laboratory (1), Lavatory (1), Walkway (2), Computer Room (3), and Stairs (2)
 $this->tile_distribution_office_job = array(
   'safe' => array('name' => self::_('Safe'), 'nb' => 2),
-  'stairs' => array('name' => self::_('Stairs'), 'nb' => 3),
+  'stairs' => array('name' => self::_('Stairs'), 'nb' => 2),
   'walkway' => array('name' => self::_('Walkway'), 'nb' => 2),
   'laboratory' => array('name' => self::_('Laboratory'), 'nb' => 1),
   'lavatory' => array('name' => self::_('Lavatory'), 'nb' => 1),
