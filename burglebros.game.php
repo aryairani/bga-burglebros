@@ -4565,14 +4565,15 @@ SQL;
             
             // Check if tool should be dropped on the tile
             if ($drop_loot > 0 && $drop_loot == $draw_tools_player_id) {
-                $tool = $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile['id']);
+                $safe_tile_id = $draw_tools_player_id;
+                $tool = $this->cards->pickCardForLocation('tools_deck', 'tile', $safe_tile_id);
                 $type = $this->getCardType($tool);
                 // Store that donuts was dropped and not used
                 if ($type == "donuts") {
                     self::setGameStateValue('donutsDropped', 1);
                 }
                 self::setGameStateValue('dropLoot', 0);
-                $this->notifyTileCards($safe_tile['id']);
+                $this->notifyTileCards($safe_tile_id);
             } else {
                 $card = $this->cards->pickCard('tools_deck', $draw_tools_player_id);
                 $card_name = $this->getCardType($card);
@@ -4581,7 +4582,7 @@ SQL;
                 self::notifyAllPlayers('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
                     'card_id' => $card['id'],
                     'card' => $card,
-                    'player_name' => $players[$draw_tools_player_id]['player_name'],
+                    'player_name' => isset($players[$draw_tools_player_id]) ? $players[$draw_tools_player_id]['player_name'] : $players[$current_player_id]['player_name'],
                     'title' => $this->getDisplayedCardName($card_name),
                     'tooltip' => $this->getCardTooltip($card),
                 ]);
