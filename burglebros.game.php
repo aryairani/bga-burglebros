@@ -245,7 +245,7 @@ class burglebros extends Table
         $tokens [] = array('type' => 'stealth', 'type_arg' => 0, 'nbr' => 50);
         $tokens [] = array('type' => 'alarm', 'type_arg' => 0, 'nbr' => 45); # max 15 alarms per floor
         $tokens [] = array('type' => 'open', 'type_arg' => 0, 'nbr' => 6);  # when a safe or keypad tile is opened
-        $tokens [] = array('type' => 'keypad', 'type_arg' => 0, 'nbr' => 3);
+        $tokens [] = array('type' => 'keypad', 'type_arg' => 0, 'nbr' => 6); # number of attemps on a safe (4 should be enough with 5 actions max but you never know)
         $tokens [] = array('type' => 'stairs', 'type_arg' => 0, 'nbr' => 3);
         $tokens [] = array('type' => 'thermal', 'type_arg' => 0, 'nbr' => 2);
         $tokens [] = array('type' => 'crowbar', 'type_arg' => 0, 'nbr' => 1);
@@ -2069,6 +2069,9 @@ SQL;
                 $cancel_move = !$this->attemptKeypadRoll($tile);
                 if ($cancel_move) {
                     $this->notifyMovement($player_id, $player_tile, 'keypad');
+                    if ($context == 'acrobat1') {
+                        $action_penalty++; // count a move for attempting to open a keypad
+                    }
                 }
             }
         } elseif ($type == 'fingerprint') {
