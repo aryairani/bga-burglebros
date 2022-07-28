@@ -129,7 +129,7 @@ $game_options = array(
                     ),
                     2 => array(
                         'name' => totranslate('Random walls'),
-                        'description' => totranslate('Walls are generated randomly, table admin can reroll')
+                        'description' => totranslate('Walls are generated randomly')
                     ),
                 ),
         'default' => 1,
