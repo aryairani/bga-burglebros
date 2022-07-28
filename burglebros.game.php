@@ -1989,6 +1989,8 @@ SQL;
             }
         } elseif ($type == 'lavatory') {
             $this->pickTokensForTile('stealth', $tile['id'], 3);
+        } elseif ($type == 'laboratory') {
+            $this->notifyTileCards($tile['id']);
         }
         self::setGameStateValue('undoAllowed', 0);
     }
@@ -2105,6 +2107,7 @@ SQL;
             $prev_value = $this->setTileBit('laboratoryTileEntered', $id);
             if (!$prev_value) {
                 self::setGameStateValue('drawToolsPlayer', $player_id);
+                $this->notifyTileCards($id);
             }
         } elseif ($type == 'detector') {
             if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
@@ -3410,6 +3413,15 @@ SQL;
                 $token['type'] = $card['type'];
             }
             $token['count']++;
+        }
+        // Add token on unused but flipped Laboratories
+        $laboratories = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg, safe_die, flipped FROM tile WHERE card_type='laboratory'");
+        $tile_entered = self::getGameStateValue('laboratoryTileEntered');
+        foreach ($laboratories as $lab_tile_id => $tile) {
+            $tile_bit = 1 << $tile['safe_die'];
+            if (($tile_entered & $tile_bit) == 0x0 && ($tile['flipped'] == 1 || $lab_tile_id == $tile_id)) {
+                $tokens[$lab_tile_id] = ['type'=>2,'count'=>0];  // Add a token "tool" on the tile
+            }
         }
         return $tokens;
     }
