@@ -56,19 +56,23 @@ $game_options = array(
                     // A simple value for this option:
                     1 => array(
                         'name' => totranslate('Random, no advanced'),
+                        'tmdisplay' => totranslate('Basic random characters'),
                         'description' => totranslate('Random character assignment, no advanced versions')
                     ),
                     2 => array(
                         'name' => totranslate('Random, w/advanced'),
+                        'tmdisplay' => totranslate('Advanced random characters'),
                         'description' => totranslate('Random character assignment, including advanced versions, each player can choose either basic or advanced side')
                     ),
 
                     3 => array(
                         'name' => totranslate('Player choice, no advanced'),
+                        'tmdisplay' => totranslate('Basic characters choice'),
                         'description' => totranslate('Each player can choose a character, no advanced versions')
                     ),
                     4 => array(
                         'name' => totranslate('Player choice, w/advanced'),
+                        'tmdisplay' => totranslate('Advanced characters choice'),
                         'description' => totranslate('Each player can choose a character, including advanced versions, each player can choose either basic or advanced side')
                     ),
 
@@ -85,6 +89,7 @@ $game_options = array(
         'values' => array(
                     1 => array(
                         'name' => totranslate('Easy'),
+                        'tmdisplay' => totranslate('Easy'),
                         'description' => totranslate('Each player starts with 6 stealth tokens')
                     ),
                     2 => array(
@@ -93,9 +98,9 @@ $game_options = array(
                     ),
                     3 => array(
                         'name' => totranslate('Hard'),
+                        'tmdisplay' => totranslate('Hard'),
                         'description' => totranslate('Each player starts with 1 stealth token')
                     ),
-
                 ),
         'default' => 2,
     ),
@@ -105,14 +110,17 @@ $game_options = array(
         'values' => array(
                     1 => array(
                         'name' => totranslate('The Bank Job'),
+                        'tmdisplay' => totranslate('The Bank Job'),
                         'description' => totranslate('Standard layout (3 floors of 4x4 grid)')
                     ),
                     2 => array(
                         'name' => totranslate('The Office Job'),
+                        'tmdisplay' => totranslate('The Office Job'),
                         'description' => totranslate('Beginners\' layout (2 floors of 4x4 grid)')
                     ),
                     3 => array(
                         'name' => totranslate('The Fort Knox Job'),
+                        'tmdisplay' => totranslate('The Fort Knox Job'),
                         'description' => totranslate('Veterans\' layout (2 floors of 5x5 grid)'),
                         'nobeginner' => true // this option is not recommended for beginners
                     ),
@@ -129,6 +137,7 @@ $game_options = array(
                     ),
                     2 => array(
                         'name' => totranslate('Random walls'),
+                        'tmdisplay' => totranslate('Random walls'),
                         'description' => totranslate('Walls are generated randomly')
                     ),
                 ),
