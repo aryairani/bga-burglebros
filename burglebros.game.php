@@ -826,6 +826,8 @@ SQL;
         $special_choice = FALSE;
         
         if ($draw_patrol) {
+            // Cannot restart if new Patrol card is drawn or a new floor Guard position is revealed
+            self::setGameStateValue('undoAllowed', 0);
             $patrol = "patrol".$floor;
             do {
                 $count = $this->cards->countCardInLocation($patrol.'_deck');
