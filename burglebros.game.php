@@ -887,7 +887,7 @@ SQL;
     }
 
     function removePatrolPerPlayerCount($patrol) {
-        $num_players = self::getPlayersNumber();
+        $num_players = $this->getSoloMultiCharacters() > 1 ? $this->getSoloMultiCharacters() : self::getPlayersNumber();
         $to_remove = 0;
         if ($num_players == 1) {
             $to_remove = 9;
