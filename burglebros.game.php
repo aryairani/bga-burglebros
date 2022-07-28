@@ -1743,9 +1743,10 @@ SQL;
             }
             $this->notifyPlayerHand($current_player_id);
             
-            $msg = '${player_name} '.clienttranslate("cracked the safe on floor $floor");
+            $msg = clienttranslate("${player_name} cracked the safe on floor ${floor}");
             self::notifyAllPlayers('message', $msg, [
-                'player_name' => self::getCurrentPlayerName()
+                'player_name' => self::getCurrentPlayerName(),
+                'floor' => $floor
             ]);
 
             // $safe_token = array_values($this->tokens->getCardsOfType('crack', $floor))[0];
@@ -2003,29 +2004,21 @@ SQL;
     }
 
     function notifyMovement($player_id, $tile, $context='move') {
-        $floor = $tile['location'][5];
-        $action = clienttranslate('moves to');
-        $reason = null;
         if ($context == 'deadbolt') {
-            $action = clienttranslate('stayed in');
-            $reason = clienttranslate('didn\'t have enough actions to enter the Deadbolt');
+            $msg = clienttranslate('${player_name} stayed in tile ${tile_name} on floor ${floor} because they didn\'t have enough actions to enter the Deadbolt');
         } else if ($context == 'keypad') {
-            $action = clienttranslate('stayed in');
-            $reason = clienttranslate('didn\'t roll a 6 to enter the Keypad');
+            $msg = clienttranslate('${player_name} stayed in tile ${tile_name} on floor ${floor} because they didn\'t roll a 6 to enter the Keypad');
         } else if ($context == 'walkway') {
-            $action = clienttranslate('fell to');
-            $reason = clienttranslate('revealed a Walkway');
+            $msg = clienttranslate('${player_name} fell to tile ${tile_name} on floor ${floor} because they revealed a Walkway');
+        } else {
+            $msg = clienttranslate('${player_name} moves to ${tile_name} on floor ${floor}');
         }
         $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
-        $tile_name = $patrol_names[$tile['location_arg']]['name'];
-        $msg = '${player_name} '.$action.clienttranslate(" tile $tile_name on floor $floor");
-        if (!is_null($reason)) {
-            $msg .= ' because they '.$reason;
-        }
-        // $players = self::loadPlayersBasicInfos();
         $players = $this->loadPlayersInfos();
         self::notifyAllPlayers('message', clienttranslate($msg), [
-            'player_name' => $players[$player_id]['player_name']
+            'player_name' => $players[$player_id]['player_name'],
+            'tile_name' => $patrol_names[$tile['location_arg']]['name'],
+            'floor' => $tile['location'][5],
         ]);
     }
 
