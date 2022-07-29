@@ -142,7 +142,6 @@ class BurgleBrosBoard extends APP_GameClass
 			}
 			// $this->game->dump('*** walls after random ***',$walls);
 		}
-		// var_dump($walls);
 		if ($floor === 'all') {
 			$max_floor = $this->game->getFloorCount();
 			for ($floor=1; $floor <= $max_floor; $floor++) {
@@ -187,7 +186,7 @@ class BurgleBrosBoard extends APP_GameClass
 		$shaft = $this->getShaftPosition();
 		$shaft_walls = [];
 		$random_walls = [];
-		if ($shaft) {
+		if ($shaft !== NULL) {
 			$shaft_walls = $this->getWalls($shaft);
 			// var_dump($shaft);
 			// var_dump($shaft_walls);
@@ -224,7 +223,7 @@ class BurgleBrosBoard extends APP_GameClass
 				$random_walls['horizontal'][] = (int) $row + ($offset - $dec) * $dec ;
 			}
 		}
-		if ($shaft) {
+		if ($shaft !== NULL) {
 			$random_walls['shaft'] = $shaft;
 		}
 		return $random_walls;
@@ -238,11 +237,11 @@ class BurgleBrosBoard extends APP_GameClass
 		$total_tiles = $size * $size;
 		$visited = 0;
 		// Consider shaft tile already visited
-		if ($shaft) {
+		if ($shaft !== NULL) {
 			$floor_tiles[$shaft]['v'] = TRUE;
 			$visited++;
 		}
-		$check = [$shaft === 0 ? 1 : 0];
+		$check = [$shaft == 0 ? 1 : 0];
 		// Try to visit every tile of the floor
 		while (count($check) > 0) {
 			$next = array_pop($check);
@@ -304,13 +303,13 @@ class BurgleBrosBoard extends APP_GameClass
 		$index = ($size + $dec) * $row + $offset;
 		$res = [];
 		if ($offset > 0)
-			$res[] = $index - 1;		# wall on the left
+			$res[] = (int) $index - 1;		# wall on the left
 		if ($offset < $dec)
-			$res[] = $index;			# wall on the right
+			$res[] = (int) $index;			# wall on the right
 		if ($row > 0)
-			$res[] = $index - $size;	# wall on top
+			$res[] = (int) $index - $size;	# wall on top
 		if ($row < $dec)
-			$res[] = $index + $dec;		# wall on bottom
+			$res[] = (int) $index + $dec;	# wall on bottom
 		return $res;
 	}
 
@@ -324,16 +323,4 @@ class BurgleBrosBoard extends APP_GameClass
 			return NULL;
 		}
 	}
-
-	/*
-	* getObjective: factory function to create a objective by ID
-	*/
-	// public function getObjective($objectiveId) 
-	// {
-	// 	if (!isset(self::$objectiveClasses[$objectiveId])) {
-	// 		throw new BgaVisibleSystemException("getPower: Unknown objective $objectiveId");
-	// 	}
-	// 	$className = "Objective".self::$objectiveClasses[$objectiveId];
-	// 	return new $className($this->game);
-	// }
 }
