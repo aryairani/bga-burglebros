@@ -550,6 +550,9 @@ class burglebros extends Table
         if ($floor != 1) {
             throw new BgaUserException(self::_("Starting tile must be on the first floor"));
         }
+        if ($entrance['type'] == 'shaft') {
+            throw new BgaUserException(self::_("You cannot start on the shaft, this room is empty"));
+        }
         $this->performPeek($entrance['id'], 'effect');
 
         // Move first player token to entrance
