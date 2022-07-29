@@ -737,7 +737,7 @@ class burglebros extends Table
     function getTiles($floor) {
         $tiles = $this->tiles->getCardsInLocation("floor$floor", null, 'location_arg');
         $flipped = $this->getFlippedTiles($floor);
-        $state=$this->gamestate->state();
+        $state = $this->gamestate->state();
         if ($state['name'] !== 'gameEnd') {
             foreach ($tiles as &$tile) {
                 if (!isset($flipped[$tile['id']])) {
@@ -3181,6 +3181,18 @@ SQL;
             $tmp_location = $meeple['location_arg'];
             $this->moveToken($meeple['id'], 'tile', $player_token['location_arg']);
             $this->moveToken($player_token['id'], 'tile', $tmp_location);
+            $rook_tile = $this->getTile($player_token['location_arg']);
+            $other_tile = $this->getTile($tmp_location);
+            $players = $this->loadPlayersInfos();
+            $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+            self::notifyAllPlayers('message', clienttranslate('The Rook Advanced: ${player_name} (${rook_tile_name} on floor ${rook_tile_floor}) trades places with ${other_player_name} (${other_tile_name} on floor ${other_tile_floor})'), [
+                'player_name' => self::getActivePlayerName(),
+                'rook_tile_name' => $patrol_names[$rook_tile['location_arg']]['name'],
+                'rook_tile_floor' => $rook_tile['location'][5],
+                'other_player_name' => $players[$meeple['type_arg']]['player_name'],
+                'other_tile_name' => $patrol_names[$other_tile['location_arg']]['name'],
+                'other_tile_floor' => $other_tile['location'][5],
+            ]);
             $this->endAction();
         } else if ($type == 'squeak') {
             $meeple = $this->tokens->getCard($selected);
