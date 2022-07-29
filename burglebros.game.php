@@ -2490,6 +2490,17 @@ SQL;
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
             $this->moveToken($guard_token['id'], 'tile', $patrol_token['location_arg']);
             $this->moveToken($patrol_token['id'], 'tile', $guard_token['location_arg']);
+            // If there was donuts under the Guard, move it to the new destination
+            $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
+            $donut_type_id = $this->getCardTypeForName(1, 'donuts');
+            $donuts = $this->cards->getCardsOfTypeInLocation(1, $donut_type_id, 'tile', $guard_tile['id']);
+            if (count($donuts) > 0 && self::getGameStateValue('donutsDropped') == 0) {
+                $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
+                $this->cards->moveCard(array_keys($donuts)[0], 'tile', $patrol_tile['id']);
+                $this->notifyTileCards($guard_tile['id']);
+                $this->notifyTileCards($patrol_tile['id']);
+            }
+            // Check if player on destination would lose stealth
         } elseif ($type == 'where-is-he') {
             $player_token = $this->getPlayerToken($player_id);
             $tile = $this->getPlayerTile($player_id, $player_token);
