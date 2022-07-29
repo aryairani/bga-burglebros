@@ -2706,6 +2706,7 @@ SQL;
             $this->validateSelection('wall', $selected_type);
             // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
+            $floor = $player_tile['location'][5];
             $walls = $this->getWalls();
 
             $tindex = $player_tile['location_arg'];
@@ -2728,6 +2729,10 @@ SQL;
                         if (($wall['vertical'] == 1 && $vertical) || ($wall['vertical'] == 0 && $horizontal)) {
                             self::DbQuery("DELETE FROM wall WHERE id = '$selected_id'");
                             $special_choice = $this->triggerAlarm($player_tile);
+                            // Force refresh of Guard path if there was already an alarm on the tile
+                            if (!$special_choice) {
+                                $special_choice = $this->nextPatrol($floor);
+                            }
                             // Notify players to remove wall
                             self::notifyAllPlayers('removeWall', '', array(
                                 'wall_id' => $selected_id,
