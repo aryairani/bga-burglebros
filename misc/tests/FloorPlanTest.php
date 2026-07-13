@@ -32,6 +32,10 @@ class FloorPlanTest extends TestCase
         return array('location' => "floor$floor", 'location_arg' => (string) $cell);
     }
 
+    private static function pos($floor, $cell) {
+        return BurgleBrosTilePosition::fromRow(self::tile($floor, $cell));
+    }
+
     private static function randomWalls($size, $seed, $count = 8) {
         mt_srand($seed);
         $rows = array();
@@ -72,7 +76,10 @@ class FloorPlanTest extends TestCase
                             $tb = self::tile($floor_b, $b);
                             $this->assertSame(
                                 $legacy->tileAdjacencyDetail($ta, $tb),
-                                $plan->adjacencyDetail($ta, $tb),
+                                $plan->adjacencyDetail(
+                                    BurgleBrosTilePosition::fromRow($ta),
+                                    BurgleBrosTilePosition::fromRow($tb)
+                                ),
                                 "$name: floor$floor_a:$a vs floor$floor_b:$b"
                             );
                         }
@@ -100,24 +107,24 @@ class FloorPlanTest extends TestCase
         $board = new BurgleBrosBoard(null);
         $plan = new BurgleBrosFloorPlan(4, self::dbWalls($board->default_walls));
         // Bank Job floor 1 has a vertical wall at position 0: between cells 0 and 1.
-        $detail = $plan->adjacencyDetail(self::tile(1, 0), self::tile(1, 1));
+        $detail = $plan->adjacencyDetail(self::pos(1, 0), self::pos(1, 1));
         $this->assertTrue($detail['adjacent']);
         $this->assertTrue($detail['blocked']);
         // Cells 1 and 2 have no wall between them.
-        $detail = $plan->adjacencyDetail(self::tile(1, 1), self::tile(1, 2));
+        $detail = $plan->adjacencyDetail(self::pos(1, 1), self::pos(1, 2));
         $this->assertTrue($detail['adjacent']);
         $this->assertFalse($detail['blocked']);
     }
 
     public function testDiagonalIsNotAdjacent() {
         $plan = new BurgleBrosFloorPlan(4, array());
-        $detail = $plan->adjacencyDetail(self::tile(1, 0), self::tile(1, 5));
+        $detail = $plan->adjacencyDetail(self::pos(1, 0), self::pos(1, 5));
         $this->assertFalse($detail['adjacent']);
     }
 
     public function testOtherFloorIsNotAdjacent() {
         $plan = new BurgleBrosFloorPlan(4, array());
-        $detail = $plan->adjacencyDetail(self::tile(1, 2), self::tile(2, 3));
+        $detail = $plan->adjacencyDetail(self::pos(1, 2), self::pos(2, 3));
         $this->assertFalse($detail['adjacent']);
         $this->assertFalse($detail['same_floor']);
     }
@@ -129,7 +136,7 @@ class FloorPlanTest extends TestCase
         $plan = new BurgleBrosFloorPlan(5, self::dbWalls($board->default_walls_size_5));
         foreach (array(1, 2) as $floor) {
             foreach (array(7, 11, 13, 17) as $neighbor) {
-                $detail = $plan->adjacencyDetail(self::tile($floor, 12), self::tile($floor, $neighbor));
+                $detail = $plan->adjacencyDetail(self::pos($floor, 12), self::pos($floor, $neighbor));
                 $this->assertTrue($detail['blocked'], "floor $floor: cell 12 vs $neighbor");
             }
         }

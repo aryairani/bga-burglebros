@@ -12,7 +12,8 @@
  *             (left to right, top to bottom): row = cell / size, col = cell % size.
  *   tile      A room card as stored in the `tile` DB table: 'location' is the
  *             string "floorN" (char 5 is the floor number), 'location_arg' is
- *             the cell it occupies.
+ *             the cell it occupies. Positions enter this class as
+ *             BurgleBrosTilePosition values (fromRow() converts a DB row).
  *   wall      One wall piece as stored in the `wall` DB table: {floor, vertical,
  *             position}. A vertical wall (vertical=1) stands between cell
  *             (row, col) and (row, col+1) where row = position / (size-1) and
@@ -37,11 +38,6 @@ class BurgleBrosFloorPlan
 		private readonly array $walls
 	) {}
 
-	/** @param array{location: string, location_arg: int|string, ...} $tile */
-	public static function floorOf(array $tile): string {
-		return $tile['location'][5];
-	}
-
 	public function rowOf(int $cell): int {
 		return intdiv($cell, $this->size);
 	}
@@ -51,24 +47,21 @@ class BurgleBrosFloorPlan
 	}
 
 	// The three geometric facts that move/peek/guard legality is built from.
-	/**
-	 * @param array{location: string, location_arg: int|string, ...} $tile
-	 * @param array{location: string, location_arg: int|string, ...} $other_tile
-	 * @return array{same_floor: bool, adjacent: bool, blocked: bool}
-	 */
-	public function adjacencyDetail(array $tile, array $other_tile): array {
-		$row_delta = abs($this->rowOf($tile['location_arg']) - $this->rowOf($other_tile['location_arg']));
-		$col_delta = abs($this->colOf($tile['location_arg']) - $this->colOf($other_tile['location_arg']));
+	/** @return array{same_floor: bool, adjacent: bool, blocked: bool} */
+	public function adjacencyDetail(BurgleBrosTilePosition $tile, BurgleBrosTilePosition $other_tile): array {
+		$row_delta = abs($this->rowOf($tile->cell) - $this->rowOf($other_tile->cell));
+		$col_delta = abs($this->colOf($tile->cell) - $this->colOf($other_tile->cell));
 		$orthogonal = ($row_delta == 1 && $col_delta == 0) || ($row_delta == 0 && $col_delta == 1);
+		$same_floor = $tile->floor === $other_tile->floor;
 
 		return array(
-			'same_floor' => $tile['location'] == $other_tile['location'],
-			'adjacent' => $orthogonal && self::floorOf($tile) == self::floorOf($other_tile),
-			'blocked' => $this->wallBetween(self::floorOf($tile), $tile['location_arg'], $other_tile['location_arg']),
+			'same_floor' => $same_floor,
+			'adjacent' => $orthogonal && $same_floor,
+			'blocked' => $this->wallBetween($tile->floor, $tile->cell, $other_tile->cell),
 		);
 	}
 
-	public function wallBetween(string|int $floor, int $cell, int $other_cell): bool {
+	public function wallBetween(int $floor, int $cell, int $other_cell): bool {
 		foreach ($this->walls as $wall) {
 			if ($wall['floor'] == $floor && $this->wallSeparates($wall, $cell, $other_cell)) {
 				return true;
