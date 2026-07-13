@@ -125,38 +125,33 @@ class BurgleBrosBoard
         }
     }
 
-	public function randomizeWalls($floor = 'all') {
-		// Dump walls db and recreate all the walls
-		if ($floor === 'all') {
-			Table::DbQuery("TRUNCATE wall");
-		} else {
-			Table::DbQuery("DELETE FROM wall WHERE floor = '$floor'");
+	public function randomizeAllWalls(): void {
+		$max_floor = $this->game->getFloorCount();
+		for ($floor = 1; $floor <= $max_floor; $floor++) {
+			$this->randomizeWalls($floor);
 		}
-		$this->setupWalls(TRUE, $floor);
 	}
 
-	function setupWalls($force_random = FALSE, $floor = 'all') {
-		if (!$force_random && $this->game->getGameStateValue('randomWalls') == 1) {
-			$walls = $this->game->getSquareSize() === 5 ? $this->default_walls_size_5 : $this->default_walls;
-		} else {
-			if ($floor === 'all') {
-				$walls = $this->randomWalls();
-			} else {
-				$walls = $this->generateWalls();
-			}
-			// $this->game->dump('*** walls after random ***',$walls);
-		}
-		if ($floor === 'all') {
+	public function randomizeWalls(int $floor): void {
+		// Dump the floor's walls and recreate them
+		Table::DbQuery("DELETE FROM wall WHERE floor = '$floor'");
+		$this->updateWallsDb($this->generateWalls(), $floor);
+	}
+
+	function setupWalls(): void {
+		if ($this->game->getGameStateValue('randomWalls') == 1) {
+			$walls = $this->game->getSquareSize() === 5 ? self::DEFAULT_WALLS_SIZE_5 : self::DEFAULT_WALLS;
 			$max_floor = $this->game->getFloorCount();
-			for ($floor=1; $floor <= $max_floor; $floor++) {
+			for ($floor = 1; $floor <= $max_floor; $floor++) {
 				$this->updateWallsDb($walls[$floor], $floor);
-			}			
+			}
 		} else {
-			$this->updateWallsDb($walls, $floor);
+			$this->randomizeAllWalls();
 		}
 	}
 
-	function updateWallsDb($walls, $floor) {
+	/** @param array{vertical: int[], horizontal: int[], shaft?: int} $walls */
+	function updateWallsDb(array $walls, int $floor): void {
 		foreach ($walls as $dir => $positions) {
 			if ($dir === 'shaft') continue;
 			$sql = 'INSERT INTO wall (floor, vertical, position) VALUES ';
@@ -170,17 +165,8 @@ class BurgleBrosBoard
 		}
 	}
 
-	function randomWalls() {
-		$max_floor = $this->game->getFloorCount();
-		$random_walls = [];
-
-		for ($floor=1; $floor <= $max_floor; $floor++) {
-			$random_walls[$floor] = $this->generateWalls();
-		}
-		return $random_walls;
-	}
-
-	function generateWalls() {
+	/** @return array{vertical: int[], horizontal: int[], shaft?: int} */
+	function generateWalls(): array {
 		$size = $this->game->getSquareSize();
 		$size_sq = $size * $size - 1;
 		$dec = $size - 1;
@@ -209,8 +195,8 @@ class BurgleBrosBoard
 				}
 			}
 			if ($security++ > 200) {
-				$this->game->debug("Couldn't generate randomWalls()");
-				return $size === 5 ? $this->default_walls_size_5[1] : $this->default_walls[1];
+				$this->game->debug("Couldn't generate a valid wall layout");
+				return $size === 5 ? self::DEFAULT_WALLS_SIZE_5[1] : self::DEFAULT_WALLS[1];
 				break;
 			}
 			if ($this->checkLayout($walls))

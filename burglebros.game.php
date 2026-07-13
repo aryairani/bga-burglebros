@@ -3561,11 +3561,15 @@ SQL;
         Each time a player is doing some game action, one of the methods below is called.
         (note: each method below must match an input method in burglebros.action.php)
     */
-    function randomizeWalls($floor) {
+    function randomizeWalls(string $floor) {
         if ($floor === 'start') {
             $this->gamestate->nextState('startGame');
         } else {
-            $this->board->randomizeWalls($floor);
+            if ($floor === 'all') {
+                $this->board->randomizeAllWalls();
+            } else {
+                $this->board->randomizeWalls((int) $floor);
+            }
             if ($floor === 'all') {
                 $msg = clienttranslate("New random walls are generated on every floor");
             } else {
