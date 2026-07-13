@@ -52,7 +52,6 @@ class FloorPlanTest extends TestCase
     }
 
     public function testMatchesLegacyForAllTilePairs() {
-        $board = new BurgleBrosBoard(null);
         $wall_sets = array(
             'size4 no walls' => array(4, array()),
             'size4 default (Bank Job)' => array(4, self::dbWalls($board->default_walls)),
@@ -93,7 +92,6 @@ class FloorPlanTest extends TestCase
     // The Fort Knox default layout carries 4 extra rows per floor: the walls
     // enclosing the empty space (p.12: "The empty space acts as an outer Wall").
     public function testDefaultLayoutsHaveRulebookWallCounts() {
-        $board = new BurgleBrosBoard(null);
         foreach ($board->default_walls as $floor => $directions) {
             $this->assertCount(8, array_merge($directions['vertical'], $directions['horizontal']), "4x4 floor $floor");
         }
@@ -104,7 +102,6 @@ class FloorPlanTest extends TestCase
 
     // Rules p.5: "You may not Move diagonally or through Walls."
     public function testWallBlocksAdjacentTiles() {
-        $board = new BurgleBrosBoard(null);
         $plan = new BurgleBrosFloorPlan(4, self::dbWalls($board->default_walls));
         // Bank Job floor 1 has a vertical wall at position 0: between cells 0 and 1.
         $detail = $plan->adjacencyDetail(self::pos(1, 0), self::pos(1, 1));
@@ -132,7 +129,6 @@ class FloorPlanTest extends TestCase
     // Rules p.12: the Fort Knox empty space (cell 12 in the default layout) acts
     // as an outer Wall — all four neighbors must be blocked, on both floors.
     public function testFortKnoxEmptySpaceIsWalledOff() {
-        $board = new BurgleBrosBoard(null);
         $plan = new BurgleBrosFloorPlan(5, self::dbWalls($board->default_walls_size_5));
         foreach (array(1, 2) as $floor) {
             foreach (array(7, 11, 13, 17) as $neighbor) {
