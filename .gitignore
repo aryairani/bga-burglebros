@@ -1,0 +1,5 @@
+.DS_Store
+misc/tests/phpunit.phar
+misc/tests/.phpunit.cache/
+.phpunit.cache/
+misc/tests/.phpunit.result.cache
