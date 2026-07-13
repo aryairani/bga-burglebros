@@ -8,12 +8,13 @@ use Bga\GameFramework\Table;
 
 class BurgleBrosBoard
 {
-	public $game;
-	public function __construct($game) {
+	public burglebros $game;
+	public function __construct(burglebros $game) {
 		$this->game = $game;
 	}
 
-	public $default_walls = array(
+	/** @var array<int, array{vertical: int[], horizontal: int[], shaft?: int}> default wall layout by floor */
+	public const DEFAULT_WALLS = array(
 		1 => array(
 			'vertical' => array(0, 5, 9, 10),
 			'horizontal' => array(1, 4, 6, 11)
@@ -28,7 +29,8 @@ class BurgleBrosBoard
 		)
 	);
 
-	public $default_walls_size_5 = array(
+	/** @var array<int, array{vertical: int[], horizontal: int[], shaft?: int}> default wall layout by floor */
+	public const DEFAULT_WALLS_SIZE_5 = array(
 		1 => array(
 			'vertical' => array(2, 3, 4, 7, 18, 9, 10),
 			'horizontal' => array(1, 3, 6, 8, 11, 15, 18, 9, 10),
@@ -41,7 +43,7 @@ class BurgleBrosBoard
 		)
 	);
 
-	public function setupNewGame($players, $options) {
+	public function setupNewGame(array $players, array $options): void {
 		$index = 1;
         $values = array();
         // Playing the Office Job should use cards with white circles
@@ -69,7 +71,7 @@ class BurgleBrosBoard
         $this->setupWalls();
 	}
 
-    function setupTiles($options) {
+    function setupTiles(array $options): void {
     	$option_one_deadbolt = $options[106] == 2;
         $safes = $this->game->tiles->getCardsOfType('safe');
         $stairs = $this->game->tiles->getCardsOfType('stairs');
@@ -81,7 +83,7 @@ class BurgleBrosBoard
 		$shaft_location_arg = null;
         if ($size === 5) {
         	if ($this->game->getGameStateValue('randomWalls') == 1) {
-	        	$shaft_location_arg = $this->default_walls_size_5[1]['shaft'];
+	        	$shaft_location_arg = self::DEFAULT_WALLS_SIZE_5[1]['shaft'];
 	        } else {
 	        	$shaft_location_arg = rand(0, $size_sq);
 	        }
@@ -219,7 +221,8 @@ class BurgleBrosBoard
 		return $random_walls;
 	}
 
-	function checkLayout($walls) {
+	/** @param array<int, true> $walls set of occupied wall slot indexes */
+	function checkLayout(array $walls): bool {
 		$shaft = $this->getShaftPosition();
 		$floor_tiles = $this->toFloor($walls);
 		// $this->game->dump('*** floor_tiles ***', $floor_tiles);
@@ -253,7 +256,11 @@ class BurgleBrosBoard
 		return $visited === $total_tiles;
 	}
 
-	function toFloor($walls) {
+	/**
+	 * @param array<int, true> $walls set of occupied wall slot indexes
+	 * @return array<int, array{n?: true, e?: true, s?: true, w?: true}> per cell: which sides are open
+	 */
+	function toFloor(array $walls): array {
 		// Create a floor (an array of [tile_index][n|e|s|w] => true if unblocked)
 		$size = $this->game->getSquareSize();
 		$dec = $size - 1;
@@ -282,7 +289,8 @@ class BurgleBrosBoard
 		return $floor;
 	}
 
-	function getWalls($tile) {
+	/** @return int[] */
+	function getWalls(int $tile): array {
 		// var_dump($tile);
 		// Return each available wall positions for a tile
 		$size = $this->game->getSquareSize();
@@ -303,12 +311,12 @@ class BurgleBrosBoard
 		return $res;
 	}
 
-	function getShaftPosition() {
+	function getShaftPosition(): ?int {
 		// Return shaft position (on floor 1 because shaft is on the same position on each floor)
 		$shaft = $this->game->tiles->getCardsOfTypeInLocation('shaft', null, "floor1");
 		if ($shaft) {
 			$shaft = reset($shaft);
-			return $shaft['location_arg'];
+			return (int) $shaft['location_arg'];
 		} else {
 			return NULL;
 		}

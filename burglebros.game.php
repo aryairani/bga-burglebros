@@ -43,21 +43,38 @@ class burglebros extends Table
         public Deck $tiles;
         public Deck $tokens;     
 
+    // Static game material, assigned by material.inc.php (included in the framework constructor).
+    /** @var array<int, array{name: string, nametr: string}> deck descriptors by card type (0-3) */
     public array $card_types;
+    /** @var array<int, list<array{name: string, title?: string, subhead?: string, ability?: string, tooltip?: string, choice_description?: string, nbr?: int}>> card definitions by card type; list index + 1 == type_arg */
     public array $card_info;
+    /** @var array<int, array{name: string, nametr: string}> deck descriptors by card type (4-6, one patrol deck per floor) */
     public array $patrol_types;
+    /** @var list<array{name: string}> patrol card faces: grid coordinates "A1".."D4" */
     public array $patrol_names;
+    /** @var list<array{name: string}> patrol card faces: grid coordinates "A1".."E5" */
     public array $patrol_names_size_5;
+    /** @var array<int, list<array{name: string}>> patrol card faces by card type (4-6) */
     public array $patrol_info;
+    /** @var array<int, list<array{name: string}>> patrol card faces by card type (4-6) */
     public array $patrol_info_size_5;
+    /** @var array<string, list<int>> tile type => safe die number of each copy */
     public array $tile_types;
+    /** @var array<string, list<int|false>> tile type => safe die number of each copy; false = copy not used in the Office Job */
     public array $tile_types_office_job;
+    /** @var array<string, array{name: string, nb: int}> tile type => display name and copy count */
     public array $tile_distribution;
+    /** @var array<string, array{name: string, nb: int}> tile type => display name and copy count */
     public array $tile_distribution_office_job;
+    /** @var list<array{name: string, color: string}> */
     public array $token_types;
+    /** @var list<string> */
     public array $player_choices;
+    /** @var list<string> */
     public array $special_choices;
+    /** @var array<int, string> state id => state to resume after chooseAlarm */
     public array $state_after_alarms;
+    /** @var array<string, array<string, string>> guard pathfinding tie-break table */
     public array $clockwise_mappings;
 
 
