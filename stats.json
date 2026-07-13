@@ -1,0 +1,57 @@
+
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "tiles_unflipped": {
+            "id": 11,
+            "name": "Tiles unflipped",
+            "type": "int"
+        },
+        "event_cards": {
+            "id": 12,
+            "name": "Event cards drawn",
+            "type": "int"
+        },
+        "alarm_triggered": {
+            "id": 13,
+            "name": "Alarms triggered",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "tools_drawn": {
+            "id": 14,
+            "name": "Tools drawn",
+            "type": "int"
+        },
+        "tools_used": {
+            "id": 15,
+            "name": "Tools used",
+            "type": "int"
+        },
+        "stealth_remaining": {
+            "id": 16,
+            "name": "Stealth remaining",
+            "type": "int"
+        },
+        "trade_confirmed": {
+            "id": 17,
+            "name": "Trade confirmed",
+            "type": "int"
+        },
+        "special_ability_use": {
+            "id": 18,
+            "name": "Use of special ability",
+            "type": "int"
+        }
+    }
+}

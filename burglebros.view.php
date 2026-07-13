@@ -53,8 +53,7 @@
             $this->page->insert_block("floor_preview", array ("FLOOR" => $floor));
         }
 
-        global $g_user;
-        $current_player_id = $g_user->get_id();
+        $current_player_id = $this->getCurrentPlayerId();
 
         $this->page->begin_block($template, "player_hand");
         $index = 2;

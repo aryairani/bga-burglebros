@@ -51,16 +51,6 @@
 
  
 $machinestates = array(
-
-    // The initial state. Please do not modify.
-    1 => array(
-        'name' => 'gameSetup',
-        'description' => '',
-        'type' => 'manager',
-        'action' => 'stGameSetup',
-        'transitions' => array( '' => 5 )
-    ),
-
     5 => array(
         'name' => 'randomizeWalls',
         'description' => clienttranslate('The administrator of the table can generate new walls for this game'),
@@ -106,7 +96,7 @@ $machinestates = array(
 
     10 => array(
         'name' => 'endTurn',
-        'description' => 'Triggering end of turn effects...',
+        'description' => clienttranslate('Triggering end of turn effects...'),
         'type' => 'game',
         'args' => 'argPlayerTurn',
         'action' => 'stEndTurn',
@@ -116,7 +106,7 @@ $machinestates = array(
 
     11 => array(
         'name' => 'moveGuard',
-        'description' => 'Guard is moving...',
+        'description' => clienttranslate('Guard is moving...'),
         'type' => 'game',
         'action' => 'stMoveGuard',
         'updateGameProgression' => true,
@@ -269,18 +259,7 @@ $machinestates = array(
         'type' => 'game',
         'action' => 'stGameOver',
         'transitions' => array( 'endGame' => 99 )
-    ),  
-   
-    // Final state.
-    // Please do not modify (and do not overload action/args methods).
-    99 => array(
-        'name' => 'gameEnd',
-        'description' => clienttranslate('End of game'),
-        'type' => 'manager',
-        'action' => 'stGameEnd',
-        'args' => 'argGameEnd'
-    )
-
+    ),
 );
 
 

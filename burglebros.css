@@ -209,12 +209,6 @@
         zoom: 0.9;
     }
 }
-/* Mobile only, reduce zoom for Fort Knox */
-@media only screen and (max-width: 1440px) {
-    #board_wrap.size_5x5 {
-        zoom: 0.75;
-    }
-}
 #myhand .stockitem, .player_hand .stockitem, #trade_dialog .stockitem {
     background-size: 240px;
 }

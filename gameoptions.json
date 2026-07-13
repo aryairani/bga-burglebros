@@ -1,0 +1,123 @@
+{
+    "100": {
+        "name": "Character Assignment",
+        "values": {
+            "1": {
+                "name": "Random, no advanced",
+                "tmdisplay": "Basic random characters",
+                "description": "Random character assignment, no advanced versions"
+            },
+            "2": {
+                "name": "Random, w\/advanced",
+                "tmdisplay": "Advanced random characters",
+                "description": "Random character assignment, including advanced versions, each player can choose either basic or advanced side"
+            },
+            "3": {
+                "name": "Player choice, no advanced",
+                "tmdisplay": "Basic characters choice",
+                "description": "Each player can choose a character, no advanced versions"
+            },
+            "4": {
+                "name": "Player choice, w\/advanced",
+                "tmdisplay": "Advanced characters choice",
+                "description": "Each player can choose a character, including advanced versions, each player can choose either basic or advanced side"
+            }
+        }
+    },
+    "101": {
+        "name": "Level",
+        "values": {
+            "1": {
+                "name": "Easy",
+                "tmdisplay": "Easy",
+                "description": "Each player starts with 6 stealth tokens"
+            },
+            "2": {
+                "name": "Normal",
+                "description": "Each player starts with 3 stealth tokens"
+            },
+            "3": {
+                "name": "Hard",
+                "tmdisplay": "Hard",
+                "description": "Each player starts with 1 stealth token"
+            }
+        },
+        "default": 2
+    },
+    "102": {
+        "name": "Scenario",
+        "values": {
+            "1": {
+                "name": "The Bank Job",
+                "tmdisplay": "The Bank Job",
+                "description": "Standard layout (3 floors of 4x4 grid)"
+            },
+            "2": {
+                "name": "The Office Job",
+                "tmdisplay": "The Office Job",
+                "description": "Beginners' layout (2 floors of 4x4 grid)"
+            },
+            "3": {
+                "name": "The Fort Knox Job",
+                "tmdisplay": "The Fort Knox Job",
+                "description": "Veterans' layout (2 floors of 5x5 grid)",
+                "nobeginner": true
+            }
+        },
+        "default": 1
+    },
+    "103": {
+        "name": "Walls",
+        "values": {
+            "1": {
+                "name": "Default walls"
+            },
+            "2": {
+                "name": "Random walls",
+                "tmdisplay": "Random walls",
+                "description": "Walls are generated randomly"
+            }
+        },
+        "default": 1
+    },
+    "104": {
+        "name": "Solo multi-characters",
+        "values": {
+            "1": {
+                "name": "--- Play only one character ---"
+            },
+            "2": {
+                "name": "Play 2 characters"
+            },
+            "3": {
+                "name": "Play 3 characters"
+            },
+            "4": {
+                "name": "Play 4 characters"
+            }
+        },
+        "default": 1,
+        "displaycondition": [
+            {
+                "type": "maxplayers",
+                "value": 1,
+                "message": "Solo variants can be played at 1 player only."
+            }
+        ],
+        "notdisplayedmessage": "Solo variants are only available with 1 player"
+    },
+    "106": {
+        "name": "Deadbolts distribution",
+        "values": {
+            "1": {
+                "name": "Fully random"
+            },
+            "2": {
+                "name": "1 deadbolt per floor",
+                "description": "Put 1 deadbolt on each floor for The Bank Job and The Office Job and max 2 deadbolts per floor for the Fort Knox Job",
+                "beta": true
+            }
+        },
+        "default": 1
+    }
+}

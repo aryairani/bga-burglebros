@@ -16,13 +16,38 @@
   *
   */
 
+use Bga\GameFramework\Components\Deck;
+use Bga\GameFramework\Table;
+use Bga\GameFramework\VisibleSystemException;
 
-require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 require_once("modules/BurgleBrosBoard.class.php");
 
 
 class burglebros extends Table
 {
+        public BurgleBrosBoard $board;
+        public Deck $cards;
+        public Deck $tiles;
+        public Deck $tokens;     
+
+    public array $card_types;
+    public array $card_info;
+    public array $patrol_types;
+    public array $patrol_names;
+    public array $patrol_names_size_5;
+    public array $patrol_info;
+    public array $patrol_info_size_5;
+    public array $tile_types;
+    public array $tile_types_office_job;
+    public array $tile_distribution;
+    public array $tile_distribution_office_job;
+    public array $token_types;
+    public array $player_choices;
+    public array $special_choices;
+    public array $state_after_alarms;
+    public array $clockwise_mappings;
+
+
 	function __construct( )
 	{
         // Your global variables labels:
@@ -81,19 +106,10 @@ class burglebros extends Table
         // Initialize module classes
         $this->board = new BurgleBrosBoard($this);
 
-        $this->cards = self::getNew( "module.common.deck" );
-        $this->cards->init( "card" );
-        $this->tiles = self::getNew( "module.common.deck" );
-        $this->tiles->init( "tile" );
-        $this->tokens = self::getNew( "module.common.deck" );
-        $this->tokens->init( "token" );     
+        $this->cards = $this->deckFactory->createDeck( "card" );
+        $this->tiles = $this->deckFactory->createDeck( "tile" );
+        $this->tokens = $this->deckFactory->createDeck( "token" );     
 	}
-	
-    protected function getGameName( )
-    {
-		// Used for translations and stuff. Please do not modify.
-        return "burglebros";
-    }	
 
     /*
         setupNewGame:
@@ -127,14 +143,14 @@ class burglebros extends Table
                 $option_stealth_count = 3;
                 break;
         }
-        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_stealth_tokens) VALUES ";
+        $sql = "INSERT INTO player (player_id, player_color, player_name, player_stealth_tokens) VALUES ";
         $values = array();
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
-            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."','$option_stealth_count"."')";
+            $values[] = "('".$player_id."','$color','".addslashes( $player['player_name'] )."',$option_stealth_count)";
         }
-        $sql .= implode( $values, ',' );
+        $sql .= implode(',', $values);
         self::DbQuery( $sql );
         self::reattributeColorsBasedOnPreferences( $players, $gameinfos['player_colors'] );
         self::reloadPlayersBasicInfos();
@@ -147,14 +163,15 @@ class burglebros extends Table
             $id = key($players);
             $player = $players[$id];
             $current_player_id = $id;
-            $default_colors = array_diff($gameinfos['player_colors'], array($player['player_colorprefs'][0]));
+            $currentPlayerColor = $this->loadPlayersBasicInfos()[$current_player_id]['player_color'];
+            $default_colors = array_diff($gameinfos['player_colors'], [$currentPlayerColor]);
             $values = array();
             $sql = "INSERT INTO solo_characters (player_id, player_color, player_name, player_avatar) VALUES ";
             for ($i=1; $i <= $multi_characters; $i++) {
                 $color = array_shift( $default_colors );
                 $values[] = "('".$id++."','$color','".addslashes( $player['player_name'] )."$i','".addslashes( $player['player_avatar'] )."')";
             }
-            $sql .= implode( $values, ',' );
+            $sql .= implode(',', $values);
             self::DbQuery( $sql );
             $players = $this->loadPlayersInfos();
         }
@@ -285,7 +302,7 @@ class burglebros extends Table
         }
 
         // Activate table administrator to randomize walls if needed
-        if ($this->gamestate->table_globals[103] !== 1) {
+        if ($this->bga->tableOptions->get(103) !== 1) {
             foreach ($players as $id => $player) {
                 if (isset($player['player_is_admin']) && $player['player_is_admin'] == 1) {
                     $admin_id = $id;
@@ -303,6 +320,7 @@ class burglebros extends Table
         $this->setupPatrol($guard_token, 1);
 
         /************ End of the game initialization *****/
+        return 5;
     }
 
     /*
@@ -316,10 +334,7 @@ class burglebros extends Table
     */
     protected function getAllDatas()
     {
-        $result = array();
-    
-        $current_player_id = $this->getCurrentPlayerIdCustom();  // !! We must only return informations visible by this player !!
-
+        $result = [];
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         // $sql = "SELECT player_id id, player_score score, player_stealth_tokens stealth_tokens FROM player ";
@@ -414,11 +429,7 @@ class burglebros extends Table
         In this space, you can put any utility methods useful for your game logic
     */
     public function getSoloMultiCharacters() {
-        if (isset($this->gamestate->table_globals[104])) {
-            return $this->gamestate->table_globals[104];
-        } else {
-            return 1;
-        }
+        return $this->bga->tableOptions->get(104) ?? 1;
     }
 
     public function loadPlayersInfos() {
@@ -480,7 +491,7 @@ class burglebros extends Table
         if ($multi_characters > 1) {
             $next_player_id = $this->getPlayerAfterCustom();
             self::setGameStateValue('currentPlayer', $next_player_id);
-            self::notifyAllPlayers('activatePlayer', '', [
+            $this->bga->notify->all('activatePlayer', '', [
                 'player_id' => $next_player_id,
             ]);
             return $next_player_id;
@@ -548,10 +559,10 @@ class burglebros extends Table
         $entrance = $this->tiles->getCard($tile_id);
         $floor = $entrance['location'][5];
         if ($floor != 1) {
-            throw new BgaUserException(self::_("Starting tile must be on the first floor"));
+            throw new BgaUserException(clienttranslate("Starting tile must be on the first floor"));
         }
         if ($entrance['type'] == 'shaft') {
-            throw new BgaUserException(self::_("You cannot start on the shaft, this room is empty"));
+            throw new BgaUserException(clienttranslate("You cannot start on the shaft, this room is empty"));
         }
         $this->performPeek($entrance['id'], 'effect');
 
@@ -672,7 +683,7 @@ class burglebros extends Table
         $character['name'] = $this->getCardType($character);
         $actions_remaining = self::getGameStateValue('actionsRemaining'); 
         // $actions_description = $actions_remaining > 0 ?
-        //     self::_("${actions_remaining} actions") :
+        //     clienttranslate("${actions_remaining} actions") :
         //     '';
         return array(
             'escape' => $this->canEscape($player_tile),
@@ -737,8 +748,8 @@ class burglebros extends Table
     function getTiles($floor) {
         $tiles = $this->tiles->getCardsInLocation("floor$floor", null, 'location_arg');
         $flipped = $this->getFlippedTiles($floor);
-        $state = $this->gamestate->state();
-        if ($state['name'] !== 'gameEnd') {
+        $stateName = $this->gamestate->getCurrentMainState()->name;
+        if ($stateName !== 'gameEnd') {
             foreach ($tiles as &$tile) {
                 if (!isset($flipped[$tile['id']])) {
                     $tile['type'] = 'back'; // face-down
@@ -846,8 +857,11 @@ SQL;
                     if ($die_count < 6) {
                         $next_count = $die_count + 1;
                         self::setGameStateValue("patrolDieCount$floor", $die_count + 1);
-                        self::notifyAllPlayers('message', clienttranslate("The Patrol Deck ran out of cards. The Guard on floor $floor now moves $next_count spaces"), []);
-                        self::notifyAllPlayers('patrolDieIncreased', '', array(
+                        $this->bga->notify->all('message', clienttranslate('The Patrol Deck ran out of cards. The Guard on floor ${floor} now moves ${next_count} spaces'), [
+                            'floor' => $floor,
+                            'next_count' => $next_count,
+                        ]);
+                        $this->bga->notify->all('patrolDieIncreased', '', array(
                             'die_num' => $die_count + 1,
                             'token' => array_values($this->tokens->getCardsOfType('patrol', $floor))[0],
                             'floor' => $floor
@@ -855,7 +869,7 @@ SQL;
                     }
                 }
                 $patrol_entrance = $this->cards->pickCardForLocation($patrol.'_deck', $patrol.'_discard', 16 - $count);
-                self::notifyAllPlayers('nextPatrol', '', array(
+                $this->bga->notify->all('nextPatrol', '', array(
                     'floor' => $floor,
                     'cards' => $this->cards->getCardsInLocation($patrol.'_discard'),
                     'top' => $patrol_entrance,
@@ -922,7 +936,7 @@ SQL;
 
     function flipTile($floor, $location_arg) {
         self::DbQuery("UPDATE tile SET flipped=1 WHERE card_location='floor$floor' and card_location_arg=$location_arg");
-        self::notifyAllPlayers('tileFlipped', '', array(
+        $this->bga->notify->all('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor, $location_arg),
             'floor' => $floor,
             'undo_allowed' => self::getGameStateValue('undoAllowed'),
@@ -1031,7 +1045,7 @@ SQL;
             $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
             if ($painting && !($variant == 'hawk2') && (($secret_door && $blocked) || $service_duct)) {
                 if ($throw_exception) {
-                    throw new BgaUserException(self::_('Cannot move this way while holding the Painting'));
+                    throw new BgaUserException(clienttranslate('Cannot move this way while holding the Painting'));
                 } else {
                     return FALSE;
                 }
@@ -1122,14 +1136,14 @@ SQL;
             }
         }
         if (!$face_down) {
-            throw new BgaUserException(self::_('Tile is already visible'));
+            throw new BgaUserException(clienttranslate('Tile is already visible'));
         }
         foreach ($adjacent_flipped as $tile) {
             if ($this->isTileAdjacent($target_tile, $tile, $walls, 'hawk2')) {
                 return true;
             }
         }
-        throw new BgaUserException(self::_('Tile is not valid for the Enhance ability'));
+        throw new BgaUserException(clienttranslate('Tile is not valid for the Enhance ability'));
     }
 
     function moveGuardDebug($floor) {
@@ -1141,12 +1155,12 @@ SQL;
         $floor = $tile['location'][5];
         $this->moveToken($guard_token['id'], 'tile', $tile_id, TRUE);
         if ($create_path) {
-            self::notifyAllPlayers('createGuardPath', '', array(
+            $this->bga->notify->all('createGuardPath', '', array(
                 'floor' => $floor,
                 'path' => $this->getPathByLocation($floor, null)
             ));
         } else {
-            self::notifyAllPlayers('updateGuardPath', '', array(
+            $this->bga->notify->all('updateGuardPath', '', array(
                 'floor' => $floor,
                 'path' => $this->getPathByLocation($floor, null),
                 'position' => $tile['location_arg']
@@ -1215,6 +1229,7 @@ SQL;
     }
 
     function decrementPlayerStealth($player_id, $amount = 1) {
+        // DEBUG on studio decrementPlayerStealth(2318199,-10)
         $table = $this->getSoloMultiCharacters() > 1 ? "solo_characters" : "player";
         self::DbQuery("UPDATE $table SET player_stealth_tokens = player_stealth_tokens - $amount WHERE player_id = '$player_id'");
         // $players = self::loadPlayersBasicInfos();
@@ -1233,7 +1248,8 @@ SQL;
             $this->pickTokens('stealth', 'player', $player_id, -$amount);
             $action = 'message';
         }
-        self::notifyAllPlayers($action, clienttranslate( '${player_name} ${action} one stealth' ), array(
+        $this->bga->notify->all($action, clienttranslate( '${player_name} ${action} one stealth' ), array(
+            'i18n' => ['action'],
             'action' => $amount < 0 ? clienttranslate('gains') : clienttranslate('loses'),
             'player_name' => $players[$player_id]['player_name'],
             'meeple_id' => $token_id
@@ -1576,9 +1592,9 @@ SQL;
     }
 
     function getGenericTokens() {
-        $types = implode(array_map(function($type) {
+        $types = implode("','", array_map(function($type) {
             return $type['name'];
-        }, $this->token_types), "','");
+        }, $this->token_types));
         $tokens = self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM token WHERE card_location != 'deck' and card_type in ('$types')");
         foreach ($tokens as &$token) {
             $token['letter'] = strtoupper($token['type'][0]);
@@ -1588,7 +1604,7 @@ SQL;
     }
 
     function getPlacedTokens($types, $location='tile') {
-        $types_arg = "('".implode($types,"','")."')";
+        $types_arg = "('".implode("','", $types)."')";
         $rows = self::getObjectListFromDB("SELECT card_location_arg id, card_id token_id FROM token WHERE card_type in $types_arg AND card_location = '$location'");
         $result = array();
         foreach ($rows as $row) {
@@ -1601,7 +1617,7 @@ SQL;
     }
 
     function notifyPlayerHand($player_id, $discard_ids=array()) {
-        self::notifyAllPlayers('playerHand', '', array(
+        $this->bga->notify->all('playerHand', '', array(
             'player_id' => $player_id,
             'hand' => $this->cards->getPlayerHand($player_id),
             'discard_ids' => $discard_ids
@@ -1609,7 +1625,7 @@ SQL;
     }
 
     function notifyTileCards($tile_id) {
-        self::notifyAllPlayers('tileCards', '', array(
+        $this->bga->notify->all('tileCards', '', array(
             'tile_id' => $tile_id,
             'tokens' => $this->getCardTokens($tile_id)
         ));
@@ -1622,10 +1638,10 @@ SQL;
 
     function performSafeDiceRoll($safe_tile, $drop_loot=0) {
         if ($safe_tile['type'] != 'safe') {
-            throw new BgaUserException(self::_("Tile is not a safe"));
+            throw new BgaUserException(clienttranslate("Tile is not a safe"));
         }
         if ($this->tokensInTile('open', $safe_tile['id'])) {
-            throw new BgaUserException(self::_("Safe is already open"));
+            throw new BgaUserException(clienttranslate("Safe is already open"));
         }
 
         $dice_count = $this->getSafeDie($safe_tile['id']);
@@ -1634,7 +1650,7 @@ SQL;
             $dice_count++;
         }
         if ($dice_count == 0) {
-            throw new BgaUserException(self::_("You have not added any dice"));
+            throw new BgaUserException(clienttranslate("You have not added any dice"));
         }
 
         // Check player holding the keycard is rolling
@@ -1645,9 +1661,9 @@ SQL;
             if ($keycard_holder['location_arg'] != $safe_tile['id']) {
                 if ( $drop_loot ) {
                     if (!$this->getPlayerCharacter($keycard_holder['type_arg'], 'peterman2'))
-                        throw new BgaUserException(self::_("The player holding the keycard must be present"));
+                        throw new BgaUserException(clienttranslate("The player holding the keycard must be present"));
                 } else {
-                    throw new BgaUserException(self::_("The player holding the keycard must be present"));        
+                    throw new BgaUserException(clienttranslate("The player holding the keycard must be present"));        
                 }
             }
         }
@@ -1746,8 +1762,7 @@ SQL;
             }
             $this->notifyPlayerHand($current_player_id);
             
-            $msg = clienttranslate("${player_name} cracked the safe on floor ${floor}");
-            self::notifyAllPlayers('message', $msg, [
+            $this->bga->notify->all('message', clienttranslate('${player_name} cracked the safe on floor ${floor}'), [
                 'player_name' => self::getCurrentPlayerName(),
                 'floor' => $floor
             ]);
@@ -1762,8 +1777,11 @@ SQL;
                 if ($die_count < 6) {
                     $next_count = $die_count + 1;
                     self::setGameStateValue("patrolDieCount$lower_floor", $next_count);
-                    self::notifyAllPlayers('message', clienttranslate("Guard on floor $lower_floor now moves $next_count spaces"), []);
-                    self::notifyAllPlayers('patrolDieIncreased', '', array(
+                    $this->bga->notify->all('message', clienttranslate('Guard on floor ${lower_floor} now moves ${next_count} spaces'), [
+                        'lower_floor' => $lower_floor,
+                        'next_count' => $next_count,
+                    ]);
+                    $this->bga->notify->all('patrolDieIncreased', '', array(
                         'die_num' => $die_count + 1,
                         'token' => array_values($this->tokens->getCardsOfType('patrol', $lower_floor))[0],
                         'floor' => $lower_floor
@@ -1771,7 +1789,7 @@ SQL;
                 }
             }
             // Show back current cracked safe floor (because patrolDieIncreased will show the 1st floor)
-            self::notifyAllPlayers('showFloor', '', [
+            $this->bga->notify->all('showFloor', '', [
                 'floor' => $safe_tile['location'][5],
                 'delay' => false,
             ]);
@@ -1804,7 +1822,7 @@ SQL;
     function moveTokens($ids, $location, $location_arg=0, $synchronous=FALSE) {
         $this->tokens->moveCards($ids, $location, $location_arg);
         $name = $synchronous ? 'tokensPickedSync' : 'tokensPicked';
-        self::notifyAllPlayers($name, '', array(
+        $this->bga->notify->all($name, '', array(
             'tokens' => $this->getTokens($ids)
         ));
     }
@@ -1815,7 +1833,7 @@ SQL;
         if ($token['type'] == 'patrol') {
             $tile = $this->tiles->getCard($token['location_arg']);
             $floor = $tile['location'][5];
-            self::notifyAllPlayers('createGuardPath', '', array(
+            $this->bga->notify->all('createGuardPath', '', array(
                 'floor' => $floor,
                 'path' => $this->getPathByLocation($floor, null)
             ));
@@ -1865,9 +1883,10 @@ SQL;
                 }
             }
         }
-        self::notifyAllPlayers('diceRolled', clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
+        $this->bga->notify->all('diceRolled', clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
+            'i18n' => ['for'],
             'player_name' => $this->getActivePlayerNameCustom(),
-            'roll' => implode($roll_list, ','),
+            'roll' => implode(',', $roll_list),
             'rolls' => $roll_list,
             'for' => $for
         ));
@@ -2018,7 +2037,7 @@ SQL;
         }
         $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
         $players = $this->loadPlayersInfos();
-        self::notifyAllPlayers('message', clienttranslate($msg), [
+        $this->bga->notify->all('message', $msg, [
             'player_name' => $players[$player_id]['player_name'],
             'tile_name' => $patrol_names[$tile['location_arg']]['name'],
             'floor' => $tile['location'][5],
@@ -2042,7 +2061,7 @@ SQL;
 
         $action_penalty = $this->getGemstonePenalty($player_id, $tile);
         if ($action_penalty > 0 && $actions_remaining < 2) {
-            throw new BgaUserException(self::_('Entering a tile with another player costs an additional action with the Gemstone'));
+            throw new BgaUserException(clienttranslate('Entering a tile with another player costs an additional action with the Gemstone'));
         }
 
         if ($context == 'acrobat2') {
@@ -2060,7 +2079,7 @@ SQL;
                             $cancel_move = true;
                             $this->notifyMovement($player_id, $player_tile, 'deadbolt');
                         } else {
-                            throw new BgaUserException(self::_('You do not have enough actions to enter the Deadbolt'));
+                            throw new BgaUserException(clienttranslate('You do not have enough actions to enter the Deadbolt'));
                         }
                     } else {
                         self::incGameStateValue('actionsRemaining', -2); // One is deducted already
@@ -2220,7 +2239,7 @@ SQL;
         $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
         $this->moveToken($patrol_token['id'], 'tile', $tile['id']);
         $this->pickTokensForTile('alarm', $tile['id']);
-        self::notifyAllPlayers('message', clienttranslate( 'An alarm was triggered' ), array());
+        $this->bga->notify->all('message', clienttranslate( 'An alarm was triggered' ), array());
         self::incStat(1, 'alarm_triggered');
         // Let player choose the closest alarm if relevant
         return $this->nextPatrol($floor);
@@ -2259,7 +2278,7 @@ SQL;
             $tile = $this->getPlayerTile($player_id);
             $this->pickTokensForTile('stealth', $tile['id'], 3);
         } elseif ($type == 'stethoscope') {
-            throw new BgaUserException(self::_("You must roll dice before using the stethoscope"));
+            throw new BgaUserException(clienttranslate("You must roll dice before using the stethoscope"));
         } elseif ($type == 'crystal-ball') {
             self::setGameStateValue('undoAllowed', 0);
             $choice = TRUE;
@@ -2341,6 +2360,10 @@ SQL;
         $this->notifyPlayerHand($current_player_id, array($current_char['id']));
     }
 
+    function addActionDebug() {
+        self::setGameStateValue('actionsRemaining', 10);
+    }
+
     function handleEventEffectDebug($name) {
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
@@ -2370,7 +2393,7 @@ SQL;
                     $this->nextPatrol($floor, TRUE);
                 }
             }
-        } elseif($type == 'buddy-system') {
+        } elseif ($type == 'buddy-system') {
             if (self::getPlayersNumber() - count($this->getEscapedPlayers()) > 1 || 
                 $this->getSoloMultiCharacters() - count($this->getEscapedPlayers()) > 1) {
                 $card_choice = TRUE;
@@ -2419,8 +2442,13 @@ SQL;
         } elseif($type == 'heads-up') {
             $next_player = $this->getPlayerAfterCustom($player_id);
             $player_token = $this->getPlayerToken($next_player);
+            $all_other_players_escaped = 0;
+            $players_count = $this->getSoloMultiCharacters() > 1 ? $this->getSoloMultiCharacters() : self::getPlayersNumber();
             while ($player_token['location'] == 'roof') {
                 $next_player = $this->getPlayerAfterCustom();
+                if (++$all_other_players_escaped >= $players_count) {
+                    $next_player = $player_id;
+                }
                 $player_token = $this->getPlayerToken($next_player);
             }
             $this->cards->moveCard($card['id'], 'hand', $next_player);
@@ -2638,9 +2666,9 @@ SQL;
     function validateSelection($expected_type, $selected_type) {
         if ($expected_type != $selected_type) {
             if ($expected_type == 'button') {
-                throw new BgaUserException(self::_("Finish first the action you started (use buttons in the status bar)"));
+                throw new BgaUserException(clienttranslate("Finish first the action you started (use buttons in the status bar)"));
             } else {
-                throw new BgaUserException(self::_("Invalid selection. Expected: $expected_type."));
+                throw new BgaUserException(clienttranslate("Invalid selection. Expected: $expected_type."));
             }
         }
     }
@@ -2674,17 +2702,21 @@ SQL;
             $tile = $this->tiles->getCard($selected_id);
             $flipped = $this->getFlippedTiles($tile['location'][5]);
             if (isset($flipped[$selected_id])) {
-                throw new BgaUserException(self::_('Tile is already visible'));
+                throw new BgaUserException(clienttranslate('Tile is already visible'));
             }
             $this->performPeek($tile['id'], 'effect');
         } elseif($type == 'buddy-system') {
-            $this->validateSelection('meeple', $selected_type);
-            $other_token = $this->tokens->getCard($selected_id);
+            if ($selected_type == 'button') {
+                $other_token = $this->tokens->getCard($selected_id);
+            } else {
+                $this->validateSelection('meeple', $selected_type);
+                $other_token = $this->tokens->getCard($selected_id);
+            }
             if ($other_token['type'] != 'player') {
-                throw new BgaUserException(self::_("Must choose a player token"));
+                throw new BgaUserException(clienttranslate("Must choose a player token"));
             }
             if ($other_token['type_arg'] == $current_player_id) {
-                throw new BgaUserException(self::_('You cannot choose yourself'));
+                throw new BgaUserException(clienttranslate('You cannot choose yourself'));
             }
             // $player_token = $this->getPlayerToken(self::getCurrentPlayerId());
             $player_token = $this->getPlayerToken($this->getCurrentPlayerIdCustom());
@@ -2695,12 +2727,12 @@ SQL;
             // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'peek')) {
-                throw new BgaUserException(self::_('Tile is not adjacent'));
+                throw new BgaUserException(clienttranslate('Tile is not adjacent'));
             }
             // Check tile type is legitimate for crowbar
             $available_tiles = ['camera','deadbolt','detector','fingerprint','keypad','laser','motion','thermo'];
             if (!in_array($tile['type'], $available_tiles)) {
-                throw new BgaUserException( sprintf(self::_("There is no point in using the crowbar on a %s tile, please try on another one"), $tile['type']) );
+                throw new BgaUserException( sprintf(clienttranslate("There is no point in using the crowbar on a %s tile, please try on another one"), $tile['type']) );
             }
             $this->pickTokensForTile('crowbar', $tile['id']);
         } elseif ($type == 'donuts') {
@@ -2708,7 +2740,7 @@ SQL;
             $tile = $this->tiles->getCard($selected_id);
             $guard_token = array_values($this->tokens->getCardsOfTypeInLocation('guard', null, 'tile', $tile['id']));
             if (count($guard_token) == 0) {
-                throw new BgaUserException(self::_('Tile does not contain a guard'));
+                throw new BgaUserException(clienttranslate('Tile does not contain a guard'));
             }
             $this->cards->moveCard($card['id'], 'tile', $tile['id']);
             $this->notifyTileCards($tile['id']);
@@ -2737,6 +2769,17 @@ SQL;
                         $wcol = $wall['vertical'] == 0 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
                         $vertical = ($trow == $prow && $trow == $wrow && abs($tcol - $pcol) == 1) && min($tcol, $pcol) == $wcol;
                         $horizontal = ($tcol == $pcol && $tcol == $wcol && abs($trow - $prow) == 1) && min($trow, $prow) == $wrow;
+                        // Check this is not a shaft wall
+                        $shaft = $this->board->getShaftPosition();
+                        $srow = floor($shaft / $size_sq);
+                        $scol = $shaft % $size_sq;
+                        if ( $this->getGameStateValue('scenario') == 3 &&
+                            (($wall['vertical'] == 1 && $wrow == $srow && 
+                                ($wcol == $scol || $wcol == $scol - 1)) || 
+                             ($wall['vertical'] == 0 && $wcol == $scol && 
+                                ($wrow == $srow || $wrow == $srow - 1))) ) {
+                            throw new BgaUserException(clienttranslate('You cannot blow up a wall of the pillar'));
+                        }
                         if (($wall['vertical'] == 1 && $vertical) || ($wall['vertical'] == 0 && $horizontal)) {
                             self::DbQuery("DELETE FROM wall WHERE id = '$selected_id'");
                             $special_choice = $this->triggerAlarm($player_tile);
@@ -2745,7 +2788,7 @@ SQL;
                                 $special_choice = $this->nextPatrol($floor);
                             }
                             // Notify players to remove wall
-                            self::notifyAllPlayers('removeWall', '', array(
+                            $this->bga->notify->all('removeWall', '', array(
                                 'wall_id' => $selected_id,
                             ));
                             $exit = TRUE;
@@ -2754,14 +2797,14 @@ SQL;
                 }
             }
             if (!$exit) {
-                throw new BgaUserException(self::_('This wall is not adjacent'));
+                throw new BgaUserException(clienttranslate('This wall is not adjacent'));
             }
         } elseif($type == 'go-with-your-gut') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
             $flipped = $this->getFlippedTiles($tile['location'][5]);
             if (isset($flipped[$tile['id']])) {
-                throw new BgaUserException(self::_('This tile is already visible'));
+                throw new BgaUserException(clienttranslate('This tile is already visible'));
             }
             $result = $this->performMove($selected_id, 'event');
             $tile_choice = $result['tile_choice'];
@@ -2781,11 +2824,11 @@ SQL;
             $tile = $this->tiles->getCard($selected_id);
             $flipped = $this->getFlippedTiles($tile['location'][5]);
             if (!isset($flipped[$tile['id']])) {
-                throw new BgaUserException(self::_('You must reveal the tile first before setting an alarm'));
+                throw new BgaUserException(clienttranslate('You must reveal the tile first before setting an alarm'));
             }
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             if (!$this->isTileAdjacent($tile, $player_tile, null, 'guard')) {
-                throw new BgaUserException(self::_('This tile is not adjacent'));
+                throw new BgaUserException(clienttranslate('This tile is not adjacent'));
             }
             $special_choice = $this->triggerAlarm($tile);
             self::incStat(1, 'special_ability_use', self::getCurrentPlayerId());
@@ -2801,7 +2844,7 @@ SQL;
             if ($add_or_roll == 0) {
                 $actions_remaining = self::getGameStateValue('actionsRemaining');
                 if ($actions_remaining < 2) {
-                    throw new BgaUserException(self::_("Adding a die requires 2 actions"));
+                    throw new BgaUserException(clienttranslate("Adding a die requires 2 actions"));
                 }
                 $this->performAddSafeDie($other_tile);
                 self::incGameStateValue('actionsRemaining', -1);
@@ -2814,14 +2857,14 @@ SQL;
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $tile = $this->tiles->getCard($selected_id);
             if ($player_tile['location']['5'] != $tile['location'][5]) {
-                throw new BgaUserException(self::_('Crow must be placed on your floor'));
+                throw new BgaUserException(clienttranslate('Crow must be placed on your floor'));
             }
             $path = $this->findShortestPathClockwise($player_tile['location']['5'], $player_tile['location_arg'], $tile['location_arg']);
             if (count($path) <= 3) { // Includes starting tile
                 $crow = array_values($this->tokens->getCardsOfType('crow'))[0];
                 $this->moveToken($crow['id'], 'tile', $selected_id);
             } else {
-                throw new BgaUserException(self::_('Crow can be placed up to two tiles away'));
+                throw new BgaUserException(clienttranslate('Crow can be placed up to two tiles away'));
             }
             self::incStat(1, 'special_ability_use', self::getCurrentPlayerId());
         } elseif($type == 'spotter1') {
@@ -2859,10 +2902,10 @@ SQL;
             // $tile = $this->tiles->getCard($selected_id);
             $tile = $this->getTile($selected_id);
             if ($tile['flipped'] === '0') {
-                throw new BgaUserException(self::_("You must reveal the tile first"));
+                throw new BgaUserException(clienttranslate("You must reveal the tile first"));
             }
             if (strpos($tile['type'], 'computer') === FALSE) {
-                throw new BgaUserException(self::_("Tile is not a computer"));
+                throw new BgaUserException(clienttranslate("Tile is not a computer"));
             }
             $existing = $this->tokensInTile('hack', $tile['id']);
             $nbr = $existing <= 3 ? 3 : 6 - $existing;
@@ -2874,14 +2917,14 @@ SQL;
                 $event_card = $this->cards->getCard($event_card_id);
                 $card_names_displayed[] = $this->getDisplayedCardName($this->getCardType($event_card));
             }
-            self::notifyAllPlayers('message', clienttranslate('Crystal Ball: ${player_name} changed order of upcoming events to ${card_names_displayed}'), [
+            $this->bga->notify->all('message', clienttranslate('Crystal Ball: ${player_name} changed order of upcoming events to ${card_names_displayed}'), [
                 'player_name' => self::getCurrentPlayerName(),
                 'card_names_displayed' => implode(', ', array_reverse($card_names_displayed)),
             ]);
         } elseif ($type == 'stethoscope') {
             [$old_value, $new_value] = $selected_id;
             self::DbQuery("UPDATE token SET card_type_arg=$new_value WHERE card_type='die' AND card_type_arg=$old_value LIMIT 1");
-            self::notifyAllPlayers('message', clienttranslate('Stethoscope: ${player_name} changed one die from ${old_value} to ${new_value}'), [
+            $this->bga->notify->all('message', clienttranslate('Stethoscope: ${player_name} changed one die from ${old_value} to ${new_value}'), [
                 'player_name' => self::getCurrentPlayerName(),
                 'old_value' => $old_value,
                 'new_value' => $new_value
@@ -2902,7 +2945,7 @@ SQL;
                 $this->moveToken($patrol_token['id'], 'tile', $selected_id, TRUE);
                 // $this->performGuardMovementEffects($guard_token, $selected_id, TRUE);
             } else {
-                throw new BgaUserException(self::_("This tile is not adjacent to the guard destination"));
+                throw new BgaUserException(clienttranslate("This tile is not adjacent to the guard destination"));
             }
         }
         if ($card['type'] != 0) {
@@ -2930,7 +2973,7 @@ SQL;
             $special_choice = $this->triggerAlarm($tile);
         } elseif($selected == 1) { // hack
             if (!$this->canHack($tile)) {
-                throw new BgaUserException(self::_('Cannot hack this tile'));
+                throw new BgaUserException(clienttranslate('Cannot hack this tile'));
             }
             $tokens = $this->getPlacedTokens(array('hack'));
             $computer_tile = array_values($this->tiles->getCardsOfType("$type-computer"))[0];
@@ -2942,17 +2985,17 @@ SQL;
                 $to_move = array_values($this->getPlacedTokens(array('hack'), 'card'))[0][0];
             }
             $this->moveToken($to_move, 'deck');
-            self::notifyAllPlayers('message', clienttranslate('${player_name} used a hack token'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} used a hack token'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
         } elseif($selected == 2) { // Extra action
             if (!$this->canUseExtraAction($player_id, $tile)) {
-                throw new BgaUserException(self::_('Cannot use an extra action to enter this tile'));
+                throw new BgaUserException(clienttranslate('Cannot use an extra action to enter this tile'));
             }
             $gemstone_penalty = $this->getGemstonePenalty($player_id, $tile, TRUE);
             // Take an extra 1 (or 2 for gemstone). Another 1 is always taken
             self::incGameStateValue('actionsRemaining', -1 - $gemstone_penalty);
-            self::notifyAllPlayers('message', clienttranslate('${player_name} used an extra action'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} used an extra action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
         }
@@ -2975,12 +3018,12 @@ SQL;
                 // Tile is already flipped, do nothing
                 return;
             } else {
-                throw new BgaUserException(self::_("Tile is already visible"));
+                throw new BgaUserException(clienttranslate("Tile is already visible"));
             }
         }
         $walls = $this->getWalls();
         if ($variant != 'effect' && !$this->isTileAdjacent($to_peek, $player_tile, $walls, $variant)) {
-            throw new BgaUserException(self::_("Tile is not adjacent"));
+            throw new BgaUserException(clienttranslate("Tile is not adjacent"));
         }
 
         $this->handleTilePeek($to_peek);
@@ -2991,7 +3034,8 @@ SQL;
         $message = $variant == 'effect' ? 
             clienttranslate('${player_name} reveal tile ${tile_name} (${tile_type}) on floor ${floor}') : 
             clienttranslate('${player_name} peeked tile ${tile_name} (${tile_type}) on floor ${floor}');
-        self::notifyAllPlayers('message', $message, [
+        $this->bga->notify->all('message', $message, [
+            'i18n' => ['tile_type'],
             'player_name' => $players[$current_player_id]['player_name'],
             'tile_name' => $tile_name,
             'tile_type' => $tile_type,
@@ -3018,11 +3062,11 @@ SQL;
         $acrobat_entered = 0;
 
         if (!$this->isTileAdjacent($to_move, $player_tile, null, $context)) {
-            throw new BgaUserException(self::_("Tile is not adjacent"));
+            throw new BgaUserException(clienttranslate("Tile is not adjacent"));
         }
         if ($context == 'acrobat1') {
             if ($guard_token['location'] != 'tile' || $guard_token['location_arg'] != $tile_id) {
-                throw new BgaUserException(self::_("Tile does not contain a guard"));
+                throw new BgaUserException(clienttranslate("Tile does not contain a guard"));
             }
             $acrobat_entered = 1;
         }
@@ -3065,15 +3109,15 @@ SQL;
 
     function performAddSafeDie($tile) {
         if ($tile['type'] != 'safe') {
-            throw new BgaUserException(self::_("Tile is not a safe"));
+            throw new BgaUserException(clienttranslate("Tile is not a safe"));
         }
         if ($this->tokensInTile('open', $tile['id'])) {
-            throw new BgaUserException(self::_("Safe is already open"));
+            throw new BgaUserException(clienttranslate("Safe is already open"));
         }
         $floor = $tile['location'][5];
         $die_num = $this->getSafeDie($tile['id']);
         if ($die_num == 6) {
-            throw new BgaUserException(self::_("You cannot add more than 6 die on a safe"));   
+            throw new BgaUserException(clienttranslate("You cannot add more than 6 die on a safe"));   
         }
         $safe_token = array_values($this->tokens->getCardsOfTypeInLocation('crack', null, 'tile', $tile['id']));
         if (count($safe_token) > 0) {
@@ -3083,12 +3127,12 @@ SQL;
             $this->moveToken($safe_token['id'], 'tile', $tile['id']);
         }
         $this->setSafeDie(++$die_num, $tile['id']);
-        self::notifyAllPlayers('safeDieIncreased', '', array(
+        $this->bga->notify->all('safeDieIncreased', '', array(
             'die_num' => $die_num,
             'token' => $safe_token,
             'floor' => $floor
         ));
-        self::notifyAllPlayers('message', clienttranslate('${player_name} added a die to the safe on floor ${floor}'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} added a die to the safe on floor ${floor}'), [
             'player_name' => self::getCurrentPlayerName(),
             'floor' => $floor
         ]);
@@ -3106,7 +3150,7 @@ SQL;
             foreach ($card_ids as $card_id) {
                 $values [] = "($trade_id,$player_id,$card_id)";
             }
-            $sql .= implode($values, ',');
+            $sql .= implode(',', $values);
             self::DbQuery($sql);
         }
     }
@@ -3145,20 +3189,20 @@ SQL;
             $current_player_token = $this->getPlayerToken($current_player_id);
             $player_tokens = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $current_player_token['location_arg']);
             if (!isset($player_tokens[$selected])) {
-                throw new BgaUserException(self::_('Selected player is not in your tile'));
+                throw new BgaUserException(clienttranslate('Selected player is not in your tile'));
             }
             if ($player_tokens[$selected]['type_arg'] == $current_player_id) {
-                throw new BgaUserException(self::_('You cannot trade with yourself'));
+                throw new BgaUserException(clienttranslate('You cannot trade with yourself'));
             }
             $this->createTrade($current_player_id, $player_tokens[$selected]['type_arg']);
             $this->gamestate->nextState('proposeTrade');
         } else if ($type == 'rook1') {
             $meeple = $this->tokens->getCard($selected);
             if ($meeple['type'] != 'player') {
-                throw new BgaUserException(self::_('Must choose a player token'));
+                throw new BgaUserException(clienttranslate('Must choose a player token'));
             }
             if ($meeple['type_arg'] == $current_player_id) {
-                throw new BgaUserException(self::_('You cannot choose yourself'));
+                throw new BgaUserException(clienttranslate('You cannot choose yourself'));
             }
             self::setGameStateValue('specialChoice', 1); // Rook 1
             self::setGameStateValue('specialChoiceArg', $meeple['type_arg']); // Rook 1
@@ -3166,16 +3210,16 @@ SQL;
         } else if ($type == 'rook2') {
             $meeple = $this->tokens->getCard($selected);
             if ($meeple['type'] != 'player') {
-                throw new BgaUserException(self::_('Must choose a player token'));
+                throw new BgaUserException(clienttranslate('Must choose a player token'));
             }
             if ($meeple['type_arg'] == $current_player_id) {
-                throw new BgaUserException(self::_('You cannot choose yourself'));
+                throw new BgaUserException(clienttranslate('You cannot choose yourself'));
             }
             if ($meeple['location'] == 'roof') {
-                throw new BgaUserException(self::_('You cannot trade places with an escaped player'));
+                throw new BgaUserException(clienttranslate('You cannot trade places with an escaped player'));
             }
             if ($meeple['location'] == 'hand') {
-                throw new BgaUserException(self::_('You cannot trade places when the other player has not entered yet the building'));
+                throw new BgaUserException(clienttranslate('You cannot trade places when the other player has not entered yet the building'));
             }
             $player_token = $this->getPlayerToken($current_player_id);
             $tmp_location = $meeple['location_arg'];
@@ -3185,7 +3229,7 @@ SQL;
             $other_tile = $this->getTile($tmp_location);
             $players = $this->loadPlayersInfos();
             $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
-            self::notifyAllPlayers('message', clienttranslate('The Rook Advanced: ${player_name} (${rook_tile_name} on floor ${rook_tile_floor}) trades places with ${other_player_name} (${other_tile_name} on floor ${other_tile_floor})'), [
+            $this->bga->notify->all('message', clienttranslate('The Rook Advanced: ${player_name} (${rook_tile_name} on floor ${rook_tile_floor}) trades places with ${other_player_name} (${other_tile_name} on floor ${other_tile_floor})'), [
                 'player_name' => self::getActivePlayerName(),
                 'rook_tile_name' => $patrol_names[$rook_tile['location_arg']]['name'],
                 'rook_tile_floor' => $rook_tile['location'][5],
@@ -3197,21 +3241,21 @@ SQL;
         } else if ($type == 'squeak') {
             $meeple = $this->tokens->getCard($selected);
             if ($meeple['type'] != 'player') {
-                throw new BgaUserException(self::_('Must choose a player token'));
+                throw new BgaUserException(clienttranslate('Must choose a player token'));
             }
             $tile = $this->getPlayerTile($current_player_id);
             $floor = $tile['location'][5];
             $selected_player_id = $meeple['type_arg'];
             $selected_player_tile = $this->getPlayerTile($selected_player_id);
             if (count($this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $selected_player_tile['id'])) == 0)
-                throw new BgaUserException(self::_("You must choose a tile with a player"));
+                throw new BgaUserException(clienttranslate("You must choose a tile with a player"));
             if ($selected_player_tile['location'] != "floor$floor")
-                throw new BgaUserException(self::_("You must choose a player tile on the same floor"));
+                throw new BgaUserException(clienttranslate("You must choose a player tile on the same floor"));
             $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
             $path = $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $selected_player_tile['location_arg']);
             if (count($path) > self::getGameStateValue("playerChoiceArg"))
-                throw new BgaUserException(self::_("You must choose one of the closest players"));
+                throw new BgaUserException(clienttranslate("You must choose one of the closest players"));
             // If guard and players are on the same tile, do not move players
             if (count($path) > 1) {
                 $this->performGuardMovementEffects($guard_token, $path[1]);
@@ -3239,7 +3283,7 @@ SQL;
                 self::setGameStateValue('currentPlayer', $active_player_id);
                 $player_name = self::getActivePlayerName();
             }
-            self::notifyAllPlayers('message', clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
+            $this->bga->notify->all('message', clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
                 'player_name' => $player_name,
                 'other_name' => $players[$choice_arg]['player_name'],
             ]);      
@@ -3253,9 +3297,9 @@ SQL;
             // $floor = $player_tile['location'][5];
             $alarm_tiles = $this->getFloorClosestAlarmTiles($selected_floor);
             if (count($alarm_tiles) <= 1)
-                throw new BgaUserException(self::_("You must choose an alarm on the right floor"));
+                throw new BgaUserException(clienttranslate("You must choose an alarm on the right floor"));
             if (!in_array($selected, $alarm_tiles))
-                throw new BgaUserException(self::_("You must choose one of the closest alarms"));
+                throw new BgaUserException(clienttranslate("You must choose one of the closest alarms"));
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $selected_floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
             self::setGameStateValue('specialChoice', 0);    
@@ -3453,19 +3497,25 @@ SQL;
         return $tokens;
     }
 
-    function notifyGuardMovement($floor, $movement, $has_alarms, $has_event=FALSE) {
-        $msg = clienttranslate("Guard on floor $floor is moving $movement spaces");
+    function notifyGuardMovement($floor, $movement, $alarms, $has_event=FALSE) {
+        $alarm_tiles = $this->getFloorAlarmTiles($floor);
+        $has_alarms = count($alarm_tiles) > 0;
         if ($has_alarms || $has_event) {
-            $msg .= clienttranslate(' including ');
             if ($has_alarms && $has_event) {
-                $msg .= clienttranslate('alarms and an event card');
+                $msg = clienttranslate('Guard on floor ${floor} is moving ${movement} spaces including ${alarms} alarms and an event card');
             } else if ($has_alarms) {
-                $msg .= clienttranslate('alarms');
+                $msg = clienttranslate('Guard on floor ${floor} is moving ${movement} spaces including ${alarms} alarms');
             } else if ($has_event) {
-                $msg .= clienttranslate('an event card');
+                $msg = clienttranslate('Guard on floor ${floor} is moving ${movement} spaces including an event card');
             }
+        } else {
+            $msg = clienttranslate('Guard on floor ${floor} is moving ${movement} spaces');
         }
-        self::notifyAllPlayers('message', $msg, []);
+        $this->bga->notify->all('message', $msg, [
+            'floor' => $floor,
+            'movement' => $movement,
+            'alarms' => $alarms,
+        ]);
     }
 
     /* DEBUG */
@@ -3494,12 +3544,12 @@ SQL;
         self::DbQuery("UPDATE tile SET card_location='floor$floor_2', card_location_arg=$location_arg_2 WHERE card_id=$tile_id_1" );
         self::DbQuery("UPDATE tile SET card_location='floor$floor_1', card_location_arg=$location_arg_1 WHERE card_id=$tile_id_2" );
 
-        self::notifyAllPlayers('tileFlipped', '', array(
+        $this->bga->notify->all('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor_1, $location_arg_1),
             'floor' => $floor_1,
             'undo_allowed' => self::getGameStateValue('undoAllowed'),
         ));
-        self::notifyAllPlayers('tileFlipped', '', array(
+        $this->bga->notify->all('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor_2, $location_arg_2),
             'floor' => $floor_2,
             'undo_allowed' => self::getGameStateValue('undoAllowed'),
@@ -3508,49 +3558,6 @@ SQL;
 
     function getStatDebug($stat_name, $player_id = null) {
          var_dump($this->getStat($stat_name, $player_id));
-    }
-
-    public function loadDebug() {
-        // Id of the first player in BGA Studio
-        $sid = 2318199; // cpasbanal0 studio player id
-
-        // Check if this id exists in current player's table, else use these to replace
-        $players = self::getCollectionFromDb( "SELECT player_id id FROM player" );
-        if ( !in_array($sid, array_keys($players)) ) {
-            $ids = array_keys($players);
-        } else {
-            // These are the id's from the BGAtable I need to debug.
-            $ids = [
-                85300953,
-                86195160,
-            ];
-        }
-        
-        foreach ($ids as $id) {
-            // basic tables
-            self::DbQuery("UPDATE player SET player_id=$sid WHERE player_id=$id" );
-            self::DbQuery("UPDATE global SET global_value=$sid WHERE global_value=$id" );
-            self::DbQuery("UPDATE stats SET stats_player_id=$sid WHERE stats_player_id=$id" );
-
-            // 'other' game specific tables. example:
-            // tables specific to your schema that use player_ids
-            self::DbQuery("UPDATE card SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
-            self::DbQuery("UPDATE token SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
-            self::DbQuery("UPDATE token SET card_type_arg='$sid' WHERE card_type_arg ='$id'" );
-            self::DbQuery("UPDATE solo_characters SET player_id='$sid' WHERE player_id ='$id'" );
-            $multi_characters = $this->getSoloMultiCharacters();
-            for ($i=1; $i < $multi_characters; $i++) {
-                ++$sid;
-                ++$id;
-                self::DbQuery("UPDATE solo_characters SET player_id='$sid' WHERE player_id ='$id'" );
-                self::DbQuery("UPDATE card SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
-                self::DbQuery("UPDATE token SET card_location_arg='$sid' WHERE card_location_arg ='$id'" );
-                self::DbQuery("UPDATE token SET card_type_arg='$sid' WHERE card_type_arg ='$id'" );
-                self::DbQuery("UPDATE solo_characters SET player_id='$sid' WHERE player_id ='$id'" );
-            }
-            ++$sid;
-        }
-        var_dump("done with last id: $sid");
     }
 
     public function activatePlayer() {
@@ -3574,7 +3581,7 @@ SQL;
             if ($floor === 'all') {
                 $msg = clienttranslate("New random walls are generated on every floor");
             } else {
-                $msg = clienttranslate("New random walls are generated on floor $floor");
+                $msg = clienttranslate('New random walls are generated on floor ${floor}');
             }
             // Update tiles to update shaft
             $tiles = [];
@@ -3582,7 +3589,7 @@ SQL;
             for ($i=1; $i <= $max_floor; $i++) { 
                 $tiles["floor$i"] = $this->getTiles($i);
             }
-            self::notifyAllPlayers('updateWalls', $msg, [
+            $this->bga->notify->all('updateWalls', $msg, [
                 'floor' => $floor,
                 'walls' => $this->getWalls(),
                 'tiles' => $tiles,
@@ -3594,7 +3601,7 @@ SQL;
         self::checkAction('peek');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         if ($actions_remaining < 1) {
-            throw new BgaUserException(self::_("You have no actions remaining"));
+            throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
         $this->performPeek($tile_id);
         $this->endAction();
@@ -3608,12 +3615,12 @@ SQL;
             $current_player_id = self::getCurrentPlayerIdCustom();
             $character = $this->getPlayerCharacter($current_player_id);
             if ($this->getCardType($character) != 'acrobat1')
-                throw new BgaUserException(self::_("You are not the Acrobat"));
+                throw new BgaUserException(clienttranslate("You are not the Acrobat"));
             self::setGameStateValue('cardChoice', $character['id']);
             $this->selectCardChoice('tile', [$tile_id], FALSE);
             $this->endAction(0);
         } elseif ($actions_remaining < 1) {
-            throw new BgaUserException(self::_("You have no actions remaining"));
+            throw new BgaUserException(clienttranslate("You have no actions remaining"));
         } else {
             $result = $this->performMove($tile_id, $context);
             $tile_choice = $result['tile_choice'];
@@ -3639,7 +3646,7 @@ SQL;
         self::checkAction('addSafeDie');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         if ($actions_remaining < 2) {
-            throw new BgaUserException(self::_("Adding a die requires 2 actions"));
+            throw new BgaUserException(clienttranslate("Adding a die requires 2 actions"));
         }
         $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
@@ -3653,7 +3660,7 @@ SQL;
         self::checkAction('rollSafeDice');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         if ($actions_remaining < 1) {
-            throw new BgaUserException(self::_("You have no actions remaining"));
+            throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
         $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
@@ -3667,20 +3674,20 @@ SQL;
         self::checkAction('hack');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         if ($actions_remaining < 1) {
-            throw new BgaUserException(self::_("You have no actions remaining"));
+            throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
         $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         if (strpos($player_tile['type'], 'computer') === FALSE) {
-            throw new BgaUserException(self::_("Tile is not a computer"));
+            throw new BgaUserException(clienttranslate("Tile is not a computer"));
         }
         $existing = $this->tokens->getCardsOfTypeInLocation('hack', null, 'tile', $player_token['location_arg']);
         if (count($existing) >= 6) {
-            throw new BgaUserException(self::_("Only 6 hack tokens can be added to this tile"));
+            throw new BgaUserException(clienttranslate("Only 6 hack tokens can be added to this tile"));
         }
         $this->pickTokensForTile('hack', $player_token['location_arg']);
-        self::notifyAllPlayers('message', clienttranslate('${player_name} added a hack token'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} added a hack token'), [
             'player_name' => self::getCurrentPlayerName()
         ]);
         $this->endAction();
@@ -3692,17 +3699,17 @@ SQL;
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $card = $this->cards->getCard($card_id);
-        if ($this->gamestate->state()['name'] == 'chooseCharacter') {
-            if ( $this->gamestate->table_globals[100] !== '2' &&
+        if ($this->gamestate->getCurrentMainState()->name == 'chooseCharacter') {
+            if ($this->bga->tableOptions->get(100) !== 2 &&
                 ($card['location'] == 'hand' || $card['location'] == 'characters_oop') )
-                throw new BgaUserException(self::_("This character is already taken by another player"));
+                throw new BgaUserException(clienttranslate("This character is already taken by another player"));
         } elseif ($card['location'] != 'hand' || $card['location_arg'] != $current_player_id) {
-            throw new BgaUserException(self::_("Card is not in your hand"));
+            throw new BgaUserException(clienttranslate("Card is not in your hand"));
         }
 
         if ($card['type'] == 0) {
-            if ($this->gamestate->state()['name'] != 'chooseCharacter')
-                throw new BgaUserException(self::_("You cannot change your character once the game has started"));
+            if ($this->gamestate->getCurrentMainState()->name != 'chooseCharacter')
+                throw new BgaUserException(clienttranslate("You cannot change your character once the game has started"));
             // Character choice, player chose a character
             $character = $this->cards->getCard($card_id);
             $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
@@ -3717,7 +3724,8 @@ SQL;
             // Update player hand and discard the other character card
             $discard_ids = array_keys($this->cards->getCardsInLocation('characters_deck'));
             $this->notifyPlayerHand($current_player_id, array_merge($discard_ids, array($other_side_id)));
-            self::notifyAllPlayers('characterChosen', clienttranslate('${player_name} chooses to play ${character_name}'), [
+            $this->bga->notify->all('characterChosen', clienttranslate('${player_name} chooses to play ${character_name}'), [
+                'i18n' => ['character_name'],
                 'player_name' => self::getCurrentPlayerName(),
                 'player_id' => $current_player_id,
                 'character' => $character,
@@ -3736,14 +3744,14 @@ SQL;
                     // Activate next player and enter state again
                     $human_player_id = self::getCurrentPlayerId();
                     self::setGameStateValue('currentPlayer', $human_player_id);
-                    self::notifyAllPlayers('activatePlayer', '', [
+                    $this->bga->notify->all('activatePlayer', '', [
                         'player_id' => $human_player_id,
                     ]);
                     $this->gamestate->nextState('chooseCharacter');
                 } else {
                     // Activate next player and enter state again
                     self::setGameStateValue('currentPlayer', $current_player_id);
-                    self::notifyAllPlayers('activatePlayer', '', [
+                    $this->bga->notify->all('activatePlayer', '', [
                         'player_id' => $current_player_id,
                     ]);
                     $this->gamestate->nextState('nextPlayer');
@@ -3754,12 +3762,12 @@ SQL;
         } else {
             // Player wants to use a tool
             if ($card['type'] != 1) {
-                throw new BgaUserException(self::_("Card is not a tool"));
+                throw new BgaUserException(clienttranslate("Card is not a tool"));
             }
 
             $bust = $this->getPlayerLoot('bust', $current_player_id);
             if ($bust) {
-                throw new BgaUserException(self::_("You may not use tools while holding the Bust"));
+                throw new BgaUserException(clienttranslate("You may not use tools while holding the Bust"));
             }
             $human_player_id = self::getCurrentPlayerId();
             self::incStat(1, 'tools_used', $human_player_id);
@@ -3772,7 +3780,8 @@ SQL;
                 $this->cards->moveCard($card['id'], 'tools_discard');
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
                 $type = $this->getCardType($card);
-                self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${title} card (${tooltip})'), [
+                $this->bga->notify->all('message', clienttranslate('${player_name} played the ${title} card (${tooltip})'), [
+                    'i18n' => ['title', 'tooltip'],
                     'card_id' => $card['id'],
                     'player_name' => self::getCurrentPlayerName(),
                     'title' => $this->getDisplayedCardName($type),
@@ -3806,7 +3815,7 @@ SQL;
                 $this->gamestate->nextState('endTurn');    
             } elseif ($card['type'] == 0) {
                 $type = $this->getCardType($card);
-                self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
+                $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                     'player_name' => self::getCurrentPlayerName()
                 ]);
                 self::setGameStateValue('characterAbilityUsed', 1);
@@ -3828,7 +3837,8 @@ SQL;
                 // $this->cards->moveCard($card['id'], 'tools_discard');
                 $current_player_id = $this->getCurrentPlayerIdCustom();
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
-                self::notifyAllPlayers('message', clienttranslate('${player_name} played the ${title} card (${tooltip}'), [
+                $this->bga->notify->all('message', clienttranslate('${player_name} played the ${title} card (${tooltip}'), [
+                    'i18n' => ['title', 'tooltip'],
                     'card_id' => $card['id'],
                     'player_name' => self::getCurrentPlayerName(),
                     'title' => $this->getDisplayedCardName($card_type),
@@ -3843,7 +3853,7 @@ SQL;
         self::checkAction('cancelCardChoice');
         $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
         if ($card['type'] == 2) {
-            throw new BgaUserException(self::_('You may not cancel event effects'));
+            throw new BgaUserException(clienttranslate('You may not cancel event effects'));
         } elseif ($this->getCardType($card) == 'stethoscope') {
             $this->applyDieRoll();
             $this->endAction();
@@ -3894,26 +3904,26 @@ SQL;
 
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         if ($actions_remaining < 1 && in_array($type, array('hacker2', 'rook1', 'spotter1', 'spotter2'))) {
-            throw new BgaUserException(self::_("You have no actions remaining"));
+            throw new BgaUserException(clienttranslate("You have no actions remaining"));
         } else if ($used && in_array($type, array('hawk1', 'hawk2', 'juicer2', 'rook1', 'spotter1', 'spotter2'))) {
-            throw new BgaUserException(self::_('Character action can be used once per turn'));
+            throw new BgaUserException(clienttranslate('Character action can be used once per turn'));
         } else if($type == 'acrobat2') {
             $player_tile = $this->getPlayerTile($current_player_id);
             $inner_tiles = $this->getGameStateValue('scenario') == 3 ? array(6, 7, 8, 11, 12, 13, 16, 17, 18):array(5, 6, 9, 10);
             if (in_array($player_tile['location_arg'], $inner_tiles) ) {
-                throw new BgaUserException(self::_('Must be on an outer tile'));
+                throw new BgaUserException(clienttranslate('Must be on an outer tile'));
             }
             if (self::getGameStateValue('actionsRemaining') < 3) {
-                throw new BgaUserException(self::_('Must have at least 3 actions'));
+                throw new BgaUserException(clienttranslate('Must have at least 3 actions'));
             }
             self::setGameStateValue('cardChoice', $character['id']);
             $this->gamestate->nextState('cardChoice');
         } else if($type == 'hacker2') {   
             if (count($this->tokens->getCardsOfTypeInLocation('hack', null, 'card', $character['id'])) > 0) {
-                throw new BgaUserException(self::_('You already have a hack token'));
+                throw new BgaUserException(clienttranslate('You already have a hack token'));
             }
             $this->pickTokens('hack', 'card', $character['id']);
-            self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
@@ -3925,7 +3935,7 @@ SQL;
             
             if (count($character_alarms) > 0) {
                 if (count($tile_alarms) > 0) {
-                    throw new BgaUserException(self::_('Tile already has an alarm token'));
+                    throw new BgaUserException(clienttranslate('Tile already has an alarm token'));
                 }
                 $this->moveToken(array_values($character_alarms)[0]['id'], 'deck');
                 if ($this->triggerAlarm($player_tile)) {
@@ -3935,7 +3945,7 @@ SQL;
                 }
             } else {
                 if (count($tile_alarms) == 0) {
-                    throw new BgaUserException(self::_('Tile does not have an alarm token'));
+                    throw new BgaUserException(clienttranslate('Tile does not have an alarm token'));
                 }
                 $this->moveToken(array_values($tile_alarms)[0]['id'], 'card', $character['id']);
                 if ($this->nextPatrol($player_tile['location'][5])) {
@@ -3946,25 +3956,25 @@ SQL;
             }
             self::setGameStateValue('characterAbilityUsed', 1);
             self::incStat(1, 'special_ability_use', $human_player_id);
-            self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
         } else if($type == 'raven2') {
             $crow = array_values($this->tokens->getCardsOfType('crow'))[0];
             $player_tile = $this->getPlayerTile($current_player_id);
             $this->moveToken($crow['id'], 'tile', $player_tile['id']);
-            self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
         } else if($type == 'rigger2') {
             $stealth = $this->getPlayerStealth($current_player_id);
             if ($stealth <= 0) {
-                throw new BgaUserException(self::_('You cannot lose any more stealth'));
+                throw new BgaUserException(clienttranslate('You cannot lose any more stealth'));
             }
             $this->decrementPlayerStealth($current_player_id);
             self::setGameStateValue('drawToolsPlayer', $current_player_id);
-            self::notifyAllPlayers('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
@@ -3974,7 +3984,7 @@ SQL;
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'rook2') {
             if (self::getGameStateValue('firstAction') != 1) {
-                throw new BgaUserException(self::_('You may only use this ability as your first action'));
+                throw new BgaUserException(clienttranslate('You may only use this ability as your first action'));
             }
             self::setGameStateValue('playerChoice', 3); // Rook 2
             $this->gamestate->nextState('playerChoice');
@@ -3983,7 +3993,7 @@ SQL;
             $floor = $player_tile['location'][5];
             $top_card = $this->cards->getCardOnTop("patrol$floor".'_deck');
             if (!$top_card) {
-                throw new BgaUserException(self::_('Patrol deck is empty'));
+                throw new BgaUserException(clienttranslate('Patrol deck is empty'));
             }
             self::incStat(1, 'special_ability_use', $human_player_id);
             self::setGameStateValue('cardChoice', $character['id']);
@@ -3992,7 +4002,7 @@ SQL;
         } else if($type == 'spotter2') {
             $top_card = $this->cards->getCardOnTop("events_deck");
             if (!$top_card) {
-                throw new BgaUserException(self::_('Event deck is empty'));
+                throw new BgaUserException(clienttranslate('Event deck is empty'));
             }
             self::incStat(1, 'special_ability_use', $human_player_id);
             self::setGameStateValue('cardChoice', $character['id']);
@@ -4002,7 +4012,7 @@ SQL;
             self::setGameStateValue('cardChoice', $character['id']);
             $this->gamestate->nextState('cardChoice');
         } else {
-            throw new BgaUserException(self::_('Character does not have a special action'));
+            throw new BgaUserException(clienttranslate('Character does not have a special action'));
         }
     }
 
@@ -4012,7 +4022,7 @@ SQL;
         $current_player_token = $this->getPlayerToken($current_player_id);
         $player_tokens = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $current_player_token['location_arg']);
         if (count($player_tokens) < 2) {
-            throw new BgaUserException(self::_('There are no other players in your tile'));
+            throw new BgaUserException(clienttranslate('There are no other players in your tile'));
         }
 
         if (count($player_tokens) == 2) {
@@ -4045,9 +4055,9 @@ SQL;
         array_merge($card_ids, $p1_ids, $p2_ids);
         foreach ($this->cards->getCards($card_ids) as $id => $card) {
             if (in_array($card['type'], array(0, 3))) {
-                throw new BgaUserException(self::_('Card must be a tool or loot'));
+                throw new BgaUserException(clienttranslate('Card must be a tool or loot'));
             } elseif ($card['location'] != 'hand' || !in_array($card['location'], array($trade['current_player'], $trade['other_player']))) {
-                throw new BgaUserException(self::_('Card does not belong to trading player'));
+                throw new BgaUserException(clienttranslate('Card does not belong to trading player'));
             }
         }
         // Check only one gold bar max per player
@@ -4058,7 +4068,7 @@ SQL;
             foreach ($this->cards->getCards($p_ids) as $id => $card) {
                 if ($card['type'] == 2 && $card['type_arg'] == $gold_type) {
                     if ($has_gold_bar) {
-                        throw new BgaUserException(self::_('One player cannot hold the two gold bars, please propose another trade'));
+                        throw new BgaUserException(clienttranslate('One player cannot hold the two gold bars, please propose another trade'));
                     } else {
                         $has_gold_bar = TRUE;
                     }
@@ -4068,7 +4078,7 @@ SQL;
         }
         // $players = self::loadPlayersBasicInfos();
         $players = $this->loadPlayersInfos();
-        self::notifyAllPlayers('message', clienttranslate('${player_name} proposed a trade to ${other_name}'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} proposed a trade to ${other_name}'), [
             'player_name' => $players[$trade['current_player']]['player_name'],
             'other_name' => $players[$trade['other_player']]['player_name'],
         ]);
@@ -4093,7 +4103,7 @@ SQL;
         $this->notifyPlayerHand($trade['other_player'], $p1_cards);
         // $players = self::loadPlayersBasicInfos();
         $players = $this->loadPlayersInfos();
-        self::notifyAllPlayers('message', clienttranslate('${player_name} agreed to ${current_name}\'s trade'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} agreed to ${current_name}\'s trade'), [
             'player_name' => $players[$trade['other_player']]['player_name'],
             'current_name' => $players[$trade['current_player']]['player_name'],
         ]);
@@ -4114,9 +4124,9 @@ SQL;
 
     function cancelTrade() {
         self::checkAction('cancelTrade');
-        $state = $this->gamestate->state();
-        if ($state['name'] == 'confirmTrade') {
-            self::notifyAllPlayers('message', clienttranslate('${player_name} cancelled the trade'), [
+        $stateName = $this->gamestate->getCurrentMainState()->name;
+        if ($stateName == 'confirmTrade') {
+            $this->bga->notify->all('message', clienttranslate('${player_name} cancelled the trade'), [
                 'player_name' => self::getActivePlayerName()
             ]);
             $this->gamestate->nextState('endTradeOtherPlayer');
@@ -4187,11 +4197,11 @@ SQL;
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
         if ($player_tile['type'] != 'safe') {
-            throw new BgaUserException(self::_('Cards can only be taken from a safe'));
+            throw new BgaUserException(clienttranslate('Cards can only be taken from a safe'));
         }
         $tile_cards = $this->cards->getCardsInLocation('tile', $player_tile['id']);
         if (count($tile_cards) == 0) {
-            throw new BgaUserException(self::_('There are no cards in your tile'));
+            throw new BgaUserException(clienttranslate('There are no cards in your tile'));
         }
 
         $this->gamestate->nextState('takeCards');
@@ -4208,7 +4218,7 @@ SQL;
                 foreach ($r_ids as $card_id) {
                     $new_card = $this->cards->getCard($card_id);
                     if ($this->getCardType($new_card) == 'gold-bar') {
-                        throw new BgaUserException(self::_('You cannot hold the two gold bars, another player has to pick it up'));
+                        throw new BgaUserException(clienttranslate('You cannot hold the two gold bars, another player has to pick it up'));
                     }
                 }        
                 break;
@@ -4232,7 +4242,7 @@ SQL;
         $this->cards->moveCards($r_ids, 'hand', $current_player_id);
         $this->notifyPlayerHand($current_player_id);
         $this->notifyTileCards($player_tile['id']);
-        self::notifyAllPlayers('message', clienttranslate('${player_name} picked up ${card_count} cards in their tile'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} picked up ${card_count} cards in their tile'), [
             'player_name' => $this->getActivePlayerNameCustom(),
             'card_count' => count($r_ids)
         ]);
@@ -4252,7 +4262,7 @@ SQL;
             $rook_player_id = self::getCurrentPlayerId();
         } else {
             $current_player_id =  self::getCurrentPlayerId();
-            self::notifyAllPlayers('message', clienttranslate('${player_name} accepts the move'), [
+            $this->bga->notify->all('message', clienttranslate('${player_name} accepts the move'), [
                 'player_name' => self::getActivePlayerName(),
             ]);
             $rook_player_id = self::getGameStateValue('currentPlayer');
@@ -4277,7 +4287,7 @@ SQL;
 
     function cancelRookMove() {
         self::checkAction('cancelRookMove');
-        self::notifyAllPlayers('message', clienttranslate('${player_name} cancels the move'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} cancels the move'), [
             'player_name' => self::getActivePlayerName(),
         ]);
         self::setGameStateValue('rookDestinationTile', -1);
@@ -4291,7 +4301,7 @@ SQL;
         $player_tile = $this->getPlayerTile($current_player_id);
         $cat_tokens = $this->tokens->getCardsOfTypeInLocation('cat', null, 'tile', $player_tile['id']);
         if (count($cat_tokens) == 0) {
-            throw new BgaUserException(self::_('Tile does not contain the cat token'));
+            throw new BgaUserException(clienttranslate('Tile does not contain the cat token'));
         }
         $this->moveTokens(array_keys($cat_tokens), 'deck');
         $kitty_card = $this->getLootOwner('persian-kitty');
@@ -4302,7 +4312,7 @@ SQL;
             $this->notifyPlayerHand($current_player_id);
             $this->notifyPlayerHand($kitty_owner, array($kitty_card['id']));
         }
-        self::notifyAllPlayers('catPicked', clienttranslate('${player_name} picked up the cat token'), [
+        $this->bga->notify->all('catPicked', clienttranslate('${player_name} picks up the cat token'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         $this->endAction(0);
@@ -4317,11 +4327,11 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(3, 'change-of-plans');
+            // $type_arg = $this->getCardTypeForName(3, 'buddy-system');
             // $event_card = array_values($this->cards->getCardsOfType(3, $type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
-                self::notifyAllPlayers('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
+                $this->bga->notify->all('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
                     'card_id' => $event_card['id'],
                     'card' => $event_card,
                     'title' => $this->getCardTitle($event_card),
@@ -4361,7 +4371,7 @@ SQL;
         // Restart turn by restoring save point
         self::checkAction('restartTurn');
         if ($this->getGameStateValue('undoAllowed') == 0)
-            throw new BgaUserException(self::_("You are not allowed to restart your turn (you uncovered some info or triggered some random events)"));
+            throw new BgaUserException(clienttranslate("You are not allowed to restart your turn (you uncovered some info or triggered some random events)"));
         $this->undoRestorePoint();
         $this->gamestate->nextState('restartTurn');
     }
@@ -4370,17 +4380,17 @@ SQL;
         self::checkAction('escape');
         $actions_remaining = self::getGameStateValue('actionsRemaining');
         if ($actions_remaining < 1) {
-            throw new BgaUserException(self::_("You have no actions remaining"));
+            throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
 
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         if (!$this->checkWin()) {
-            throw new BgaUserException(self::_('You must open all the safes and get all the loots before you escape (especially the Persian Kitty)'));
+            throw new BgaUserException(clienttranslate('You must open all the safes and get all the loots before you escape (especially the Persian Kitty)'));
         }
         $this->moveToken($player_token['id'], 'roof');
-        self::notifyAllPlayers('playerEscape', clienttranslate('${player_name} escaped to the roof'), [
+        $this->bga->notify->all('playerEscape', clienttranslate('${player_name} escapes to the roof'), [
             'player_id' => $current_player_id,
             'player_name' => $this->getActivePlayerNameCustom(),
             'token_id' => $player_token['id'],
@@ -4388,7 +4398,7 @@ SQL;
 
         if ($this->allPlayersEscaped()) {
             if ($this->checkWin()) {
-                $this->DbQuery("UPDATE player SET player_score='1'");
+                $this->bga->playerScore->setAll(1, null);
             }
             $this->gamestate->nextState('gameOver');
         } else {
@@ -4577,14 +4587,14 @@ SQL;
     */
     function stRandomizeWalls() {
         // Move on if the game use default walls
-        if ($this->gamestate->table_globals[103] == 1) {
+        if ($this->bga->tableOptions->get(103) == 1) {
             $this->gamestate->nextState('');
         }
     }
 
     function stChooseCharacter() {
         // Move on if the game only use basic characters
-        if ($this->gamestate->table_globals[100] == 1) {
+        if ($this->bga->tableOptions->get(100) == 1) {
             $this->gamestate->nextState('chooseCharacter');
         }
         $this->gamestate->setAllPlayersMultiactive();
@@ -4620,7 +4630,8 @@ SQL;
                 $card_name = $this->getCardType($card);
                 $human_player_id = $this->getActivePlayerId();
                 self::incStat( 1, 'tools_drawn', $human_player_id );
-                self::notifyAllPlayers('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
+                $this->bga->notify->all('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
+                    'i18n' => ['title', 'tooltip'],
                     'card_id' => $card['id'],
                     'card' => $card,
                     'player_name' => isset($players[$draw_tools_player_id]) ? $players[$draw_tools_player_id]['player_name'] : $players[$current_player_id]['player_name'],
@@ -4668,7 +4679,7 @@ SQL;
             // $this->decrementPlayerStealth($current_player_id);
         }
         $this->resetGlobalVars();
-        self::notifyAllPlayers('message', clienttranslate('${player_name} ended their turn'), [
+        $this->bga->notify->all('message', clienttranslate('${player_name} ended their turn'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         if ($special_choice) {
@@ -4695,7 +4706,7 @@ SQL;
                     if ($guard_token['location'] == 'tile') {
                         $alarms = count($this->getFloorAlarmTiles($other_floor));
                         $movement = self::getGameStateValue("patrolDieCount$other_floor") + $alarms;
-                        $this->notifyGuardMovement($other_floor, $movement, $alarms > 0, TRUE);
+                        $this->notifyGuardMovement($other_floor, $movement, $alarms, TRUE);
                         $choose_alarm = $this->moveGuard($other_floor, $movement);
                     }
                 }
@@ -4728,7 +4739,7 @@ SQL;
                     $this->notifyPlayerHand($current_player_id, array($espresso['id']));
                     $has_event = TRUE;
                 }
-                $this->notifyGuardMovement($floor, $movement, $alarms > 0, $has_event);
+                $this->notifyGuardMovement($floor, $movement, $alarms, $has_event);
                 $choose_alarm = $this->moveGuard($floor, $movement);
             }
         }
@@ -4751,7 +4762,7 @@ SQL;
         if ($jump_the_gun) {
             $players = $this->loadPlayersInfos();
             $player_id = $this->skipEscapedPlayers($player_id);
-            self::notifyAllPlayers('message', clienttranslate( 'Skipped ${player_name}\'s turn' ), array(
+            $this->bga->notify->all('message', clienttranslate( 'Skipped ${player_name}\'s turn' ), array(
                 'player_name' => $players[$player_id]['player_name'],
             ));
             $this->cards->moveCard($jump_the_gun['id'], 'events_discard');
@@ -4802,7 +4813,7 @@ SQL;
                 $this->notifyRoll($rolls, 'persian-kitty');
                 if (isset($rolls[1]) || isset($rolls[2])) {
                     $this->moveCatToken($player_id);
-                    self::notifyAllPlayers('catEscaped', clienttranslate('${player_name} must pick up the cat token before escaping'), [
+                    $this->bga->notify->all('catEscaped', clienttranslate('${player_name} must pick up the cat token before escaping'), [
                         'player_name' => $this->getActivePlayerNameCustom()
                     ]);
                 }
@@ -4810,7 +4821,7 @@ SQL;
         }
 
         $player_tile = $this->getPlayerTile($player_id);
-        self::notifyAllPlayers('showFloor', '', [
+        $this->bga->notify->all('showFloor', '', [
             'floor' => $player_tile['location'][5],
             'delay' => true,
         ]);
@@ -4888,7 +4899,7 @@ SQL;
         $tiles_unflipped = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg FROM tile WHERE flipped=0 AND NOT card_location IN ('deck','oop')");
         self::setStat( count($tiles_unflipped), 'tiles_unflipped' );
         foreach ($tiles_unflipped as $tile_id => $tile) {
-            self::notifyAllPlayers('tileFlipped', '', array(
+            $this->bga->notify->all('tileFlipped', '', array(
                 'tile' => $tile,
                 'floor' => $tile['location'][5],
                 'undo_allowed' => 0,
@@ -4936,7 +4947,7 @@ SQL;
             return;
         }
 
-        throw new feException( "Zombie mode not supported at this game state: ".$statename );
+        throw new VisibleSystemException( "Zombie mode not supported at this game state: ".$statename );
     }
     
 ///////////////////////////////////////////////////////////////////////////////////:

@@ -3,7 +3,10 @@
 /*
  * BurgleBrosBoard: all utility functions to create boards, generate walls...
  */
-class BurgleBrosBoard extends APP_GameClass
+
+use Bga\GameFramework\Table;
+
+class BurgleBrosBoard
 {
 	public $game;
 	public function __construct($game) {
@@ -60,7 +63,7 @@ class BurgleBrosBoard extends APP_GameClass
         }
         shuffle($values);
         $sql = "INSERT INTO tile (card_type,card_type_arg,card_location,safe_die) VALUES ";
-        self::DbQuery($sql.implode($values, ','));
+        Table::DbQuery($sql.implode(',', $values));
 
         $this->setupTiles($options);
         $this->setupWalls();
@@ -75,6 +78,7 @@ class BurgleBrosBoard extends APP_GameClass
         $size = $this->game->getSquareSize();
         $size_sq = $size * $size - 1;
         $max_floor = $this->game->getFloorCount();
+		$shaft_location_arg = null;
         if ($size === 5) {
         	if ($this->game->getGameStateValue('randomWalls') == 1) {
 	        	$shaft_location_arg = $this->default_walls_size_5[1]['shaft'];
@@ -117,16 +121,16 @@ class BurgleBrosBoard extends APP_GameClass
         }
         // Flip shaft so they are visible
         if (count($shafts) > 0) {
-        	self::DbQuery("UPDATE tile SET flipped=1 WHERE card_type='shaft'");
+        	Table::DbQuery("UPDATE tile SET flipped=1 WHERE card_type='shaft'");
         }
     }
 
 	public function randomizeWalls($floor = 'all') {
 		// Dump walls db and recreate all the walls
 		if ($floor === 'all') {
-			self::DbQuery("TRUNCATE wall");
+			Table::DbQuery("TRUNCATE wall");
 		} else {
-			self::DbQuery("DELETE FROM wall WHERE floor = '$floor'");
+			Table::DbQuery("DELETE FROM wall WHERE floor = '$floor'");
 		}
 		$this->setupWalls(TRUE, $floor);
 	}
@@ -161,8 +165,8 @@ class BurgleBrosBoard extends APP_GameClass
 				$vertical = $dir == 'vertical' ? 1 : 0;
 				$values [] = "($floor,$vertical,$position)";
 			}
-			$sql .= implode($values, ',');
-			self::DbQuery($sql);
+			$sql .= implode(',', $values);
+			Table::DbQuery($sql);
 		}
 	}
 

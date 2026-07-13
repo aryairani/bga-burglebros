@@ -152,7 +152,7 @@ function (dojo, declare) {
             for(var floor = 1; floor <= gamedatas.floor_count; floor++) {
                 var key = 'floor' + floor;
                 // Row and column indicator
-                if (this.prefs[104].value == 1) {
+                if (this.bga.userPreferences.get(104) == 1) {
                     var letters = 'ABCDE';
                     for (var i = 1; i <= gamedatas.square_size; i++) {
                         dojo.place(this.format_block('jstpl_indicator', {
@@ -454,6 +454,8 @@ function (dojo, declare) {
                             if (floor > 1) {
                                 this.addActionButton('button_down', _('Down'), dojo.hitch(this, 'handleCardChoiceButton', floor - 1));
                             }
+                        } else if(this.isCardChoice('buddy-system')) {
+                            this.addPlayersToActionBar('handleCardChoiceButton');
                         } else if(this.isCardChoice('peterman2')) {
                             var floor = this.currentFloor();
                             // XY, X = 0 is add, X = 1 is roll, Y is floor
@@ -494,26 +496,7 @@ function (dojo, declare) {
                         }
                         break;
                     case 'playerChoice':
-                        // Add players to the action bar so active player can choose
-                        var players = this.gamedatas.players;
-                        var player_tokens = this.gamedatas.player_tokens;
-                        for (i in player_tokens) {
-                            var token = player_tokens[i];
-                            var player_id = token.type_arg;
-                            var player = players[player_id];
-                            var character_type = player.character.type_arg - 1;
-                            this.addActionButton('button_player_' + player_id, ' ' + player.player_name + '\r\n(' + _(this.gamedatas.card_info[0][character_type]['title']) + ')', dojo.hitch(this, 'handlePlayerChoice', token['id']) );
-                            $('button_player_' + player_id).innerHTML = '<span style="white-space: pre;line-height: 25px;margin-left: 5px;">' + $('button_player_' + player_id).innerHTML + '</span>';
-                            dojo.style('button_player_' + player_id, 'display', 'inline-flex');
-                            var bg_col = character_type % 2,
-                                bg_row = Math.floor(character_type / 2);
-                            dojo.place(this.format_block('jstpl_meeple', {
-                                meeple_id : 'action_bar_' + token['id'],
-                                meeple_background : g_gamethemeurl + '/img/meeples.png',
-                                meeple_bg_pos : -(bg_col * 35) + 'px ' + -(bg_row * 50) + 'px',
-                                player_color: this.gamedatas.players[player_id].player_color
-                            }), 'button_player_' + player_id, 'first');
-                        }
+                        this.addPlayersToActionBar('handlePlayerChoice');
                         if (args.context !== "squeak")  // cannot cancel Squeak event
                             this.addActionButton('button_cancel', _('Cancel'), 'handleCancelPlayerChoice');
                         break;
@@ -862,6 +845,29 @@ function (dojo, declare) {
             dojo.place(this.format_block('jstpl_player_escaped', {
                 id : id,
             }), 'player_board_' + id);
+        },
+
+        addPlayersToActionBar: function(callback) {
+            // Add players to the action bar so active player can choose
+            var players = this.gamedatas.players;
+            var player_tokens = this.gamedatas.player_tokens;
+            for (i in player_tokens) {
+                var token = player_tokens[i];
+                var player_id = token.type_arg;
+                var player = players[player_id];
+                var character_type = player.character.type_arg - 1;
+                this.addActionButton('button_player_' + player_id, ' ' + player.player_name + '\r\n(' + _(this.gamedatas.card_info[0][character_type]['title']) + ')', dojo.hitch(this, callback, token['id']) );
+                $('button_player_' + player_id).innerHTML = '<span style="white-space: pre;line-height: 25px;margin-left: 5px;">' + $('button_player_' + player_id).innerHTML + '</span>';
+                dojo.style('button_player_' + player_id, 'display', 'inline-flex');
+                var bg_col = character_type % 2,
+                    bg_row = Math.floor(character_type / 2);
+                dojo.place(this.format_block('jstpl_meeple', {
+                    meeple_id : 'action_bar_' + token['id'],
+                    meeple_background : g_gamethemeurl + '/img/meeples.png',
+                    meeple_bg_pos : -(bg_col * 35) + 'px ' + -(bg_row * 50) + 'px',
+                    player_color: this.gamedatas.players[player_id].player_color
+                }), 'button_player_' + player_id, 'first');
+            }
         },
 
         activatePlayer: function(active_player_id) {
@@ -1626,7 +1632,7 @@ function (dojo, declare) {
 
         createDice: function(type, token_type, rolls, bStethoscope = false) {
             // Do not display dice if player preference is No
-            if (!bStethoscope && this.prefs[100].value == 2)
+            if (!bStethoscope && this.bga.userPreferences.get(100) == 2)
                 return;
             if (bStethoscope) {
                 $('temp_notify').innerHTML = '';
@@ -1668,7 +1674,7 @@ function (dojo, declare) {
                     this.fadeOutAndDestroy(wrapper);  
                 } );
                 // Hide the dice after a few seconds
-                var delay = this.prefs[102].value;
+                var delay = this.bga.userPreferences.get(102);
                 if (delay > 0) {
                     this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
                         if (wrapper) {
@@ -1746,18 +1752,6 @@ function (dojo, declare) {
             $(id).style.opacity = 0;
         },
 
-        updatePreference: function(prefId, newValue) {
-            // Select preference value in control:
-            dojo.query('#preference_control_' + prefId + ' > option[value="' + newValue
-            // Also select fontrol to fix a BGA framework bug:
-                + '"], #preference_fontrol_' + prefId + ' > option[value="' + newValue
-                + '"]').forEach((value) => dojo.attr(value, 'selected', true));
-            // Generate change event on control to trigger callbacks:
-            const newEvt = document.createEvent('HTMLEvents');
-            newEvt.initEvent('change', false, true);
-            $('preference_control_' + prefId).dispatchEvent(newEvt);
-        },
-
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -1832,7 +1826,7 @@ function (dojo, declare) {
                         }));
                     } else {
                         if (intent == 'default') {
-                            if (this.prefs[101].value == 1) {
+                            if (this.bga.userPreferences.get(101) == 1) {
                                 this.multipleChoiceDialog(
                                     _('Do you really want to move?') + '<br>' + _('You can change this dialog appearance in your game options.'), [_('Yes, only this time'), _('Yes, and never ask again'), _('No')], 
                                     dojo.hitch(this, function(choice) {
@@ -1840,7 +1834,7 @@ function (dojo, declare) {
                                         if (choice < 2) {
                                             // Change player option to remove this confirmation dialog
                                             if (choice == 1) {
-                                                this.updatePreference(101, 2);
+                                                this.bga.userPreferences.set(101, 2);
                                             }
                                             this.ajaxcall( url, { lock: true, id: id, context: context }, this, function( result ) {} );                                        
                                         }
@@ -2307,7 +2301,7 @@ function (dojo, declare) {
         notif_showFloor: function(notif) {
             console.log("notif_showFloor", notif.args);
             if (notif.args.delay) {
-                var delay = this.prefs[103].value;
+                var delay = this.bga.userPreferences.get(103);
                 if (delay < 99) {
                     this.displayDiceTimeout = setTimeout( dojo.hitch(this, function() { 
                         this.showFloor(notif.args.floor);

@@ -1,0 +1,111 @@
+{
+    "100": {
+        "name": "Display dice result",
+        "needReload": false,
+        "values": {
+            "1": {
+                "name": "Yes",
+                "description": "Show the dice result on top of the window (safe, keypad, chihuahua, Persian Cat"
+            },
+            "2": {
+                "name": "No",
+                "description": "Show the dice result only in the logs"
+            }
+        }
+    },
+    "102": {
+        "name": "Auto hide dice result",
+        "needReload": true,
+        "values": {
+            "5": {
+                "name": "After 5 seconds",
+                "description": "Automatically hide the die results after 5 seconds"
+            },
+            "4": {
+                "name": "After 4 seconds",
+                "description": "Automatically hide the die results after 4 seconds"
+            },
+            "3": {
+                "name": "After 3 seconds",
+                "description": "Automatically hide the die results after 3 seconds"
+            },
+            "2": {
+                "name": "After 2 seconds",
+                "description": "Automatically hide the die results after 2 seconds"
+            },
+            "1": {
+                "name": "After 1 second",
+                "description": "Automatically hide the die results after 1 second"
+            },
+            "0": {
+                "name": "Never",
+                "description": "Click on the X button to close the dialog"
+            }
+        },
+        "default": 5
+    },
+    "101": {
+        "name": "Confirm meeple move",
+        "needReload": true,
+        "values": {
+            "1": {
+                "name": "Each time",
+                "description": "The game will ask you to confirm your move if you do not use the action button"
+            },
+            "2": {
+                "name": "Never",
+                "description": "You can click on an adjacent tile to move directly your meeple"
+            }
+        }
+    },
+    "103": {
+        "name": "Auto switch to active floor",
+        "needReload": true,
+        "values": {
+            "0": {
+                "name": "Immediately",
+                "description": "Switch floor right after the previous action"
+            },
+            "1": {
+                "name": "After 1 second",
+                "description": "Wait for 1 second before switching floor"
+            },
+            "2": {
+                "name": "After 2 seconds",
+                "description": "Wait for 2 seconds before switching floor"
+            },
+            "3": {
+                "name": "After 3 seconds",
+                "description": "Wait for 3 seconds before switching floor"
+            },
+            "4": {
+                "name": "After 4 seconds",
+                "description": "Wait for 4 seconds before switching floor"
+            },
+            "5": {
+                "name": "After 5 seconds",
+                "description": "Wait for 5 seconds before switching floor"
+            },
+            "99": {
+                "name": "Never",
+                "description": "You can change manually floor view"
+            }
+        },
+        "default": 1
+    },
+    "104": {
+        "name": "Show row and column indicator",
+        "needReload": true,
+        "values": {
+            "1": {
+                "name": "Yes",
+                "description": "Show row and column indicator"
+            },
+            "2": {
+                "name": "No",
+                "description": ""
+            }
+        },
+        "default": 2
+    }
+}
