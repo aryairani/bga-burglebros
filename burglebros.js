@@ -23,6 +23,14 @@ define([
     "ebg/zone"
 ],
 function (dojo, declare) {
+    // card.type values (keys of gamedatas.card_types / card_info)
+    const CHARACTER_CARD = 0;
+    const TOOL_CARD = 1;
+    const LOOT_CARD = 2;
+    const EVENT_CARD = 3;
+    // Stock item id of the patrol card back in img/patrol.jpg
+    const PATROL_CARD_BACK = 51;
+
     return declare("bgagame.burglebros", ebg.core.gamegui, {
         constructor: function(){
             console.log('burglebros constructor');
@@ -124,7 +132,7 @@ function (dojo, declare) {
                     hand.setSelectionMode(0);
                 }
 
-                this.addCardTypesToStock(hand, [0, 1, 2, 3]);
+                this.addCardTypesToStock(hand, [CHARACTER_CARD, TOOL_CARD, LOOT_CARD, EVENT_CARD]);
 
                 var player = gamedatas.players[playerId];
                 var cards = player.hand;
@@ -183,12 +191,12 @@ function (dojo, declare) {
                         var typeInfo = gamedatas.patrol_types[type];
                         for (var index = 0; index < typeInfo.cards.length; index++) {
                             var cardInfo = typeInfo.cards[index];
-                            var id = ((cardInfo.type - 4) * 16) + index;
+                            var id = this.getPatrolUniqueId(cardInfo.type, index);
                             this[patrolKey].addItemType(id, id, g_gamethemeurl + 'img/patrol.jpg', id);
                         }
                     }
                     // Patrol back
-                    this[patrolKey].addItemType(51, 51, g_gamethemeurl + 'img/patrol.jpg', 51);
+                    this[patrolKey].addItemType(PATROL_CARD_BACK, PATROL_CARD_BACK, g_gamethemeurl + 'img/patrol.jpg', PATROL_CARD_BACK);
                 } else {
                     // Create custom Patrol cards
                     this.createPatrolCard(patrolKey, patrolKey);
@@ -292,20 +300,18 @@ function (dojo, declare) {
             case 'chooseCharacter':
                 // If hand is already loaded, don't reload because it adds extra cards on [random walls x random w/ advanced]
                 var player_id = args.args.player_id;
-                var hand_stock = player_id == this.player_id || player_id == 0 ? this.myHand : this.playerHands[player_id];
+                var hand_stock = player_id == 0 ? this.myHand : this.handStockFor(player_id);
                 if (hand_stock.count() == 0)
                     this.loadPlayerHand(hand_stock, args.args.cards, [], false);
                 break;
             case 'cardChoice':
                 if (args.args.spotter_card && (this.isCardChoice('spotter1') || this.isCardChoice('spotter2'))) {
                     var card = args.args.spotter_card;
-                    if (card.type == 3) {
+                    if (card.type == EVENT_CARD) {
                         dojo.place( this.eventCardHtml(card), 'spotter_card' );
                     } else {
                         if (this.gamedatas.square_size == 4) {
-                            var cardType = parseInt(card.type, 10);
-                            var cardIndex = parseInt(card.type_arg, 10) - 1;
-                            var id = ((cardType - 4) * 16) + cardIndex;
+                            var id = this.patrolCardUniqueId(card);
                             dojo.place( this.patrolCardHtml(card, id, false), 'spotter_card' );
                         } else {
                             dojo.place( '<div id="patrol_wrapperspotter" class="patrol_wrapper whiteblock"><div id="patrolspotter" class="patrol"></div></div>', 'spotter_card')
@@ -552,11 +558,15 @@ function (dojo, declare) {
 
         getHandStock: function() {
             if (this.gamedatas.solo_characters > 1) {
-                var active_player_id = this.gamedatas.active_player_id;
-                return active_player_id == this.player_id ? this.myHand : this.playerHands[active_player_id];
+                return this.handStockFor(this.gamedatas.active_player_id);
             } else {
                 return this.myHand;
             }
+        },
+
+        // Hand stock for a given player (the current player's hand is a dedicated stock)
+        handStockFor: function(playerId) {
+            return playerId == this.player_id ? this.myHand : this.playerHands[playerId];
         },
 
         // Get card unique identifier based on its row and col
@@ -566,6 +576,37 @@ function (dojo, declare) {
 
         getTileUniqueId : function(row, col) {
             return parseInt(row, 10) * 4 + parseInt(col, 10);
+        },
+
+        getCardTypeFromUniqueId : function(card_type_id) {
+            return Math.floor(card_type_id / 100);
+        },
+
+        // Stock item id of a patrol card: the per-floor patrol decks are card types 4/5/6,
+        // 16 cards each, all sharing img/patrol.jpg
+        getPatrolUniqueId : function(type, index) {
+            return (parseInt(type, 10) - 4) * 16 + parseInt(index, 10);
+        },
+
+        patrolCardUniqueId : function(card) {
+            return this.getPatrolUniqueId(card.type, parseInt(card.type_arg, 10) - 1);
+        },
+
+        // Floor number of a tile row (tile location is 'floorN')
+        tileFloor : function(tile) {
+            return parseInt(tile.location.slice('floor'.length), 10);
+        },
+
+        // Floor number of a floor div (id 'floorN')
+        floorOfNode : function(node) {
+            return parseInt(node.id.slice('floor'.length), 10);
+        },
+
+        // Verify `action` is allowed in the current game state, then call its server entry point
+        performAction: function(action, params, onSuccess, onError) {
+            if (this.checkAction(action)) {
+                this.ajaxcall('/burglebros/burglebros/' + action + '.html', dojo.mixin({ lock: true }, params), this, onSuccess || console.log, onError || console.error);
+            }
         },
 
         createTileContainer: function(floor, tile) {
@@ -601,15 +642,15 @@ function (dojo, declare) {
 
         createCardZone: function(stock, card_div, card_type_id, card_div_id) {
             var card = stock.getFirstItemOfType(card_type_id);
-            var card_type = Math.floor(card_type_id / 100);
-            if (card_type === 0) { // Character
+            var card_type = this.getCardTypeFromUniqueId(card_type_id);
+            if (card_type === CHARACTER_CARD) {
                 dojo.place('<div id="card_' + card.id + '_tokens" class="card-zone"></div>', card_div_id);
                 var zone = new ebg.zone();
                 var zoneId = 'card_' + card.id + '_tokens';
                 zone.create( this, zoneId, 24, 24 );
                 zone.setPattern( 'grid' );
                 this.zones[zoneId] = zone;
-            } else if (card_type_id == 210) {
+            } else if (card_type_id == this.getCardUniqueId(LOOT_CARD, this.getCardTypeForName(LOOT_CARD, 'persian-kitty'))) {
                 dojo.place('<div id="card_kitty_warning"></div>', card_div_id);
                 if (this.gamedatas.gamestate.args.kitty_escaped) {
                     this.catEscaped();
@@ -686,11 +727,7 @@ function (dojo, declare) {
 
                 dojo.connect( $(div_id), 'onclick', this, function(evt) {
                     dojo.stopEvent(evt);
-                    if (this.checkAction('selectCardChoice')) {
-                        this.ajaxcall('/burglebros/burglebros/selectCardChoice.html', { lock: true, selected_type: 'wall', selected_id: wall.id }, this, function () {
-                            // dojo.destroy(div_id);
-                        }, console.error);
-                    }
+                    this.performAction('selectCardChoice', { selected_type: 'wall', selected_id: wall.id }, function () {});
                 });
             }
         },
@@ -715,8 +752,7 @@ function (dojo, declare) {
             if (token.location == 'tile') {
                 var node = $('tile_' + token.location_arg + '_container');
                 if (node) {
-                    var floor = node.parentNode.id.slice(-1);
-                    this.showFloor(floor);
+                    this.showFloor(this.floorOfNode(node.parentNode));
                 }
             }
             if (token_type === 'player') {
@@ -856,7 +892,7 @@ function (dojo, declare) {
                 var player_id = token.type_arg;
                 var player = players[player_id];
                 var character_type = player.character.type_arg - 1;
-                this.addActionButton('button_player_' + player_id, ' ' + player.player_name + '\r\n(' + _(this.gamedatas.card_info[0][character_type]['title']) + ')', dojo.hitch(this, callback, token['id']) );
+                this.addActionButton('button_player_' + player_id, ' ' + player.player_name + '\r\n(' + _(this.gamedatas.card_info[CHARACTER_CARD][character_type]['title']) + ')', dojo.hitch(this, callback, token['id']) );
                 $('button_player_' + player_id).innerHTML = '<span style="white-space: pre;line-height: 25px;margin-left: 5px;">' + $('button_player_' + player_id).innerHTML + '</span>';
                 dojo.style('button_player_' + player_id, 'display', 'inline-flex');
                 var bg_col = character_type % 2,
@@ -884,7 +920,6 @@ function (dojo, declare) {
                 let node = $('player_hand_content_' + player_id);
                 let destination = $('player_hand_wrap_' + wrap_index);
                 let anim = this.slideToObject(node, destination, 1000);
-                let handStock = player_id == this.player_id ? this.myHand : this.playerHands[player_id];
                 anim.play();
                 this.attachToHTML(node, destination);
                 index = ++index >= player_ids.length ? 0 : index;
@@ -1023,9 +1058,13 @@ function (dojo, declare) {
         canCancelCardChoice: function() {
             var type = this.gamedatas.gamestate.args.card['type'];
             var type_arg = this.gamedatas.gamestate.args.card['type_arg'];
-            if (type_arg == 3 || type_arg == 17 || type_arg == 18) // crystal-ball or spotter1 or spotter2
-                return false;   // cannot cancel when player has seen some top cards of the deck
-            return type == 1 || type == 0; // Tools and Characters
+            // Cannot cancel when player has seen some top cards of the deck.
+            // Note: matches on type_arg only, whatever the card type.
+            if (type_arg == this.getCardTypeForName(TOOL_CARD, 'crystal-ball') ||
+                type_arg == this.getCardTypeForName(CHARACTER_CARD, 'spotter1') ||
+                type_arg == this.getCardTypeForName(CHARACTER_CARD, 'spotter2'))
+                return false;
+            return type == TOOL_CARD || type == CHARACTER_CARD;
         },
 
         canUseExtraAction: function() {
@@ -1047,7 +1086,7 @@ function (dojo, declare) {
         },
 
         canPickUpKitty: function() {
-            var type_id = this.getCardTypeForName(2, 'persian-kitty');
+            var type_id = this.getCardTypeForName(LOOT_CARD, 'persian-kitty');
             // return this.tileContainsToken('cat') && this.handContainsCard(type_id);
             return this.tileContainsToken('cat');
         },
@@ -1131,8 +1170,7 @@ function (dojo, declare) {
                 return;
             }
             // Find and show player floor
-            var floor = meeple_node.closest('div.floor').id.slice(-1);
-            this.showFloor(floor);
+            this.showFloor(this.floorOfNode(meeple_node.closest('div.floor')));
             // Bounce effect
             dojo.addClass( meeple_node, 'bounce' );
             setTimeout( function() {
@@ -1155,7 +1193,7 @@ function (dojo, declare) {
                 var tile = flipped_tiles[id];
                 (display_tiles[tile.type] = display_tiles[tile.type] || []).push({
                     'type' : tile.type,
-                    'floor' : parseInt(tile.location.slice(-1), 10),
+                    'floor' : this.tileFloor(tile),
                     'location' : this.gamedatas.patrol_names[tile.location_arg]['name'],
                 });
             }
@@ -1269,16 +1307,14 @@ function (dojo, declare) {
                 this[patrolKey].removeAll();
         
                 if (card) {
-                    var cardType = parseInt(card.type, 10);
-                    var cardIndex = parseInt(card.type_arg, 10) - 1;
-                    var id = ((cardType - 4) * 16) + cardIndex;
+                    var id = this.patrolCardUniqueId(card);
                     this[patrolKey].addToStockWithId(id, card.id);
 
                     var tooltipHtml = this.patrolCardHtml(card, id, this.gamedatas[patrolKey + '_discard']);
                     var divId = this[patrolKey].getItemDivId(card.id);
                     this.addTooltipHtml(divId, tooltipHtml);
                 } else {
-                    this[patrolKey].addToStockWithId(51, 51);
+                    this[patrolKey].addToStockWithId(PATROL_CARD_BACK, PATROL_CARD_BACK);
                 }
             } else {
                 if (card) {
@@ -1302,7 +1338,7 @@ function (dojo, declare) {
             // console.log('loadPlayerHand', hand);
             for(var cardId in hand) {
                 var card = hand[cardId];
-                if (tradable && (card.type == 0 || card.type == 3)) {
+                if (tradable && (card.type == CHARACTER_CARD || card.type == EVENT_CARD)) {
                     continue;
                 }
 
@@ -1325,11 +1361,11 @@ function (dojo, declare) {
             var typeInfo = this.gamedatas.card_types[card.type];
             if (typeInfo === undefined)    // patrol card
                 return false;
-            var index = card.type == 0 ? card.type_arg - 1 : card.type_arg;
+            var index = card.type == CHARACTER_CARD ? card.type_arg - 1 : card.type_arg;
             var bg_row = Math.floor(index / 2) * -100;
             var bg_col = (index % 2) * -100;
             var card_info = this.gamedatas.card_info[card.type][card.type_arg - 1];
-            var jstpl = card.type == 0 ? 'jstpl_card_tooltip' : 'jstpl_event_card_tooltip'
+            var jstpl = card.type == CHARACTER_CARD ? 'jstpl_card_tooltip' : 'jstpl_event_card_tooltip'
             var tooltipHtml = this.format_block(jstpl, {
                 id : card.id, 
                 bg_image: g_gamethemeurl + 'img/' + typeInfo.name + '.jpg',
@@ -1345,12 +1381,12 @@ function (dojo, declare) {
         addCardTypesToStock: function(stock, types) {
             // Create cards types:
             for (var type = 0; type < types.length; type++) {
-                var typeInfo = gamedatas.card_types[types[type]];
+                var typeInfo = this.gamedatas.card_types[types[type]];
                 for (var index = 0; index < typeInfo.cards.length; index++) {
                     // Build card type id
                     var card = typeInfo.cards[index];
                     var cardTypeId = this.getCardUniqueId(card.type, card.index);
-                    var cardIndex = card.type == 0 ? card.index - 1 : card.index;
+                    var cardIndex = card.type == CHARACTER_CARD ? card.index - 1 : card.index;
                     stock.addItemType(cardTypeId, cardTypeId, g_gamethemeurl + 'img/' + typeInfo.name + '.jpg', cardIndex);
                 }
             }
@@ -1391,7 +1427,7 @@ function (dojo, declare) {
             l_stock.image_items_per_row = 2;
             l_stock.setSelectionMode(1);
             l_stock.setSelectionAppearance('class');
-            this.addCardTypesToStock(l_stock, [1, 2, 3]);
+            this.addCardTypesToStock(l_stock, [TOOL_CARD, LOOT_CARD, EVENT_CARD]);
             this.loadPlayerHand(l_stock, combinedOpts.l_cards, [], true);
 
             var r_stock = new ebg.stock();
@@ -1399,7 +1435,7 @@ function (dojo, declare) {
             r_stock.image_items_per_row = 2;
             r_stock.setSelectionMode(1);
             r_stock.setSelectionAppearance('class');
-            this.addCardTypesToStock(r_stock, [1, 2, 3]);
+            this.addCardTypesToStock(r_stock, [TOOL_CARD, LOOT_CARD, EVENT_CARD]);
             this.loadPlayerHand(r_stock, combinedOpts.r_cards, [], true);
 
             var cards = dojo.mixin({}, combinedOpts.l_cards, combinedOpts.r_cards);
@@ -1452,10 +1488,7 @@ function (dojo, declare) {
                     this.handleCancelTrade();
                 }),
                 confirm_callback: dojo.hitch(this, function(confirmArgs) {
-                    if (this.checkAction('proposeTrade')) {
-                        var params = { lock: true, p1_cards: confirmArgs.l_cards, p2_cards: confirmArgs.r_cards };
-                        this.ajaxcall('/burglebros/burglebros/proposeTrade.html', params, this, confirmArgs.cleanup, console.error);
-                    }
+                    this.performAction('proposeTrade', { p1_cards: confirmArgs.l_cards, p2_cards: confirmArgs.r_cards }, confirmArgs.cleanup);
                 })
             });
         },
@@ -1493,14 +1526,14 @@ function (dojo, declare) {
             p1_stock.create(this, $('trade_p1'), this.cardwidth, this.cardheight);
             p1_stock.image_items_per_row = 2;
             p1_stock.setSelectionMode(0);
-            this.addCardTypesToStock(p1_stock, [1, 2, 3]);
+            this.addCardTypesToStock(p1_stock, [TOOL_CARD, LOOT_CARD, EVENT_CARD]);
             this.loadPlayerHand(p1_stock, args.p1_cards, [], true);
 
             var p2_stock = new ebg.stock();
             p2_stock.create(this, $('trade_p2'), this.cardwidth, this.cardheight);
             p2_stock.image_items_per_row = 2;
             p2_stock.setSelectionMode(0);
-            this.addCardTypesToStock(p2_stock, [1, 2, 3]);
+            this.addCardTypesToStock(p2_stock, [TOOL_CARD, LOOT_CARD, EVENT_CARD]);
             this.loadPlayerHand(p2_stock, args.p2_cards, [], true);
 
             dialog.show();
@@ -1518,13 +1551,11 @@ function (dojo, declare) {
             dojo.connect( $('trade_cancel_button'), 'onclick', this, closeCallback);
             dojo.connect( $('trade_confirm_button'), 'onclick', this, function(evt) {
                 evt.preventDefault();
-                if (this.checkAction('confirmTrade')) {
-                    this.ajaxcall('/burglebros/burglebros/confirmTrade.html', { lock: true }, this, function() {
-                        p1_stock.destroy();
-                        p2_stock.destroy();
-                        dialog.destroy();
-                    }, console.error);
-                }
+                this.performAction('confirmTrade', {}, function() {
+                    p1_stock.destroy();
+                    p2_stock.destroy();
+                    dialog.destroy();
+                });
             });
         },
 
@@ -1543,10 +1574,7 @@ function (dojo, declare) {
                     this.handleCancelTakeCards();
                 }),
                 confirm_callback: dojo.hitch(this, function(confirmArgs) {
-                    if (this.checkAction('confirmTakeCards')) {
-                        var params = { lock: true, l_cards: confirmArgs.l_cards, r_cards: confirmArgs.r_cards };
-                        this.ajaxcall('/burglebros/burglebros/confirmTakeCards.html', params, this, confirmArgs.cleanup, console.error);
-                    }
+                    this.performAction('confirmTakeCards', { l_cards: confirmArgs.l_cards, r_cards: confirmArgs.r_cards }, confirmArgs.cleanup);
                 })
             });
         },
@@ -1609,7 +1637,7 @@ function (dojo, declare) {
             tools_stock.image_items_per_row = 2;
             tools_stock.setSelectionMode(1);
             tools_stock.setSelectionAppearance('class');
-            this.addCardTypesToStock(tools_stock, [1]);
+            this.addCardTypesToStock(tools_stock, [TOOL_CARD]);
             this.loadPlayerHand(tools_stock, cards, [], true);
             
             dialog.show();
@@ -1766,9 +1794,7 @@ function (dojo, declare) {
         
         */
         randomizeWalls: function(floor) {
-            if (this.checkAction('randomizeWalls')) {
-                this.ajaxcall('/burglebros/burglebros/randomizeWalls.html', { lock: true, floor: floor }, this, console.log, console.error);
-            }
+            this.performAction('randomizeWalls', { floor: floor });
         },
 
         handleTileClick: function(evt, id) {
@@ -1862,9 +1888,7 @@ function (dojo, declare) {
 
         handleEscape: function(evt) {
             dojo.stopEvent(evt);
-            if (this.checkAction('escape')) {
-                this.ajaxcall('/burglebros/burglebros/escape.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('escape', {});
         },
 
         handlePeekClick: function(evt) {
@@ -1889,82 +1913,66 @@ function (dojo, declare) {
 
         handleAddSafeDie: function(evt) {
             dojo.stopEvent(evt);
-            if (this.checkAction('addSafeDie')) {
-                this.ajaxcall('/burglebros/burglebros/addSafeDie.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('addSafeDie', {});
         },
 
         handleRollSafeDice: function(evt) {
             dojo.stopEvent(evt);
-            if (this.checkAction('rollSafeDice')) {
-                this.ajaxcall('/burglebros/burglebros/rollSafeDice.html', { lock: true }, this, function() {
-                    console.log(arguments);
-                    // location.reload();
-                }, console.error);
-            }
+            this.performAction('rollSafeDice', {}, function() {
+                console.log(arguments);
+            });
         },
 
         handleHack: function(evt) {
             dojo.stopEvent(evt);
-            if (this.checkAction('hack')) {
-                this.ajaxcall('/burglebros/burglebros/hack.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('hack', {});
         },
 
         handleTrade: function(evt) {
             dojo.stopEvent(evt);
-            if (this.checkAction('trade')) {
-                this.ajaxcall('/burglebros/burglebros/trade.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('trade', {});
         },
 
         handleTakeCards: function(evt) {
             console.log("handleTakeCards", evt);
             dojo.stopEvent(evt);
-            if (this.checkAction('takeCards')) {
-                this.ajaxcall('/burglebros/burglebros/takeCards.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('takeCards', {});
         },
 
         handlePickUpCat: function(evt) {
             dojo.stopEvent(evt);
-            if (this.checkAction('pickUpCat')) {
-                this.ajaxcall('/burglebros/burglebros/pickUpCat.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('pickUpCat', {});
         },
 
         handlePassClick: function(evt) {
             dojo.stopEvent(evt);
             if (this.checkAction('pass')) {
-                if (this.actionsRemaining() >= 2) {
-                    this.confirmationDialog( _('Are you sure you want to pass? This action may trigger an event'), dojo.hitch( this, function() {
-                        this.ajaxcall('/burglebros/burglebros/pass.html', { lock: true }, this, function() {
-                            console.log(arguments);
-                        }, console.error);
-                    } ) );
-                } else {
+                var pass = dojo.hitch(this, function() {
                     this.ajaxcall('/burglebros/burglebros/pass.html', { lock: true }, this, function() {
                         console.log(arguments);
                     }, console.error);
-                } 
+                });
+                if (this.actionsRemaining() >= 2) {
+                    this.confirmationDialog( _('Are you sure you want to pass? This action may trigger an event'), pass );
+                } else {
+                    pass();
+                }
             }
         },
 
         handleRestartTurnClick: function(evt)  {
             dojo.stopEvent(evt);
-            if (this.checkAction('restartTurn')) {
-                this.ajaxcall('/burglebros/burglebros/restartTurn.html', { lock: true }, this, function() {
-                    console.log(arguments);
-                }, console.error);
-            }
+            this.performAction('restartTurn', {}, function() {
+                console.log(arguments);
+            });
         },
 
         handleCardSelected: function(control_name, card_id) {
             // console.log("handleCardSelected", control_name, card_id);
             var handStock = this.getHandStock();
-            if (handStock.isSelected(card_id) && this.checkAction('playCard')) {
-                this.ajaxcall('/burglebros/burglebros/playCard.html', { lock: true, id: card_id }, this, console.log, console.error);
-            } else if (!handStock.isSelected(card_id)) {
+            if (handStock.isSelected(card_id)) {
+                this.performAction('playCard', { id: card_id });
+            } else {
                 this.handleCancelCardChoice();
             }
         },
@@ -2003,74 +2011,52 @@ function (dojo, declare) {
 
         handleCardChoiceButton: function(id, callback) {
             callback = typeof callback == 'object' ? null : callback;
-            if (this.checkAction('selectCardChoice')) {
-                this.ajaxcall('/burglebros/burglebros/selectCardChoice.html', { lock: true, selected_type: 'button', selected_id: id }, this, callback || console.log, console.error);
-            }
+            this.performAction('selectCardChoice', { selected_type: 'button', selected_id: id }, callback);
         },
 
         handleTileChoiceButton: function(selected) {
             console.log("handleTileChoiceButton", selected);
-            if (this.checkAction('selectTileChoice')) {
-                this.ajaxcall('/burglebros/burglebros/selectTileChoice.html', { lock: true, selected: selected }, this, console.log, console.error);
-            }
+            this.performAction('selectTileChoice', { selected: selected });
         },
 
         handleCharacterAction: function() {
             console.log("handleCharacterAction");
-            if (this.checkAction('characterAction')) {
-                this.ajaxcall('/burglebros/burglebros/characterAction.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('characterAction', {});
         },
 
         handlePlayerChoice: function(player_id) {
             console.log("handlePlayerChoice", player_id);
-            if (this.checkAction('selectPlayerChoice')) {
-                this.ajaxcall('/burglebros/burglebros/selectPlayerChoice.html', { lock: true, selected: player_id }, this, console.log, console.error);
-            }
+            this.performAction('selectPlayerChoice', { selected: player_id });
         },
 
         handleConfirmRookMove: function() {
             console.log("handleConfirmRookMove");
-            if (this.checkAction('confirmRookMove')) {
-                this.ajaxcall('/burglebros/burglebros/confirmRookMove.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('confirmRookMove', {});
         },
 
         handleCancelRookMove: function() {
             console.log("handleCancelRookMove");
-            if (this.checkAction('cancelRookMove')) {
-                this.ajaxcall('/burglebros/burglebros/cancelRookMove.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('cancelRookMove', {});
         },
 
         handleCancelPlayerChoice: function() {
-            if (this.checkAction('cancelPlayerChoice')) {
-                this.ajaxcall('/burglebros/burglebros/cancelPlayerChoice.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('cancelPlayerChoice', {});
         },
 
         handleCancelTrade: function() {
-            if (this.checkAction('cancelTrade')) {
-                this.ajaxcall('/burglebros/burglebros/cancelTrade.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('cancelTrade', {});
         },
 
         handleCancelTakeCards: function() {
-            if (this.checkAction('cancelTakeCards')) {
-                this.ajaxcall('/burglebros/burglebros/cancelTakeCards.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('cancelTakeCards', {});
         },
 
         handleCancelSpecialChoice: function() {
-            if (this.checkAction('cancelSpecialChoice')) {
-                this.ajaxcall('/burglebros/burglebros/cancelSpecialChoice.html', { lock: true }, this, console.log, console.error);
-            }
+            this.performAction('cancelSpecialChoice', {});
         },
 
         handleKeepToolButton: function(id, callback) {
-            if (this.checkAction('keepTool')) {
-                this.ajaxcall('/burglebros/burglebros/keepTool.html', { lock: true, selected: id }, this, callback || console.log, console.error);
-            }
+            this.performAction('keepTool', { selected: id }, callback);
         },
         
         ///////////////////////////////////////////////////
@@ -2190,7 +2176,7 @@ function (dojo, declare) {
         notif_tileFlipped: function(notif) {
             // console.log("notif_tileFlipped", notif.args);
             var tile = notif.args.tile,
-                floor = tile.location[5];
+                floor = this.tileFloor(tile),
                 deck = 'floor' + floor;
             this.gamedatas[deck][tile.location_arg] = tile;
             this.gamedatas.flipped_tiles = notif.args.flipped_tiles;

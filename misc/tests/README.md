@@ -25,3 +25,13 @@ php phpunit.phar
   reference implementations in differential tests. Never edit the copied bodies.
 - `*Test.php` — the suites. Rule-cited tests reference printed page numbers of
   the 2nd ed. Mark III v2.05 rulebook.
+
+## Wall layout validation
+
+The default wall layouts are ASCII floor plans in
+`modules/BurgleBrosWallLayouts.class.php`. `WallLayoutTest.php` validates them:
+plans parse, wall counts match the rulebook, every room is reachable, and the
+Fort Knox empty space is consistent across floors and fully enclosed. After
+editing a plan, run the suite (above) before deploying, and update the
+transcription pin in `testPlansParseToOriginalArrays` to the new expected
+positions.

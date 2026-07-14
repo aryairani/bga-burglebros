@@ -17,8 +17,9 @@
 -- Rulebook page references below are printed page numbers in BBRuleBook[MarkIII-v2.05].pdf.
 
 -- All decks of cards, managed by one BGA Deck component ($this->cards).
---   card_type: 0=characters, 1=tools, 2=loot, 3=events (material.inc.php $card_types/$card_info);
---              4/5/6 = Patrol deck for floor 1/2/3 (printed p.3 "Ready the Guards").
+--   card_type: 0=characters, 1=tools, 2=loot, 3=events (CardType::CHARACTER/TOOL/LOOT/EVENT in
+--              modules/CardType.class.php, keying $card_types/$card_info in material.inc.php);
+--              4/5/6 = Patrol deck for floor 1/2/3 (CardType::patrol($floor); p.3 "Ready the Guards").
 --   card_type_arg: 1-based index into $card_info[type]; for patrol cards, into $patrol_names
 --                  (the guard destination A1..D4, or A1..E5 in Fort Knox).
 --   card_location: '<name>_deck' / '<name>_discard' (e.g. tools_deck); 'hand' (arg = player id)

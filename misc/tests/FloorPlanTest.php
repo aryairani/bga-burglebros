@@ -5,9 +5,9 @@ use PHPUnit\Framework\TestCase;
 class FloorPlanTest extends TestCase
 {
     /*
-     * Convert a default-layout array (floor => direction => positions, as declared
-     * in BurgleBrosBoard) into wall rows shaped like getWalls() results: all values
-     * are strings, matching what MySQL returns.
+     * Convert a default-layout array (floor => direction => positions, as returned
+     * by BurgleBrosWallLayouts::defaults()) into wall rows shaped like getWalls()
+     * results: all values are strings, matching what MySQL returns.
      */
     private static function dbWalls($layouts) {
         $rows = array();
@@ -54,12 +54,12 @@ class FloorPlanTest extends TestCase
     public function testMatchesLegacyForAllTilePairs() {
         $wall_sets = array(
             'size4 no walls' => array(4, array()),
-            'size4 default (Bank Job)' => array(4, self::dbWalls(BurgleBrosBoard::DEFAULT_WALLS)),
+            'size4 default (Bank Job)' => array(4, self::dbWalls(BurgleBrosWallLayouts::defaults(4))),
             'size4 random seed 1' => array(4, self::randomWalls(4, 1)),
             'size4 random seed 2' => array(4, self::randomWalls(4, 2)),
             'size4 random dense' => array(4, self::randomWalls(4, 3, 24)),
             'size5 no walls' => array(5, array()),
-            'size5 default (Fort Knox)' => array(5, self::dbWalls(BurgleBrosBoard::DEFAULT_WALLS_SIZE_5)),
+            'size5 default (Fort Knox)' => array(5, self::dbWalls(BurgleBrosWallLayouts::defaults(5))),
             'size5 random seed 4' => array(5, self::randomWalls(5, 4, 12)),
         );
 
@@ -88,21 +88,9 @@ class FloorPlanTest extends TestCase
         }
     }
 
-    // Rules p.13, 2nd ed. Mark III v2.05: 8 walls per 4x4 floor, 12 per 5x5 floor.
-    // The Fort Knox default layout carries 4 extra rows per floor: the walls
-    // enclosing the empty space (p.12: "The empty space acts as an outer Wall").
-    public function testDefaultLayoutsHaveRulebookWallCounts() {
-        foreach (BurgleBrosBoard::DEFAULT_WALLS as $floor => $directions) {
-            $this->assertCount(8, array_merge($directions['vertical'], $directions['horizontal']), "4x4 floor $floor");
-        }
-        foreach (BurgleBrosBoard::DEFAULT_WALLS_SIZE_5 as $floor => $directions) {
-            $this->assertCount(12 + 4, array_merge($directions['vertical'], $directions['horizontal']), "5x5 floor $floor");
-        }
-    }
-
     // Rules p.5: "You may not Move diagonally or through Walls."
     public function testWallBlocksAdjacentTiles() {
-        $plan = new BurgleBrosFloorPlan(4, self::dbWalls(BurgleBrosBoard::DEFAULT_WALLS));
+        $plan = new BurgleBrosFloorPlan(4, self::dbWalls(BurgleBrosWallLayouts::defaults(4)));
         // Bank Job floor 1 has a vertical wall at position 0: between cells 0 and 1.
         $detail = $plan->adjacencyDetail(self::pos(1, 0), self::pos(1, 1));
         $this->assertTrue($detail['adjacent']);
@@ -129,7 +117,7 @@ class FloorPlanTest extends TestCase
     // Rules p.12: the Fort Knox empty space (cell 12 in the default layout) acts
     // as an outer Wall — all four neighbors must be blocked, on both floors.
     public function testFortKnoxEmptySpaceIsWalledOff() {
-        $plan = new BurgleBrosFloorPlan(5, self::dbWalls(BurgleBrosBoard::DEFAULT_WALLS_SIZE_5));
+        $plan = new BurgleBrosFloorPlan(5, self::dbWalls(BurgleBrosWallLayouts::defaults(5)));
         foreach (array(1, 2) as $floor) {
             foreach (array(7, 11, 13, 17) as $neighbor) {
                 $detail = $plan->adjacencyDetail(self::pos($floor, 12), self::pos($floor, $neighbor));

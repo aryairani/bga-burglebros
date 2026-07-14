@@ -13,36 +13,6 @@ class BurgleBrosBoard
 		$this->game = $game;
 	}
 
-	/** @var array<int, array{vertical: int[], horizontal: int[], shaft?: int}> default wall layout by floor */
-	public const DEFAULT_WALLS = array(
-		1 => array(
-			'vertical' => array(0, 5, 9, 10),
-			'horizontal' => array(1, 4, 6, 11)
-		),
-		2 => array(
-			'vertical' => array(0, 1, 2, 9, 10, 11),
-			'horizontal' => array(4, 7)
-		),
-		3 => array(
-			'vertical' => array(3, 5, 6, 7, 11),
-			'horizontal' => array(1, 6, 7)
-		)
-	);
-
-	/** @var array<int, array{vertical: int[], horizontal: int[], shaft?: int}> default wall layout by floor */
-	public const DEFAULT_WALLS_SIZE_5 = array(
-		1 => array(
-			'vertical' => array(2, 3, 4, 7, 18, 9, 10),
-			'horizontal' => array(1, 3, 6, 8, 11, 15, 18, 9, 10),
-			'shaft' => 12
-		),
-		2 => array(
-			'vertical' => array(1, 2, 7, 8, 14, 16, 17, 9, 10),
-			'horizontal' => array(0, 6, 17, 15, 18, 9, 10),
-			'shaft' => 12
-		)
-	);
-
 	public function setupNewGame(array $players, array $options): void {
 		$index = 1;
         $values = array();
@@ -83,7 +53,7 @@ class BurgleBrosBoard
 		$shaft_location_arg = null;
         if ($size === 5) {
         	if ($this->game->getGameStateValue('randomWalls') == 1) {
-	        	$shaft_location_arg = self::DEFAULT_WALLS_SIZE_5[1]['shaft'];
+	        	$shaft_location_arg = BurgleBrosWallLayouts::defaults(5)[1]['shaft'];
 	        } else {
 	        	$shaft_location_arg = rand(0, $size_sq);
 	        }
@@ -142,7 +112,7 @@ class BurgleBrosBoard
 
 	function setupWalls(): void {
 		if ($this->game->getGameStateValue('randomWalls') == 1) {
-			$walls = $this->game->getSquareSize() === 5 ? self::DEFAULT_WALLS_SIZE_5 : self::DEFAULT_WALLS;
+			$walls = BurgleBrosWallLayouts::defaults($this->game->getSquareSize());
 			$max_floor = $this->game->getFloorCount();
 			for ($floor = 1; $floor <= $max_floor; $floor++) {
 				$this->updateWallsDb($walls[$floor], $floor);
@@ -198,7 +168,7 @@ class BurgleBrosBoard
 			}
 			if ($security++ > 200) {
 				$this->game->debug("Couldn't generate a valid wall layout");
-				return $size === 5 ? self::DEFAULT_WALLS_SIZE_5[1] : self::DEFAULT_WALLS[1];
+				return BurgleBrosWallLayouts::defaults($size)[1];
 				break;
 			}
 			if ($this->checkLayout($walls))

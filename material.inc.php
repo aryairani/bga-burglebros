@@ -20,14 +20,14 @@
  */
 
 $this->card_types = array(
-  0 => array( 'name' => clienttranslate('characters'),'nametr' => self::_('characters') ),
-  1 => array( 'name' => clienttranslate('tools'),'nametr' => self::_('tools') ),
-  2 => array( 'name' => clienttranslate('loot'),'nametr' => self::_('loot') ),
-  3 => array( 'name' => clienttranslate('events'),'nametr' => self::_('events') ),
+  CardType::CHARACTER => array( 'name' => clienttranslate('characters'),'nametr' => self::_('characters') ),
+  CardType::TOOL => array( 'name' => clienttranslate('tools'),'nametr' => self::_('tools') ),
+  CardType::LOOT => array( 'name' => clienttranslate('loot'),'nametr' => self::_('loot') ),
+  CardType::EVENT => array( 'name' => clienttranslate('events'),'nametr' => self::_('events') ),
 );
 
 $this->card_info = array(
-  0 => array(
+  CardType::CHARACTER => array(
     array('name'=>'acrobat1', 'choice_description' => self::_('an adjacent tile containing a guard'), 'subhead' => clienttranslate('Retired Performer'), 'title' => clienttranslate('The Acrobat'), 'ability' => clienttranslate('Flexibility'), 'tooltip' => clienttranslate('You may move into a tile with a Guard as a free action and you don\'t use a Stealth when you do. You must leave before the Guard moves or lose a Stealth.')),
     array('name'=>'acrobat2', 'choice_description' => self::_('an option'), 'subhead' => clienttranslate('Retired Performer'), 'title' => clienttranslate('The Acrobat'), 'ability' => clienttranslate('Climb Window'), 'tooltip' => clienttranslate('If you are on an outer tile, you may spend 3 actions to move up or down 1 floor. This ends your actions.')),
     array('name'=>'hacker1', 'subhead' => clienttranslate('Computer Guy'), 'title' => clienttranslate('The Hacker'), 'ability' => clienttranslate('Jammer'), 'tooltip' => clienttranslate('You do not trigger Fingerprint, Laser or Motion tiles. Other players will not trigger them while you are there.')),
@@ -47,7 +47,7 @@ $this->card_info = array(
     array('name'=>'spotter1', 'choice_description' => self::_('to place card on top or bottom of deck'), 'subhead' => clienttranslate('Psychic Gone Rogue'), 'title' => clienttranslate('The Spotter'), 'ability' => clienttranslate('Clairvoyance'), 'tooltip' => clienttranslate('Once per turn, you may spend one action to look at the top of the Patrol deck for your floor. Choose to place it on the top or bottom of the deck.')),
     array('name'=>'spotter2', 'choice_description' => self::_('to place card on top or bottom of deck'), 'subhead' => clienttranslate('Psychic Gone Rogue'), 'title' => clienttranslate('The Spotter'), 'ability' => clienttranslate('Precognition'), 'tooltip' => clienttranslate('Once per turn, you may spend one action to look at the top of the Event deck. Choose to place it on the top or bottom of the deck.')),
   ),
-  1 => array(
+  CardType::TOOL => array(
     array('name'=>'blueprints', 'choice_description' => self::_('any tile to peek'), 'title' => clienttranslate('Blueprints'), 'tooltip' => clienttranslate('Discard to peek at any one tile on any floor.')),
     array('name'=>'crowbar', 'choice_description' => self::_('an adjacent tile to disable'), 'title' => clienttranslate('Crowbar'), 'tooltip' => clienttranslate('Discard to permanently disable an adjacent tile. It can no longer block movement or trigger alarms.')),
     array('name'=>'crystal-ball', 'choice_description' => self::_('to reorder the 3 upcoming events'), 'title' => clienttranslate('Crystal Ball'), 'tooltip' => clienttranslate('Discard to look at the top 3 events. Put them back in any order.')),
@@ -62,7 +62,7 @@ $this->card_info = array(
     array('name'=>'thermal-bomb', 'choice_description' => self::_('up or down to create stairs'), 'title' => clienttranslate('Thermal Bomb'), 'tooltip' => clienttranslate('Discard to make stairs up or down from current tile. Mark with a stair token. Trigger alarm in the player current\'s tile.')),
     array('name'=>'virus', 'choice_description' => self::_('a computer to add hack tokens'), 'title' => clienttranslate('Virus'), 'tooltip' => clienttranslate('Discard to add three hack tokens to any computer room.')),
   ),
-  2 => array(
+  CardType::LOOT => array(
     array('name'=>'bust', 'title' => clienttranslate('Bust'), 'tooltip' => clienttranslate('You may not use tools while holding the Bust.')),
     array('name'=>'chihuahua', 'title' => clienttranslate('Chihuahua'), 'tooltip' => clienttranslate('Each turn, roll a die. If 6, trigger an alarm on your tile.')),
     array('name'=>'cursed-goblet', 'title' => clienttranslate('Cursed Goblet'), 'tooltip' => clienttranslate('Player who draws the Cursed Goblet loses one Stealth.')),
@@ -76,7 +76,7 @@ $this->card_info = array(
     array('name'=>'stamp', 'title' => clienttranslate('Stamp'), 'tooltip' => clienttranslate('When 3 actions or fewer are used by holder, trigger an event.')),
     array('name'=>'tiara', 'title' => clienttranslate('Tiara'), 'tooltip' => clienttranslate('Guards will see you from adjacent tiles while you are moving.')),
   ),
-  3 => array(
+  CardType::EVENT => array(
     array('name'=>'brown-out', 'title' => clienttranslate('Brown Out'), 'tooltip' => clienttranslate('Alarm tokens on all floors are removed. Draw a new Patrol card for each alarm removed.')),
     array('name'=>'buddy-system', 'choice_description' => self::_('a player token to move to your tile'), 'title' => clienttranslate('Buddy System'), 'tooltip' => clienttranslate('Choose a player. Move their piece onto your current tile. Does not count as entering.')),
     array('name'=>'change-of-plans', 'title' => clienttranslate('Change of plans'), 'tooltip' => clienttranslate('Activate the next Patrol card on your floor.')),
@@ -107,9 +107,9 @@ $this->card_info = array(
 );
 
 $this->patrol_types = array(
-  4 => array( 'name' => clienttranslate('patrol1'),'nametr' => self::_('patrol1') ),
-  5 => array( 'name' => clienttranslate('patrol2'),'nametr' => self::_('patrol2') ),
-  6 => array( 'name' => clienttranslate('patrol3'),'nametr' => self::_('patrol3') ),
+  CardType::patrol(1) => array( 'name' => clienttranslate('patrol1'),'nametr' => self::_('patrol1') ),
+  CardType::patrol(2) => array( 'name' => clienttranslate('patrol2'),'nametr' => self::_('patrol2') ),
+  CardType::patrol(3) => array( 'name' => clienttranslate('patrol3'),'nametr' => self::_('patrol3') ),
 );
 
 $this->patrol_names = array(
