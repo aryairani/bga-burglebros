@@ -4,11 +4,11 @@
  * PlayerChoice: values of the 'playerChoice' game state value — why the playerChoice
  * state was entered (keys of $player_choices in material.inc.php)
  */
-final class PlayerChoice
+enum PlayerChoice: int
 {
-    const NONE = 0;
-    const TRADE = 1;
-    const ROOK1 = 2;
-    const ROOK2 = 3;
-    const SQUEAK = 4;
+    case None = 0;
+    case Trade = 1;
+    case Rook1 = 2;
+    case Rook2 = 3;
+    case Squeak = 4;
 }

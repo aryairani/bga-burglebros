@@ -20,15 +20,15 @@
  */
 
 $this->card_types = array(
-  CardType::CHARACTER => new DeckType('characters'),
-  CardType::TOOL => new DeckType('tools'),
-  CardType::LOOT => new DeckType('loot'),
-  CardType::EVENT => new DeckType('events'),
+  CardType::Character->value => new DeckType('characters'),
+  CardType::Tool->value => new DeckType('tools'),
+  CardType::Loot->value => new DeckType('loot'),
+  CardType::Event->value => new DeckType('events'),
 );
 
 
 $this->card_info = array(
-  CardType::CHARACTER => array(
+  CardType::Character->value => array(
     new CardInfo(
       name: 'acrobat1',
       title: clienttranslate('The Acrobat'),
@@ -167,7 +167,7 @@ $this->card_info = array(
       tooltip: clienttranslate('Once per turn, you may spend one action to look at the top of the Event deck. Choose to place it on the top or bottom of the deck.'),
     ),
   ),
-  CardType::TOOL => array(
+  CardType::Tool->value => array(
     new CardInfo(
       name: 'blueprints',
       title: clienttranslate('Blueprints'),
@@ -242,7 +242,7 @@ $this->card_info = array(
       tooltip: clienttranslate('Discard to add three hack tokens to any computer room.'),
     ),
   ),
-  CardType::LOOT => array(
+  CardType::Loot->value => array(
     new CardInfo(
       name: 'bust',
       title: clienttranslate('Bust'),
@@ -305,7 +305,7 @@ $this->card_info = array(
       tooltip: clienttranslate('Guards will see you from adjacent tiles while you are moving.'),
     ),
   ),
-  CardType::EVENT => array(
+  CardType::Event->value => array(
     new CardInfo(
       name: 'brown-out',
       title: clienttranslate('Brown Out'),
@@ -444,9 +444,9 @@ $this->card_info = array(
 );
 
 $this->patrol_types = array(
-  CardType::patrol(1) => new DeckType('patrol1'),
-  CardType::patrol(2) => new DeckType('patrol2'),
-  CardType::patrol(3) => new DeckType('patrol3'),
+  CardType::patrol(1)->value => new DeckType('patrol1'),
+  CardType::patrol(2)->value => new DeckType('patrol2'),
+  CardType::patrol(3)->value => new DeckType('patrol3'),
 );
 
 // Patrol card faces are generated per board size: see patrolNames() / patrolInfo() in burglebros.game.php.
@@ -560,22 +560,22 @@ $this->token_types = array(
 );
 
 $this->player_choices = array(
-  PlayerChoice::NONE => 'none',
-  PlayerChoice::TRADE => 'trade',
-  PlayerChoice::ROOK1 => 'rook1',
-  PlayerChoice::ROOK2 => 'rook2',
-  PlayerChoice::SQUEAK => 'squeak',
+  PlayerChoice::None->value => 'none',
+  PlayerChoice::Trade->value => 'trade',
+  PlayerChoice::Rook1->value => 'rook1',
+  PlayerChoice::Rook2->value => 'rook2',
+  PlayerChoice::Squeak->value => 'squeak',
 );
 
 $this->special_choices = array(
-  SpecialChoice::NONE => 'none',
-  SpecialChoice::ROOK1 => 'rook1',
-  SpecialChoice::CLOSEST_ALARM => 'closest_alarm',
+  SpecialChoice::None->value => 'none',
+  SpecialChoice::Rook1->value => 'rook1',
+  SpecialChoice::ClosestAlarm->value => 'closest_alarm',
 );
 
 // Resume the right state after chooseAlarm
 $this->state_after_alarms = array(
-  State::PLAYER_TURN => 'playerTurn',
-  State::MOVE_GUARD => 'moveGuard',
-  State::END_ACTION => 'endAction',
+  State::PlayerTurn->value => 'playerTurn',
+  State::MoveGuard->value => 'moveGuard',
+  State::EndAction->value => 'endAction',
 );

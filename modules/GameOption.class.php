@@ -4,43 +4,43 @@
  * GameOption: ids of the table options declared in gameoptions.json
  * (gameoptions.json is JSON, so the ids there remain literal 100-106).
  */
-final class GameOption
+enum GameOption: int
 {
-    const CHARACTER_ASSIGNMENT = 100;
-    const LEVEL = 101;
-    const SCENARIO = 102;
-    const WALLS = 103;
-    const SOLO_MULTI_CHARACTERS = 104;
-    const DEADBOLT_DISTRIBUTION = 106;
+    case CharacterAssignment = 100;
+    case Level = 101;
+    case Scenario = 102;
+    case Walls = 103;
+    case SoloMultiCharacters = 104;
+    case DeadboltDistribution = 106;
 }
 
 // Values of each option, mirroring the value ids in gameoptions.json.
 // Scenario (option 102) values live in Scenario.class.php;
 // Solo multi-characters (option 104) values are plain character counts.
 
-final class CharacterAssignment
+enum CharacterAssignment: int
 {
-    const RANDOM = 1;
-    const RANDOM_ADVANCED = 2;
-    const CHOICE = 3;
-    const CHOICE_ADVANCED = 4;
+    case Random = 1;
+    case RandomAdvanced = 2;
+    case Choice = 3;
+    case ChoiceAdvanced = 4;
 }
 
-final class Level
+enum Level: int
 {
-    const EASY = 1;
-    const NORMAL = 2;
-    const HARD = 3;
+    case Easy = 1;
+    case Normal = 2;
+    case Hard = 3;
 }
 
-final class Walls
+enum Walls: int
 {
-    const DEFAULT = 1;
-    const RANDOM = 2;
+    case Default = 1;
+    case Random = 2;
 }
 
-final class DeadboltDistribution
+enum DeadboltDistribution: int
 {
-    const FULLY_RANDOM = 1;
-    const ONE_PER_FLOOR = 2;
+    case FullyRandom = 1;
+    case OnePerFloor = 2;
 }

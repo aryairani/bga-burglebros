@@ -53,17 +53,17 @@ require_once(__DIR__ . '/modules/State.class.php');
 
 
 $machinestates = array(
-    State::RANDOMIZE_WALLS => array(
+    State::RandomizeWalls->value => array(
         'name' => 'randomizeWalls',
         'description' => clienttranslate('The administrator of the table can generate new walls for this game'),
         'descriptionmyturn' => clienttranslate('${you} can generate a new set of walls for this game'),
         'type' => 'activeplayer',
         'action' => 'stRandomizeWalls',
         'possibleactions' => array( 'randomizeWalls' ),
-        'transitions' => array( 'startGame' => State::CHOOSE_CHARACTER )
+        'transitions' => array( 'startGame' => State::ChooseCharacter->value )
     ),
 
-    State::CHOOSE_CHARACTER => array(
+    State::ChooseCharacter->value => array(
         'name' => 'chooseCharacter',
         'description' => clienttranslate('Other players must choose a character'),
         'descriptionmyturn' => clienttranslate('${you} must choose a character'),
@@ -71,20 +71,20 @@ $machinestates = array(
         'action' => 'stChooseCharacter',
         'args' => 'argChooseCharacter',
         'possibleactions' => array( 'playCard' ),
-        'transitions' => array( 'chooseCharacter' => State::STARTING_TILE, 'nextPlayer' => State::CHOOSE_CHARACTER )
+        'transitions' => array( 'chooseCharacter' => State::StartingTile->value, 'nextPlayer' => State::ChooseCharacter->value )
     ),
 
-    State::STARTING_TILE => array(
+    State::StartingTile->value => array(
         'name' => 'startingTile',
         'description' => clienttranslate('${actplayer} must choose a starting tile'),
         'descriptionmyturn' => clienttranslate('${you} must choose a starting tile'),
         'type' => 'activeplayer',
         'args' => 'argStartingTile',
         'possibleactions' => array( 'chooseStartingTile' ),
-        'transitions' => array( '' => State::PLAYER_TURN )
+        'transitions' => array( '' => State::PlayerTurn->value )
     ),
 
-    State::PLAYER_TURN => array(
+    State::PlayerTurn->value => array(
         'name' => 'playerTurn',
         'description' => clienttranslate('${actplayer} have ${actions_remaining} actions remaining'),
         'descriptionmyturn' => clienttranslate('${you} have ${actions_remaining} actions remaining'),
@@ -93,37 +93,37 @@ $machinestates = array(
         'args' => 'argPlayerTurn',
         'updateGameProgression' => true,
         'possibleactions' => array( 'hack', 'move', 'peek', 'addSafeDie', 'rollSafeDice', 'playCard', 'characterAction', 'trade', 'pickUpCat', 'takeCards', 'pass', 'escape', 'restartTurn' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'endTurn' => State::END_TURN, 'nextPlayer' => State::NEXT_PLAYER, 'cardChoice' => State::CARD_CHOICE, 'tileChoice' => State::TILE_CHOICE, 'playerChoice' => State::PLAYER_CHOICE, 'proposeTrade' => State::PROPOSE_TRADE, 'takeCards' => State::TAKE_CARDS, 'specialChoice' => State::SPECIAL_CHOICE, 'rookChoice' => State::SWITCH_ROOK_MOVE, 'chooseAlarm' => State::SPECIAL_CHOICE, 'restartTurn' => State::PLAYER_TURN, 'gameOver' => State::GAME_OVER )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'endTurn' => State::EndTurn->value, 'nextPlayer' => State::NextPlayer->value, 'cardChoice' => State::CardChoice->value, 'tileChoice' => State::TileChoice->value, 'playerChoice' => State::PlayerChoice->value, 'proposeTrade' => State::ProposeTrade->value, 'takeCards' => State::TakeCards->value, 'specialChoice' => State::SpecialChoice->value, 'rookChoice' => State::SwitchRookMove->value, 'chooseAlarm' => State::SpecialChoice->value, 'restartTurn' => State::PlayerTurn->value, 'gameOver' => State::GameOver->value )
     ),
 
-    State::END_TURN => array(
+    State::EndTurn->value => array(
         'name' => 'endTurn',
         'description' => clienttranslate('Triggering end of turn effects...'),
         'type' => 'game',
         'args' => 'argPlayerTurn',
         'action' => 'stEndTurn',
         'updateGameProgression' => true,
-        'transitions' => array( 'moveGuard' => State::MOVE_GUARD, 'chooseAlarm' => State::SPECIAL_CHOICE )
+        'transitions' => array( 'moveGuard' => State::MoveGuard->value, 'chooseAlarm' => State::SpecialChoice->value )
     ),
 
-    State::MOVE_GUARD => array(
+    State::MoveGuard->value => array(
         'name' => 'moveGuard',
         'description' => clienttranslate('Guard is moving...'),
         'type' => 'game',
         'action' => 'stMoveGuard',
         'updateGameProgression' => true,
-        'transitions' => array( 'nextPlayer' => State::NEXT_PLAYER, 'chooseAlarm' => State::SPECIAL_CHOICE, 'gameOver' => State::GAME_OVER )
+        'transitions' => array( 'nextPlayer' => State::NextPlayer->value, 'chooseAlarm' => State::SpecialChoice->value, 'gameOver' => State::GameOver->value )
     ),
 
-    State::NEXT_PLAYER => array(
+    State::NextPlayer->value => array(
         'name' => 'nextPlayer',
         'description' => '',
         'type' => 'game',
         'action' => 'stNextPlayer',
-        'transitions' => array( 'playerTurn' => State::PLAYER_TURN )
+        'transitions' => array( 'playerTurn' => State::PlayerTurn->value )
     ),
 
-    State::CARD_CHOICE => array(
+    State::CardChoice->value => array(
         'name' => 'cardChoice',
         'description' => clienttranslate('${card_name_displayed}: ${actplayer} must choose ${choice_description}'),
         'descriptionmyturn' => clienttranslate('${card_name_displayed}: ${you} must choose ${choice_description}'),
@@ -131,66 +131,66 @@ $machinestates = array(
         'args' => 'argCardChoice',
         'updateGameProgression' => true,
         'possibleactions' => array( 'selectCardChoice', 'cancelCardChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'nextAction' => State::PLAYER_TURN, 'endTurn' => State::END_TURN, 'tileChoice' => State::TILE_CHOICE, 'restartTurn' => State::PLAYER_TURN, 'chooseAlarm' => State::SPECIAL_CHOICE, 'gameOver' => State::GAME_OVER )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'nextAction' => State::PlayerTurn->value, 'endTurn' => State::EndTurn->value, 'tileChoice' => State::TileChoice->value, 'restartTurn' => State::PlayerTurn->value, 'chooseAlarm' => State::SpecialChoice->value, 'gameOver' => State::GameOver->value )
     ),
 
-    State::TILE_CHOICE => array(
+    State::TileChoice->value => array(
         'name' => 'tileChoice',
         'description' => clienttranslate('${tile_name}: ${actplayer} must choose an option'),
         'descriptionmyturn' => clienttranslate('${tile_name}: ${you} must choose an option'),
         'type' => 'activeplayer',
         'args' => 'argTileChoice',
         'possibleactions' => array( 'selectTileChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'tileChoice' => State::TILE_CHOICE, 'restartTurn' => State::PLAYER_TURN, 'endTurn' => State::END_TURN, 'switchRookMove' => State::SWITCH_ROOK_MOVE, 'chooseAlarm' => State::SPECIAL_CHOICE )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'tileChoice' => State::TileChoice->value, 'restartTurn' => State::PlayerTurn->value, 'endTurn' => State::EndTurn->value, 'switchRookMove' => State::SwitchRookMove->value, 'chooseAlarm' => State::SpecialChoice->value )
     ),
 
-    State::PLAYER_CHOICE => array(
+    State::PlayerChoice->value => array(
         'name' => 'playerChoice',
         'description' => clienttranslate('${actplayer} must choose a player'),
         'descriptionmyturn' => clienttranslate('${you} must choose a player'),
         'type' => 'activeplayer',
         'args' => 'argPlayerChoice',
         'possibleactions' => array( 'selectPlayerChoice', 'cancelPlayerChoice', 'restartTurn' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'nextAction' => State::PLAYER_TURN, 'proposeTrade' => State::PROPOSE_TRADE, 'specialChoice' => State::SPECIAL_CHOICE, 'chooseAlarm' => State::SPECIAL_CHOICE, 'restartTurn' => State::PLAYER_TURN )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'nextAction' => State::PlayerTurn->value, 'proposeTrade' => State::ProposeTrade->value, 'specialChoice' => State::SpecialChoice->value, 'chooseAlarm' => State::SpecialChoice->value, 'restartTurn' => State::PlayerTurn->value )
     ),
 
-    State::PROPOSE_TRADE => array(
+    State::ProposeTrade->value => array(
         'name' => 'proposeTrade',
         'description' => clienttranslate('${actplayer} must choose cards to trade'),
         'descriptionmyturn' => clienttranslate('${you} must choose cards to trade'),
         'type' => 'activeplayer',
         'args' => 'argProposeTrade',
         'possibleactions' => array( 'proposeTrade', 'cancelTrade' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'nextAction' => State::PLAYER_TURN, 'nextTradePlayer' => State::NEXT_TRADE_PLAYER, 'endTradeOtherPlayer' => State::END_TRADE_OTHER_PLAYER )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'nextAction' => State::PlayerTurn->value, 'nextTradePlayer' => State::NextTradePlayer->value, 'endTradeOtherPlayer' => State::EndTradeOtherPlayer->value )
     ),
 
-    State::CONFIRM_TRADE => array(
+    State::ConfirmTrade->value => array(
         'name' => 'confirmTrade',
         'description' => clienttranslate('${actplayer} must confirm a trade'),
         'descriptionmyturn' => clienttranslate('${you} must confirm a trade'),
         'type' => 'activeplayer',
         'args' => 'argConfirmTrade',
         'possibleactions' => array( 'confirmTrade', 'cancelTrade' ),
-        'transitions' => array( 'endTradeOtherPlayer' => State::END_TRADE_OTHER_PLAYER )
+        'transitions' => array( 'endTradeOtherPlayer' => State::EndTradeOtherPlayer->value )
     ),
 
-    State::NEXT_TRADE_PLAYER => array(
+    State::NextTradePlayer->value => array(
         'name' => 'nextTradePlayer',
         'description' => '',
         'type' => 'game',
         'action' => 'stNextTradePlayer',
-        'transitions' => array( 'confirmTrade' => State::CONFIRM_TRADE )
+        'transitions' => array( 'confirmTrade' => State::ConfirmTrade->value )
     ),
 
-    State::END_TRADE_OTHER_PLAYER => array(
+    State::EndTradeOtherPlayer->value => array(
         'name' => 'endTradeOtherPlayer',
         'description' => '',
         'type' => 'game',
         'action' => 'stEndTradeOtherPlayer',
-        'transitions' => array( 'nextAction' => State::PLAYER_TURN )
+        'transitions' => array( 'nextAction' => State::PlayerTurn->value )
     ),
 
-    State::SPECIAL_CHOICE => array(
+    State::SpecialChoice->value => array(
         'name' => 'specialChoice',
         'description' => clienttranslate('${choice_name}: ${actplayer} must choose ${choice_description}'),
         'descriptionmyturn' => clienttranslate('${choice_name}: ${you} must choose ${choice_description}'),
@@ -198,68 +198,68 @@ $machinestates = array(
         'args' => 'argSpecialChoice',
         'updateGameProgression' => true,
         'possibleactions' => array( 'selectSpecialChoice', 'cancelSpecialChoice' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'nextAction' => State::PLAYER_TURN, 'tileChoice' => State::TILE_CHOICE, 'playerTurn' => State::PLAYER_TURN, 'moveGuard' => State::MOVE_GUARD, 'chooseAlarm' => State::SPECIAL_CHOICE, 'switchRookMove' => State::SWITCH_ROOK_MOVE, 'gameOver' => State::GAME_OVER )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'nextAction' => State::PlayerTurn->value, 'tileChoice' => State::TileChoice->value, 'playerTurn' => State::PlayerTurn->value, 'moveGuard' => State::MoveGuard->value, 'chooseAlarm' => State::SpecialChoice->value, 'switchRookMove' => State::SwitchRookMove->value, 'gameOver' => State::GameOver->value )
     ),
 
-    State::END_ACTION => array(
+    State::EndAction->value => array(
         'name' => 'endAction',
         'description' => '',
         'type' => 'game',
         'action' => 'stEndAction',
-        'transitions' => array( 'nextAction' => State::PLAYER_TURN, 'drawTools' => State::DRAW_TOOLS_AND_DISCARD, 'endTurn' => State::END_TURN )
+        'transitions' => array( 'nextAction' => State::PlayerTurn->value, 'drawTools' => State::DrawToolsAndDiscard->value, 'endTurn' => State::EndTurn->value )
     ),
 
-    State::DRAW_TOOLS_AND_DISCARD => array(
+    State::DrawToolsAndDiscard->value => array(
         'name' => 'drawToolsAndDiscard',
         'description' => clienttranslate('${actplayer} must choose a tool'),
         'descriptionmyturn' => clienttranslate('${you} must choose a tool'),
         'type' => 'activeplayer',
         'args' => 'argDrawToolsAndDiscard',
         'possibleactions' => array( 'keepTool', 'restartTurn' ),
-        'transitions' => array( 'drawToolsOtherPlayer' => State::DRAW_TOOLS_OTHER_PLAYER, 'nextAction' => State::PLAYER_TURN, 'endTurn' => State::END_TURN, 'restartTurn' => State::PLAYER_TURN )
+        'transitions' => array( 'drawToolsOtherPlayer' => State::DrawToolsOtherPlayer->value, 'nextAction' => State::PlayerTurn->value, 'endTurn' => State::EndTurn->value, 'restartTurn' => State::PlayerTurn->value )
     ),
 
-    State::DRAW_TOOLS_OTHER_PLAYER => array(
+    State::DrawToolsOtherPlayer->value => array(
         'name' => 'drawToolsOtherPlayer',
         'description' => '',
         'type' => 'game',
         'action' => 'stDrawToolsOtherPlayer',
-        'transitions' => array( 'nextAction' => State::PLAYER_TURN )
+        'transitions' => array( 'nextAction' => State::PlayerTurn->value )
     ),
 
-    State::TAKE_CARDS => array(
+    State::TakeCards->value => array(
         'name' => 'takeCards',
         'description' => clienttranslate('${actplayer} must choose cards to take'),
         'descriptionmyturn' => clienttranslate('${you} must choose cards to take'),
         'type' => 'activeplayer',
         'args' => 'argPlayerTurn',
         'possibleactions' => array( 'confirmTakeCards', 'cancelTakeCards' ),
-        'transitions' => array( 'endAction' => State::END_ACTION, 'nextAction' => State::PLAYER_TURN )
+        'transitions' => array( 'endAction' => State::EndAction->value, 'nextAction' => State::PlayerTurn->value )
     ),
 
-    State::SWITCH_ROOK_MOVE => array(
+    State::SwitchRookMove->value => array(
         'name' => 'switchRookMove',
         'description' => '',
         'type' => 'game',
         'action' => 'stSwitchRookMove',
-        'transitions' => array( 'confirmRookMove' => State::CONFIRM_ROOK_MOVE, 'endAction' => State::END_ACTION, 'switchRookMove' => State::SWITCH_ROOK_MOVE, 'tileChoice' => State::TILE_CHOICE )
+        'transitions' => array( 'confirmRookMove' => State::ConfirmRookMove->value, 'endAction' => State::EndAction->value, 'switchRookMove' => State::SwitchRookMove->value, 'tileChoice' => State::TileChoice->value )
     ),
 
-    State::CONFIRM_ROOK_MOVE => array(
+    State::ConfirmRookMove->value => array(
         'name' => 'confirmRookMove',
         'description' => clienttranslate('${actplayer} must confirm The Rook move'),
         'descriptionmyturn' => clienttranslate('The Rook wants to move you to ${destination_name} on floor ${floor}'),
         'type' => 'activeplayer',
         'args' => 'argConfirmRookMove',
         'possibleactions' => array( 'confirmRookMove', 'cancelRookMove' ),
-        'transitions' => array( 'switchRookMove' => State::SWITCH_ROOK_MOVE, 'gameOver' => State::GAME_OVER, 'tileChoice' => State::TILE_CHOICE, 'chooseAlarm' => State::SPECIAL_CHOICE )
+        'transitions' => array( 'switchRookMove' => State::SwitchRookMove->value, 'gameOver' => State::GameOver->value, 'tileChoice' => State::TileChoice->value, 'chooseAlarm' => State::SpecialChoice->value )
     ),
 
-    State::GAME_OVER => array(
+    State::GameOver->value => array(
         'name' => 'gameOver',
         'description' => clienttranslate('End of game'),
         'type' => 'game',
         'action' => 'stGameOver',
-        'transitions' => array( 'endGame' => State::GAME_END )
+        'transitions' => array( 'endGame' => State::GameEnd->value )
     ),
 );

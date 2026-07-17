@@ -116,12 +116,12 @@ class burglebros extends Table
             'donutsDropped' => 42,
 
             // Options
-            'characterAssignment' => GameOption::CHARACTER_ASSIGNMENT,
-            'level' => GameOption::LEVEL,
-            'scenario' => GameOption::SCENARIO,
-            'randomWalls' => GameOption::WALLS,
-            'soloMultiCharacters' => GameOption::SOLO_MULTI_CHARACTERS,
-            'deadboltDistribution' => GameOption::DEADBOLT_DISTRIBUTION,
+            'characterAssignment' => GameOption::CharacterAssignment->value,
+            'level' => GameOption::Level->value,
+            'scenario' => GameOption::Scenario->value,
+            'randomWalls' => GameOption::Walls->value,
+            'soloMultiCharacters' => GameOption::SoloMultiCharacters->value,
+            'deadboltDistribution' => GameOption::DeadboltDistribution->value,
         ) ); 
 
         // Initialize module classes
@@ -152,18 +152,12 @@ class burglebros extends Table
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $option_level = $options[GameOption::LEVEL];
-        switch ($option_level) {
-            case Level::EASY:
-                $option_stealth_count = 6;
-                break;
-            case Level::HARD:
-                $option_stealth_count = 1;
-                break;
-            default:
-                $option_stealth_count = 3;
-                break;
-        }
+        $option_level = Level::from((int) $options[GameOption::Level->value]);
+        $option_stealth_count = match ($option_level) {
+            Level::Easy => 6,
+            Level::Normal => 3,
+            Level::Hard => 1,
+        };
         $sql = "INSERT INTO player (player_id, player_color, player_name, player_stealth_tokens) VALUES ";
         $values = array();
         foreach( $players as $player_id => $player )
@@ -206,7 +200,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'safeDieCount3', 0 );
         self::setGameStateInitialValue( 'motionTileEntered', 0x000 ); // Bit vector
         // Fort Knox starts guard die at 3 on floor 1
-        $intial_guard_die = $this->getGameStateValue('scenario') == Scenario::FORT_KNOX ? 3 : 2;
+        $intial_guard_die = $this->getGameStateValue('scenario') == Scenario::FortKnox->value ? 3 : 2;
         self::setGameStateInitialValue( 'patrolDieCount1', $intial_guard_die++ );
         self::setGameStateInitialValue( 'patrolDieCount2', $intial_guard_die++ );
         self::setGameStateInitialValue( 'patrolDieCount3', $intial_guard_die );
@@ -218,7 +212,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'acrobatEnteredGuardTile', 0 );
         self::setGameStateInitialValue( 'tileChoice', 0 );
         self::setGameStateInitialValue( 'motionTileExitChoice', 0 );
-        self::setGameStateInitialValue( 'playerChoice', PlayerChoice::NONE );
+        self::setGameStateInitialValue( 'playerChoice', PlayerChoice::None->value );
         self::setGameStateInitialValue( 'playerChoiceArg', 0 );
         self::setGameStateInitialValue( 'firstAction', 1 );
         self::setGameStateInitialValue( 'drawToolsPlayer', 0 );
@@ -248,14 +242,14 @@ class burglebros extends Table
         self::initStat( "player", "trade_confirmed", 0 );
         self::initStat( "player", "special_ability_use", 0 );
 
-        $option_character = $options[GameOption::CHARACTER_ASSIGNMENT];
-        $option_characters_advanced = $option_character == CharacterAssignment::RANDOM_ADVANCED || $option_character == CharacterAssignment::CHOICE_ADVANCED;
+        $option_character = $options[GameOption::CharacterAssignment->value];
+        $option_characters_advanced = $option_character == CharacterAssignment::RandomAdvanced->value || $option_character == CharacterAssignment::ChoiceAdvanced->value;
         $card_info = $this->card_info;
         if (!$option_characters_advanced) {
             // Drop the advanced character variants (names ending in '2'). array_filter keeps the
             // original keys, so the surviving cards' type_args still match the full material list.
-            $card_info[CardType::CHARACTER] = array_filter(
-                $card_info[CardType::CHARACTER],
+            $card_info[CardType::Character->value] = array_filter(
+                $card_info[CardType::Character->value],
                 function ($card) { return substr($card->name, -1) != '2'; });
         }
         $this->createDecks($this->card_types, $card_info);
@@ -265,7 +259,7 @@ class burglebros extends Table
             $floor_count = $this->getFloorCount();
             $shaft_position = $this->board->getShaftPosition();
             for ($i=1; $i <= $floor_count; $i++) {
-                $ids = array_keys($this->cards->getCardsOfType(CardType::patrol($i), $shaft_position + 1)); // card_type_arg == shaft +1
+                $ids = array_keys($this->cards->getCardsOfType(CardType::patrol($i)->value, $shaft_position + 1)); // card_type_arg == shaft +1
                 $this->cards->moveCards($ids, 'patrol_oop');
             }
         }
@@ -279,7 +273,7 @@ class burglebros extends Table
             $tokens [] = array('type' => 'crack', 'type_arg' => $floor, 'nbr' => 1);    # when a first die is added on the safe
         }
         // Fort Knox, create other tokens for the third safe
-        if ($this->getGameStateValue('scenario') == Scenario::FORT_KNOX) {
+        if ($this->getGameStateValue('scenario') == Scenario::FortKnox->value) {
             $tokens [] = array('type' => 'crack', 'type_arg' => 1, 'nbr' => 1);
             $tokens [] = array('type' => 'crack', 'type_arg' => 2, 'nbr' => 1);
         }
@@ -311,16 +305,16 @@ class burglebros extends Table
         foreach ($players as $player_id => $player) {
             $player_token = array('type' => 'player', 'type_arg' => $player_id, 'nbr' => 1);
             $this->tokens->createCards(array($player_token), 'hand', $player_id);
-            if ($option_character == CharacterAssignment::RANDOM || $option_character == CharacterAssignment::RANDOM_ADVANCED) {
+            if ($option_character == CharacterAssignment::Random->value || $option_character == CharacterAssignment::RandomAdvanced->value) {
                 $character = $this->cards->pickCard('characters_deck', $player_id);
-                if ($option_character == CharacterAssignment::RANDOM_ADVANCED) {
+                if ($option_character == CharacterAssignment::RandomAdvanced->value) {
                     // Move advanced card to player hand so they can choose on the next state
                     $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
-                    $advanced_character_id = key($this->cards->getCardsOfType(CardType::CHARACTER,$type_arg));
+                    $advanced_character_id = key($this->cards->getCardsOfType(CardType::Character->value,$type_arg));
                     $this->cards->moveCard($advanced_character_id, 'hand', $player_id);
                 } elseif ($this->getCardType($character) == 'rigger1') {
-                    $type_arg = $this->getCardTypeForName(CardType::TOOL,'dynamite');
-                    $dynamite = array_values($this->cards->getCardsOfType(CardType::TOOL,$type_arg))[0];
+                    $type_arg = $this->getCardTypeForName(CardType::Tool,'dynamite');
+                    $dynamite = array_values($this->cards->getCardsOfType(CardType::Tool->value,$type_arg))[0];
                     $this->cards->moveCard($dynamite['id'], 'hand', $player_id);
                 }
             }
@@ -329,7 +323,7 @@ class burglebros extends Table
         }
 
         // Activate table administrator to randomize walls if needed
-        if ($this->bga->tableOptions->get(GameOption::WALLS) !== Walls::DEFAULT) {
+        if ($this->bga->tableOptions->get(GameOption::Walls->value) !== Walls::Default->value) {
             foreach ($players as $id => $player) {
                 if (isset($player['player_is_admin']) && $player['player_is_admin'] == 1) {
                     $admin_id = $id;
@@ -347,7 +341,7 @@ class burglebros extends Table
         $this->setupPatrol($guard_token, 1);
 
         /************ End of the game initialization *****/
-        return State::RANDOMIZE_WALLS;
+        return State::RandomizeWalls->value;
     }
 
     /*
@@ -385,7 +379,7 @@ class burglebros extends Table
         $result['solo_characters'] = $this->getSoloMultiCharacters();
         $result['active_player_id'] = $this->getCurrentPlayerIdCustom();
 
-        $result['tile_distribution'] = $this->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? $this->tile_distribution_office_job : $this->tile_distribution;
+        $result['tile_distribution'] = $this->getGameStateValue('scenario') == Scenario::OfficeJob->value ? $this->tile_distribution_office_job : $this->tile_distribution;
         $result['flipped_tiles'] = $this->getFlippedTiles();
 
         $tokens = array();
@@ -456,7 +450,7 @@ class burglebros extends Table
         In this space, you can put any utility methods useful for your game logic
     */
     public function getSoloMultiCharacters() {
-        return $this->bga->tableOptions->get(GameOption::SOLO_MULTI_CHARACTERS) ?? 1;
+        return $this->bga->tableOptions->get(GameOption::SoloMultiCharacters->value) ?? 1;
     }
 
     public function loadPlayersInfos() {
@@ -544,10 +538,10 @@ class burglebros extends Table
         // self::getCurrentPlayerId() may raise an exception error because this is the first state called by game setup, so wrap it into a try / catch
         try {
             $current_player_id = $this->getCurrentPlayerIdCustom();
-            $cards = $this->cards->getCardsOfTypeInLocation(CardType::CHARACTER,null, 'hand', $current_player_id);
+            $cards = $this->cards->getCardsOfTypeInLocation(CardType::Character->value,null, 'hand', $current_player_id);
         } catch (Exception $e) {
             // No one has chosen a character yet (game not started)
-            $cards = $this->cards->getCardsOfTypeInLocation(CardType::CHARACTER,null, 'hand');
+            $cards = $this->cards->getCardsOfTypeInLocation(CardType::Character->value,null, 'hand');
         }
         // If hand is empty, player can choose any available character
         if (count($cards) == 0) {
@@ -559,7 +553,7 @@ class burglebros extends Table
     public function getFloorCount() {
         // Return the number of floors (3 for the Bank job, 2 otherwise)
         // TODO Clean up !== 0 when all the alpha games are done
-        if ($this->getGameStateValue('scenario') !== 0 && $this->getGameStateValue('scenario') != Scenario::BANK_JOB) {
+        if ($this->getGameStateValue('scenario') !== 0 && $this->getGameStateValue('scenario') != Scenario::BankJob->value) {
             return 2;
         } else {
             return 3;
@@ -568,7 +562,7 @@ class burglebros extends Table
 
     public function getSquareSize() {
         // Return the square size of the board (5 for Fort Knox scenario, 4 otherwise)
-        if ($this->getGameStateValue('scenario') == Scenario::FORT_KNOX) {
+        if ($this->getGameStateValue('scenario') == Scenario::FortKnox->value) {
             return 5;
         } else {
             return 4;
@@ -595,16 +589,16 @@ public function patrolNames(): array {
     public function patrolInfo(): array {
         $faces = array_map(fn($face) => new CardFace($face['name']), $this->patrolNames());
         return array(
-            CardType::patrol(1) => $faces,
-            CardType::patrol(2) => $faces,
-            CardType::patrol(3) => $faces,
+            CardType::patrol(1)->value => $faces,
+            CardType::patrol(2)->value => $faces,
+            CardType::patrol(3)->value => $faces,
         );
     }
 
     function moveCardsOutOfPlay($deck, $name) {
-        $type_id = $this->getDeckTypeForName($deck);
-        $type_arg = $this->getCardTypeForName($type_id, $name);
-        $oop = $this->cards->getCardsOfType($type_id, $type_arg);
+        $type = $this->getDeckTypeForName($deck);
+        $type_arg = $this->getCardTypeForName($type, $name);
+        $oop = $this->cards->getCardsOfType($type->value, $type_arg);
         $this->cards->moveCards(array_keys($oop), "{$deck}_oop");
     }
 
@@ -710,7 +704,7 @@ public function patrolNames(): array {
 
     function canEscape($player_tile) {
         $thermal_to_roof = FALSE;
-        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? 2 : 3;
+        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OfficeJob->value ? 2 : 3;
         $max_floor = $this->getFloorCount();
         if ($this->tileFloor($player_tile) == $max_floor && $this->tokensInTile('thermal', $player_tile['id'])) {
             $tile_below = $this->findTileOnFloor($max_floor - 1, $player_tile['location_arg']);
@@ -727,8 +721,8 @@ public function patrolNames(): array {
             $players_ids = array_column($players_on_tile, 'type_arg');
             $players_array = implode("','", $players_ids);
             // Check that any player has some tools or loot in their hand
-            $tool = CardType::TOOL;
-            $loot = CardType::LOOT;
+            $tool = CardType::Tool->value;
+            $loot = CardType::Loot->value;
             $sql = "SELECT card_id FROM card WHERE card_type IN ('$tool','$loot') AND card_location='hand' AND card_location_arg IN ('$players_array')";
             $result = self::getCollectionFromDB( $sql );
             return count($result) > 0;
@@ -1228,8 +1222,8 @@ SQL;
             $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
         }
 
-        $donut_type_id = $this->getCardTypeForName(CardType::TOOL,'donuts');
-        $donuts = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,$donut_type_id, 'tile', $guard_tile['id']);
+        $donut_type_id = $this->getCardTypeForName(CardType::Tool,'donuts');
+        $donuts = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,$donut_type_id, 'tile', $guard_tile['id']);
         if (count($donuts) > 0 && self::getGameStateValue('donutsDropped') == 0) {
             $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
             $this->notifyTileCards($guard_tile['id']);
@@ -1670,8 +1664,8 @@ SQL;
                 }
                 // Do not lose stealth if it is the last one
             } else if($type == 'gold-bar') {
-                $gold_type = $this->getCardTypeForName(CardType::LOOT,'gold-bar');
-                $other_gold = array_values($this->cards->getCardsOfTypeInLocation(CardType::LOOT,$gold_type, 'loot_deck'))[0];
+                $gold_type = $this->getCardTypeForName(CardType::Loot,'gold-bar');
+                $other_gold = array_values($this->cards->getCardsOfTypeInLocation(CardType::Loot->value,$gold_type, 'loot_deck'))[0];
                 $this->cards->moveCard($other_gold['id'], 'tile', $safe_tile['id']);
                 $this->notifyTileCards($safe_tile['id']);
             }
@@ -1882,8 +1876,8 @@ SQL;
             return FALSE;
         }
 
-        $type_arg = $this->getCardTypeForName(CardType::CHARACTER,'hacker1');
-        $hackers = $this->cards->getCardsOfTypeInLocation(CardType::CHARACTER,$type_arg, 'hand');
+        $type_arg = $this->getCardTypeForName(CardType::Character,'hacker1');
+        $hackers = $this->cards->getCardsOfTypeInLocation(CardType::Character->value,$type_arg, 'hand');
         if (count($hackers) > 0) {
             $hacker = array_values($hackers)[0];
             // if ($hacker['location_arg'] == self::getCurrentPlayerId()) {
@@ -2046,7 +2040,7 @@ SQL;
             if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
                 $hand = $this->cards->getPlayerHand($player_id);
                 foreach ($hand as $card_id => $card) {
-                    if ($card['type'] == CardType::TOOL || $card['type'] == CardType::LOOT) {
+                    if ($card['type'] == CardType::Tool->value || $card['type'] == CardType::Loot->value) {
                         $this->setupGuardToken($guard_token, $floor);
                         $special_choice = $this->triggerAlarm($tile);
                         break;
@@ -2163,8 +2157,8 @@ SQL;
     function handleToolEffectDebug($name) {
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $type_arg = $this->getCardTypeForName(CardType::TOOL,$name);
-        $card = array_values($this->cards->getCardsOfType(CardType::TOOL,$type_arg))[0];
+        $type_arg = $this->getCardTypeForName(CardType::Tool,$name);
+        $card = array_values($this->cards->getCardsOfType(CardType::Tool->value,$type_arg))[0];
         $choice = $this->handleToolEffect($current_player_id, $card);
         if ($choice) {
             self::setGameStateValue('cardChoice', $card['id']);
@@ -2203,18 +2197,18 @@ SQL;
         return $choice;
     }
 
-    function getDeckTypeForName($name) {
+    function getDeckTypeForName(string $name): CardType {
         foreach ($this->card_types as $type_id => $value) {
             if ($value->name == $name) {
-                return $type_id;
+                return CardType::from($type_id);
             }
         }
-        return null;
+        throw new InvalidArgumentException("Unknown deck name: $name");
     }
 
-    function getCardTypeForName($type_id, $name) {
+    function getCardTypeForName(CardType $type, string $name): ?int {
         $type_arg = null;
-        foreach ($this->card_info[$type_id] as $index => $value) {
+        foreach ($this->card_info[$type->value] as $index => $value) {
             if ($value->name == $name) {
                 $type_arg = $index + 1;
             }
@@ -2230,8 +2224,8 @@ SQL;
         }
         
         if ($name != null) {
-            $type_arg = $this->getCardTypeForName(CardType::TOOL,$name);
-            $card = array_values($this->cards->getCardsOfType(CardType::TOOL,$type_arg))[0];
+            $type_arg = $this->getCardTypeForName(CardType::Tool,$name);
+            $card = array_values($this->cards->getCardsOfType(CardType::Tool->value,$type_arg))[0];
             $this->cards->moveCard($card['id'], $location, $location_arg);
             if ($location == 'hand') {
                 $this->notifyPlayerHand($current_player_id);
@@ -2248,8 +2242,8 @@ SQL;
     function drawLootDebug($name) {
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $type_arg = $this->getCardTypeForName(CardType::LOOT,$name);
-        $card = array_values($this->cards->getCardsOfType(CardType::LOOT,$type_arg))[0];
+        $type_arg = $this->getCardTypeForName(CardType::Loot,$name);
+        $card = array_values($this->cards->getCardsOfType(CardType::Loot->value,$type_arg))[0];
         $this->cards->moveCard($card['id'], 'hand', $current_player_id);
         $this->notifyPlayerHand($current_player_id);
     }
@@ -2257,8 +2251,8 @@ SQL;
     function discardLootDebug($name) {
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $type_arg = $this->getCardTypeForName(CardType::LOOT,$name);
-        $card = array_values($this->cards->getCardsOfType(CardType::LOOT,$type_arg))[0];
+        $type_arg = $this->getCardTypeForName(CardType::Loot,$name);
+        $card = array_values($this->cards->getCardsOfType(CardType::Loot->value,$type_arg))[0];
         $this->cards->moveCard($card['id'], 'loot_deck');
         $this->notifyPlayerHand($current_player_id, array($card['id']));
     }
@@ -2269,8 +2263,8 @@ SQL;
         $current_char = $this->getPlayerCharacter($current_player_id);
         $this->cards->moveCard($current_char['id'], 'characters_deck');
 
-        $type_arg = $this->getCardTypeForName(CardType::CHARACTER,$name);
-        $card = array_values($this->cards->getCardsOfType(CardType::CHARACTER,$type_arg))[0];
+        $type_arg = $this->getCardTypeForName(CardType::Character,$name);
+        $card = array_values($this->cards->getCardsOfType(CardType::Character->value,$type_arg))[0];
         $this->cards->moveCard($card['id'], 'hand', $current_player_id);
         $this->notifyPlayerHand($current_player_id, array($current_char['id']));
     }
@@ -2282,8 +2276,8 @@ SQL;
     function handleEventEffectDebug($name) {
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $type_arg = $this->getCardTypeForName(CardType::EVENT,$name);
-        $card = array_values($this->cards->getCardsOfType(CardType::EVENT,$type_arg))[0];
+        $type_arg = $this->getCardTypeForName(CardType::Event,$name);
+        $card = array_values($this->cards->getCardsOfType(CardType::Event->value,$type_arg))[0];
         $event_result = $this->handleEventEffect($current_player_id, $card);
         if ($event_result['card_choice']) {
             self::setGameStateValue('cardChoice', $card['id']);
@@ -2327,8 +2321,8 @@ SQL;
             $this->moveToken($patrol_token['id'], 'tile', $tile['id']);
         } elseif($type == 'dead-drop') {
             $prev_player_id = self::getPlayerBeforeCustom($player_id);
-            $cards = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,null, 'hand', $player_id) +
-                $this->cards->getCardsOfTypeInLocation(CardType::LOOT,null, 'hand', $player_id);
+            $cards = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,null, 'hand', $player_id) +
+                $this->cards->getCardsOfTypeInLocation(CardType::Loot->value,null, 'hand', $player_id);
             $this->cards->moveCards(array_keys($cards), 'hand', $prev_player_id);
             $this->notifyPlayerHand($player_id, array_keys($cards));
             $this->notifyPlayerHand($prev_player_id);
@@ -2435,8 +2429,8 @@ SQL;
             $this->moveToken($patrol_token['id'], 'tile', $guard_token['location_arg']);
             // If there was donuts under the Guard, move it to the new destination
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
-            $donut_type_id = $this->getCardTypeForName(CardType::TOOL,'donuts');
-            $donuts = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,$donut_type_id, 'tile', $guard_tile['id']);
+            $donut_type_id = $this->getCardTypeForName(CardType::Tool,'donuts');
+            $donuts = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,$donut_type_id, 'tile', $guard_tile['id']);
             if (count($donuts) > 0 && self::getGameStateValue('donutsDropped') == 0) {
                 $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
                 $this->cards->moveCard(array_keys($donuts)[0], 'tile', $patrol_tile['id']);
@@ -2455,8 +2449,8 @@ SQL;
             
             $this->performGuardMovementEffects($guard_token, $patrol_token['location_arg']);
 
-            $donut_type_id = $this->getCardTypeForName(CardType::TOOL,'donuts');
-            $donuts = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,$donut_type_id, 'tile', $guard_tile['id']);
+            $donut_type_id = $this->getCardTypeForName(CardType::Tool,'donuts');
+            $donuts = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,$donut_type_id, 'tile', $guard_tile['id']);
             if (count($donuts) > 0) {
                 $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
                 $this->notifyTileCards($guard_tile['id']);
@@ -2519,8 +2513,8 @@ SQL;
     }
 
     function getActiveEvent($name) {
-        $type_arg = $this->getCardTypeForName(CardType::EVENT,$name);
-        $cards = $this->cards->getCardsOfTypeInLocation(CardType::EVENT,$type_arg, 'hand');
+        $type_arg = $this->getCardTypeForName(CardType::Event,$name);
+        $cards = $this->cards->getCardsOfTypeInLocation(CardType::Event->value,$type_arg, 'hand');
         if (count($cards) > 0) {
             return array_values($cards)[0];
         }
@@ -2528,16 +2522,16 @@ SQL;
     }
 
     function getPlayerLoot($name, $player_id=null) {
-        $type_arg = $this->getCardTypeForName(CardType::LOOT,$name);
-        $cards = $this->cards->getCardsOfTypeInLocation(CardType::LOOT,$type_arg, 'hand', $player_id);
+        $type_arg = $this->getCardTypeForName(CardType::Loot,$name);
+        $cards = $this->cards->getCardsOfTypeInLocation(CardType::Loot->value,$type_arg, 'hand', $player_id);
         if (count($cards) > 0) {
             return array_values($cards)[0];
         }
         return null;
     }
     function getLootOwner($name) {
-        $type_arg = $this->getCardTypeForName(CardType::LOOT,$name);
-        $cards = $this->cards->getCardsOfTypeInLocation(CardType::LOOT,$type_arg, 'hand');
+        $type_arg = $this->getCardTypeForName(CardType::Loot,$name);
+        $cards = $this->cards->getCardsOfTypeInLocation(CardType::Loot->value,$type_arg, 'hand');
         if (count($cards) > 0) {
             return array_values($cards)[0];
         }
@@ -2546,8 +2540,8 @@ SQL;
     }
 
     function getPlayerTool($name, $player_id=null) {
-        $type_arg = $this->getCardTypeForName(CardType::TOOL,$name);
-        $cards = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,$type_arg, 'hand', $player_id);
+        $type_arg = $this->getCardTypeForName(CardType::Tool,$name);
+        $cards = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,$type_arg, 'hand', $player_id);
         if (count($cards) > 0) {
             return array_values($cards)[0];
         }
@@ -2557,9 +2551,9 @@ SQL;
     function getPlayerCharacter($player_id, $name=null) {
         $type_arg = null;
         if($name != null) {
-            $type_arg = $this->getCardTypeForName(CardType::CHARACTER,$name);
+            $type_arg = $this->getCardTypeForName(CardType::Character,$name);
         }
-        $cards = $this->cards->getCardsOfTypeInLocation(CardType::CHARACTER,$type_arg, 'hand', $player_id);
+        $cards = $this->cards->getCardsOfTypeInLocation(CardType::Character->value,$type_arg, 'hand', $player_id);
         return $cards ? array_values($cards)[0] : null;
     }
 
@@ -2593,7 +2587,7 @@ SQL;
         $type = $card ? $this->getCardType($card) : null;
         // $current_player_id = self::getCurrentPlayerId();
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        if ($card && $card['type'] == CardType::CHARACTER) {
+        if ($card && $card['type'] == CardType::Character->value) {
             self::incStat(1, 'special_ability_use', self::getCurrentPlayerId());
         }
         $tile_choice = FALSE;
@@ -2668,7 +2662,7 @@ SQL;
 
             $wall = self::getObjectFromDB("SELECT * FROM wall WHERE id = '$selected_id'");
             $cells = $grid->cellsSeparatedBy($wall);
-            if ($this->getGameStateValue('scenario') == Scenario::FORT_KNOX &&
+            if ($this->getGameStateValue('scenario') == Scenario::FortKnox->value &&
                     in_array($this->board->getShaftPosition(), $cells, true)) {
                 throw new BgaUserException(clienttranslate('You cannot blow up a wall of the pillar'));
             }
@@ -2836,9 +2830,9 @@ SQL;
         }
         if ($card['type'] != 0) {
             if ($discard) {
-                $this->cards->moveCard($card['id'], $card['type'] == CardType::TOOL ? 'tools_discard' : 'events_discard');
+                $this->cards->moveCard($card['id'], $card['type'] == CardType::Tool->value ? 'tools_discard' : 'events_discard');
             }
-            if ($card['type'] == CardType::TOOL) {
+            if ($card['type'] == CardType::Tool->value) {
                 // $this->notifyPlayerHand(self::getCurrentPlayerId(), array($card['id']));
                 $this->notifyPlayerHand($this->getCurrentPlayerIdCustom(), array($card['id']));
             }
@@ -2986,9 +2980,9 @@ SQL;
     }
 
     function checkWin() {
-        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? 2 : 3;
+        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OfficeJob->value ? 2 : 3;
         $all_safes_opened = $this->openSafes() == $safes_needed;
-        $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(CardType::LOOT,null, 'tile')) == 0 &&
+        $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(CardType::Loot->value,null, 'tile')) == 0 &&
             !$this->isKittyEscaped();
         return $all_safes_opened && $all_loot_escaped;
     }
@@ -3090,7 +3084,7 @@ SQL;
             if ($meeple['type_arg'] == $current_player_id) {
                 throw new BgaUserException(clienttranslate('You cannot choose yourself'));
             }
-            self::setGameStateValue('specialChoice', SpecialChoice::ROOK1);
+            self::setGameStateValue('specialChoice', SpecialChoice::Rook1->value);
             self::setGameStateValue('specialChoiceArg', $meeple['type_arg']); // Rook 1
             $this->gamestate->nextState('specialChoice');
         } else if ($type == 'rook2') {
@@ -3188,7 +3182,7 @@ SQL;
                 throw new BgaUserException(clienttranslate("You must choose one of the closest alarms"));
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $selected_floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
-            self::setGameStateValue('specialChoice', SpecialChoice::NONE);    
+            self::setGameStateValue('specialChoice', SpecialChoice::None->value);    
             // Resume to the expected state
             $expected_state = $this->state_after_alarms[self::getGameStateValue('stateAfterAlarm')];
             self::setGameStateValue('stateAfterAlarm', 0);
@@ -3365,7 +3359,7 @@ SQL;
                 $tokens[$card['location_arg']] = ['type'=>$card['type'],'count'=>0];
             }
             $token = &$tokens[$card['location_arg']];
-            if ($token['type'] == CardType::TOOL) {
+            if ($token['type'] == CardType::Tool->value) {
                 // Overwrite if previous was a tool
                 $token['type'] = $card['type'];
             }
@@ -3377,7 +3371,7 @@ SQL;
         foreach ($laboratories as $lab_tile_id => $tile) {
             $tile_bit = 1 << $tile['safe_die'];
             if (($tile_entered & $tile_bit) == 0x0 && ($tile['flipped'] == 1 || $lab_tile_id == $tile_id)) {
-                $tokens[$lab_tile_id] = ['type'=>CardType::LOOT,'count'=>0];  // Mark the lab's unclaimed tool (client renders this type with the loot sprite)
+                $tokens[$lab_tile_id] = ['type'=>CardType::Loot->value,'count'=>0];  // Mark the lab's unclaimed tool (client renders this type with the loot sprite)
             }
         }
         return $tokens;
@@ -3523,8 +3517,8 @@ SQL;
                 $this->gamestate->nextState('tileChoice');
             } elseif ($special_choice) {
                 self::incGameStateValue('actionsRemaining', -1);
-                self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-                self::setGameStateValue('stateAfterAlarm', State::END_ACTION);
+                self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+                self::setGameStateValue('stateAfterAlarm', State::EndAction->value);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
                 $this->endAction();
@@ -3590,25 +3584,25 @@ SQL;
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $card = $this->cards->getCard($card_id);
         if ($this->gamestate->getCurrentMainState()->name == 'chooseCharacter') {
-            if ($this->bga->tableOptions->get(GameOption::CHARACTER_ASSIGNMENT) !== CharacterAssignment::RANDOM_ADVANCED &&
+            if ($this->bga->tableOptions->get(GameOption::CharacterAssignment->value) !== CharacterAssignment::RandomAdvanced->value &&
                 ($card['location'] == 'hand' || $card['location'] == 'characters_oop') )
                 throw new BgaUserException(clienttranslate("This character is already taken by another player"));
         } elseif ($card['location'] != 'hand' || $card['location_arg'] != $current_player_id) {
             throw new BgaUserException(clienttranslate("Card is not in your hand"));
         }
 
-        if ($card['type'] == CardType::CHARACTER) {
+        if ($card['type'] == CardType::Character->value) {
             if ($this->gamestate->getCurrentMainState()->name != 'chooseCharacter')
                 throw new BgaUserException(clienttranslate("You cannot change your character once the game has started"));
             // Character choice, player chose a character
             $character = $this->cards->getCard($card_id);
             $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
-            $other_side_id = key($this->cards->getCardsOfType(CardType::CHARACTER,$type_arg));
+            $other_side_id = key($this->cards->getCardsOfType(CardType::Character->value,$type_arg));
             $this->cards->moveCard($card_id, 'hand', $current_player_id);
             $this->cards->moveCard($other_side_id, 'characters_oop');
             if ($this->getCardType($character) == 'rigger1') {
-                $type_arg = $this->getCardTypeForName(CardType::TOOL,'dynamite');
-                $dynamite = array_values($this->cards->getCardsOfType(CardType::TOOL,$type_arg))[0];
+                $type_arg = $this->getCardTypeForName(CardType::Tool,'dynamite');
+                $dynamite = array_values($this->cards->getCardsOfType(CardType::Tool->value,$type_arg))[0];
                 $this->cards->moveCard($dynamite['id'], 'hand', $current_player_id);
             }
             // Update player hand and discard the other character card
@@ -3697,13 +3691,13 @@ SQL;
             self::setGameStateValue('tileChoice', $tile_choice);
             $this->gamestate->nextState('tileChoice');
         } elseif ($special_choice) {
-            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-            self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
+            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+            self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
             $this->gamestate->nextState('chooseAlarm');
         } else {
-            if ($card['type'] == CardType::EVENT) {
+            if ($card['type'] == CardType::Event->value) {
                 $this->gamestate->nextState('endTurn');    
-            } elseif ($card['type'] == CardType::CHARACTER) {
+            } elseif ($card['type'] == CardType::Character->value) {
                 $type = $this->getCardType($card);
                 $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                     'player_name' => self::getCurrentPlayerName()
@@ -3742,7 +3736,7 @@ SQL;
     function cancelCardChoice() {
         self::checkAction('cancelCardChoice');
         $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
-        if ($card['type'] == CardType::LOOT) {
+        if ($card['type'] == CardType::Loot->value) {
             throw new BgaUserException(clienttranslate('You may not cancel event effects'));
         } elseif ($this->getCardType($card) == 'stethoscope') {
             $this->applyDieRoll();
@@ -3773,8 +3767,8 @@ SQL;
                     self::incGameStateValue('actionsRemaining', -$move_decrease);
                     self::setGameStateValue('moveDecreaseAfterAlarm', 0);
                 }
-                self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-                self::setGameStateValue('stateAfterAlarm', State::END_ACTION);
+                self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+                self::setGameStateValue('stateAfterAlarm', State::EndAction->value);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
                 self::setGameStateValue('tileChoice', 0);
@@ -3829,8 +3823,8 @@ SQL;
                 }
                 $this->moveToken(array_values($character_alarms)[0]['id'], 'deck');
                 if ($this->triggerAlarm($player_tile)) {
-                    self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-                    self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
+                    self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+                    self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
                     $this->gamestate->nextState('chooseAlarm');
                 }
             } else {
@@ -3839,8 +3833,8 @@ SQL;
                 }
                 $this->moveToken(array_values($tile_alarms)[0]['id'], 'card', $character['id']);
                 if ($this->nextPatrol($this->tileFloor($player_tile))) {
-                    self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-                    self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
+                    self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+                    self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
                     $this->gamestate->nextState('chooseAlarm');
                 }
             }
@@ -3870,13 +3864,13 @@ SQL;
             self::incStat(1, 'special_ability_use', $human_player_id);
             $this->endAction(0);
         } else if($type == 'rook1') {
-            self::setGameStateValue('playerChoice', PlayerChoice::ROOK1);
+            self::setGameStateValue('playerChoice', PlayerChoice::Rook1->value);
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'rook2') {
             if (self::getGameStateValue('firstAction') != 1) {
                 throw new BgaUserException(clienttranslate('You may only use this ability as your first action'));
             }
-            self::setGameStateValue('playerChoice', PlayerChoice::ROOK2);
+            self::setGameStateValue('playerChoice', PlayerChoice::Rook2->value);
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'spotter1') {
             $player_tile = $this->getPlayerTile($current_player_id);
@@ -3924,7 +3918,7 @@ SQL;
             }
             $this->gamestate->nextState('proposeTrade');
         } else {
-            self::setGameStateValue('playerChoice', PlayerChoice::TRADE);
+            self::setGameStateValue('playerChoice', PlayerChoice::Trade->value);
             $this->gamestate->nextState('playerChoice');
         }
     }
@@ -3951,12 +3945,12 @@ SQL;
             }
         }
         // Check only one gold bar max per player
-        $gold_type = $this->getCardTypeForName(CardType::LOOT,'gold-bar');
+        $gold_type = $this->getCardTypeForName(CardType::Loot,'gold-bar');
         $has_gold_bar = FALSE;
         $player_cards = [$p1_ids, $p2_ids];
         foreach ($player_cards as $p_ids) {
             foreach ($this->cards->getCards($p_ids) as $id => $card) {
-                if ($card['type'] == CardType::LOOT && $card['type_arg'] == $gold_type) {
+                if ($card['type'] == CardType::Loot->value && $card['type_arg'] == $gold_type) {
                     if ($has_gold_bar) {
                         throw new BgaUserException(clienttranslate('One player cannot hold the two gold bars, please propose another trade'));
                     } else {
@@ -4008,7 +4002,7 @@ SQL;
 
     function cancelPlayerChoice() {
         self::checkAction('cancelPlayerChoice');
-        self::setGameStateValue('playerChoice', PlayerChoice::NONE);
+        self::setGameStateValue('playerChoice', PlayerChoice::None->value);
         $this->gamestate->nextState('nextAction');
     }
 
@@ -4024,7 +4018,7 @@ SQL;
             $this->deleteTrade();
             $this->gamestate->nextState('nextAction');
         }
-        self::setGameStateValue('playerChoice', PlayerChoice::NONE);
+        self::setGameStateValue('playerChoice', PlayerChoice::None->value);
     }
 
     function selectSpecialChoice($selected) {
@@ -4037,7 +4031,7 @@ SQL;
 
     function cancelSpecialChoice() {
         self::checkAction('cancelSpecialChoice');
-        self::setGameStateValue('specialChoice', SpecialChoice::NONE);
+        self::setGameStateValue('specialChoice', SpecialChoice::None->value);
         self::setGameStateValue('specialChoiceArg', 0);
         $this->gamestate->nextState('nextAction');
     }
@@ -4045,7 +4039,7 @@ SQL;
     function keepTool($selected) {
         self::checkAction('keepTool');
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $tools = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,null, 'choice');
+        $tools = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,null, 'choice');
         foreach ($tools as $tool_id => $tool) {
             if ($tool_id == $selected) {
                 $drop_loot = self::getGameStateValue('dropLoot');
@@ -4217,8 +4211,8 @@ SQL;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
             $event_card = $this->cards->pickCardForLocation('events_deck', 'events_discard', $count + 1);
-            // $type_arg = $this->getCardTypeForName(CardType::EVENT,'buddy-system');
-            // $event_card = array_values($this->cards->getCardsOfType(CardType::EVENT,$type_arg))[0];
+            // $type_arg = $this->getCardTypeForName(CardType::Event,'buddy-system');
+            // $event_card = array_values($this->cards->getCardsOfType(CardType::Event->value,$type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
                 $this->bga->notify->all('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
@@ -4244,8 +4238,8 @@ SQL;
                 self::setGameStateValue('playerChoice', $event_result['player_choice']);
                 $this->gamestate->nextState('playerChoice');
             } elseif ($event_result['special_choice']) {
-                self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-                self::setGameStateValue('stateAfterAlarm', State::MOVE_GUARD);
+                self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+                self::setGameStateValue('stateAfterAlarm', State::MoveGuard->value);
                 $this->gamestate->nextState('chooseAlarm');
             } elseif (self::getGameStateValue('drawToolsPlayer') > 0) {
                 $this->gamestate->nextState('endAction');
@@ -4452,7 +4446,7 @@ SQL;
 
     function argDrawToolsAndDiscard() {
         $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
-        $args['tools'] = $this->cards->getCardsOfTypeInLocation(CardType::TOOL,null, 'choice');
+        $args['tools'] = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,null, 'choice');
         return $args;
     }
 
@@ -4479,14 +4473,14 @@ SQL;
     */
     function stRandomizeWalls() {
         // Move on if the game use default walls
-        if ($this->bga->tableOptions->get(GameOption::WALLS) == Walls::DEFAULT) {
+        if ($this->bga->tableOptions->get(GameOption::Walls->value) == Walls::Default->value) {
             $this->gamestate->nextState('');
         }
     }
 
     function stChooseCharacter() {
         // Move on if the game only use basic characters
-        if ($this->bga->tableOptions->get(GameOption::CHARACTER_ASSIGNMENT) == CharacterAssignment::RANDOM) {
+        if ($this->bga->tableOptions->get(GameOption::CharacterAssignment->value) == CharacterAssignment::Random->value) {
             $this->gamestate->nextState('chooseCharacter');
         }
         $this->gamestate->setAllPlayersMultiactive();
@@ -4575,8 +4569,8 @@ SQL;
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         if ($special_choice) {
-            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-            self::setGameStateValue('stateAfterAlarm', State::MOVE_GUARD);
+            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+            self::setGameStateValue('stateAfterAlarm', State::MoveGuard->value);
             $this->gamestate->nextState( 'chooseAlarm' );
         } else {
             $this->gamestate->nextState( 'moveGuard' );
@@ -4638,8 +4632,8 @@ SQL;
         if (self::getGameStateValue('stealthDepleted')) {
             $this->gamestate->nextState('gameOver');
         } elseif ($choose_alarm) {
-            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-            self::setGameStateValue('stateAfterAlarm', State::MOVE_GUARD);
+            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+            self::setGameStateValue('stateAfterAlarm', State::MoveGuard->value);
             $this->gamestate->nextState('chooseAlarm');
         } else {
             $this->gamestate->nextState( 'nextPlayer' );
@@ -4681,7 +4675,7 @@ SQL;
             self::setGameStateValue('empPlayer', 0);
         }
         // Cleanup round events for a player
-        $round_events = array_keys($this->cards->getCardsOfTypeInLocation(CardType::EVENT,null, 'hand', $player_id));
+        $round_events = array_keys($this->cards->getCardsOfTypeInLocation(CardType::Event->value,null, 'hand', $player_id));
         if (count($round_events) > 0) {
             $this->cards->moveCards($round_events, 'events_discard');
             $this->notifyPlayerHand($player_id, $round_events);
@@ -4725,8 +4719,8 @@ SQL;
         $this->setGameStateValue('undoAllowed', 1);
 
         if ($special_choice) {
-            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
-            self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
+            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
+            self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
             $this->gamestate->nextState( 'chooseAlarm' );
         } else {
             $this->gamestate->nextState( 'playerTurn' );
