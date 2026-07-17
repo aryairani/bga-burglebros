@@ -8,9 +8,6 @@ enum GameStateValue: string
 {
     case ActionsRemaining = 'actionsRemaining';
     case EntranceTile = 'entranceTile';
-    case SafeDieCount1 = 'safeDieCount1';
-    case SafeDieCount2 = 'safeDieCount2';
-    case SafeDieCount3 = 'safeDieCount3';
     case MotionTileEntered = 'motionTileEntered';
     case PatrolDieCount1 = 'patrolDieCount1';
     case PatrolDieCount2 = 'patrolDieCount2';
@@ -53,9 +50,6 @@ enum GameStateValue: string
         return match ($this) {
             self::ActionsRemaining => 10,
             self::EntranceTile => 11,
-            self::SafeDieCount1 => 12,
-            self::SafeDieCount2 => 13,
-            self::SafeDieCount3 => 14,
             self::MotionTileEntered => 15,
             self::PatrolDieCount1 => 16,
             self::PatrolDieCount2 => 17,

@@ -155,9 +155,6 @@ class burglebros extends Table
 
         // Init global values with their initial values
         $this->initStateValue(GameStateValue::ActionsRemaining, 4 );
-        $this->initStateValue(GameStateValue::SafeDieCount1, 0 );
-        $this->initStateValue(GameStateValue::SafeDieCount2, 0 );
-        $this->initStateValue(GameStateValue::SafeDieCount3, 0 );
         $this->initStateValue(GameStateValue::MotionTileEntered, 0x000 ); // Bit vector
         // Fort Knox starts guard die at 3 on floor 1
         $intial_guard_die = $this->scenario() === Scenario::FortKnox ? 3 : 2;
