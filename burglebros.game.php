@@ -23,6 +23,7 @@ use Bga\GameFramework\VisibleSystemException;
 require_once("modules/BurgleBrosBoard.class.php");
 require_once("modules/BurgleBrosWallLayouts.class.php");
 require_once("modules/CardType.class.php");
+require_once("modules/NotifType.class.php");
 require_once("modules/TileType.class.php");
 require_once("modules/GameStateValue.class.php");
 require_once("modules/TokenType.class.php");
@@ -501,7 +502,7 @@ class burglebros extends Table
         if ($multi_characters > 1) {
             $next_player_id = $this->getPlayerAfterCustom();
             $this->setStateValue(GameStateValue::CurrentPlayer, $next_player_id);
-            $this->bga->notify->all('activatePlayer', '', [
+            $this->bga->notify->all(NotifType::ActivatePlayer->value, '', [
                 'player_id' => $next_player_id,
             ]);
             return $next_player_id;
@@ -900,11 +901,11 @@ SQL;
                     if ($die_count < 6) {
                         $next_count = $die_count + 1;
                         $this->setStateValue(GameStateValue::patrolDieCount($floor), $die_count + 1);
-                        $this->bga->notify->all('message', clienttranslate('The Patrol Deck ran out of cards. The Guard on floor ${floor} now moves ${next_count} spaces'), [
+                        $this->bga->notify->all(NotifType::Message->value, clienttranslate('The Patrol Deck ran out of cards. The Guard on floor ${floor} now moves ${next_count} spaces'), [
                             'floor' => $floor,
                             'next_count' => $next_count,
                         ]);
-                        $this->bga->notify->all('patrolDieIncreased', '', array(
+                        $this->bga->notify->all(NotifType::PatrolDieIncreased->value, '', array(
                             'die_num' => $die_count + 1,
                             'token' => array_values($this->tokensOfType(TokenType::Patrol, $floor))[0],
                             'floor' => $floor
@@ -912,7 +913,7 @@ SQL;
                     }
                 }
                 $patrol_entrance = $this->cards->pickCardForLocation($patrol->deckName(), $patrol->discardName(), 16 - $count);
-                $this->bga->notify->all('nextPatrol', '', array(
+                $this->bga->notify->all(NotifType::NextPatrol->value, '', array(
                     'floor' => $floor,
                     'cards' => $this->cards->getCardsInLocation($patrol->discardName()),
                     'top' => $patrol_entrance,
@@ -979,7 +980,7 @@ SQL;
 
     function flipTile($floor, $location_arg) {
         self::DbQuery("UPDATE tile SET flipped=1 WHERE card_location='floor$floor' and card_location_arg=$location_arg");
-        $this->bga->notify->all('tileFlipped', '', array(
+        $this->bga->notify->all(NotifType::TileFlipped->value, '', array(
             'tile' => $this->findTileOnFloor($floor, $location_arg),
             'floor' => $floor,
             'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
@@ -1168,12 +1169,12 @@ SQL;
         $floor = $this->tileFloor($tile);
         $this->moveToken($guard_token['id'], 'tile', $tile_id, TRUE);
         if ($create_path) {
-            $this->bga->notify->all('createGuardPath', '', array(
+            $this->bga->notify->all(NotifType::CreateGuardPath->value, '', array(
                 'floor' => $floor,
                 'path' => $this->getPathByLocation($floor, null)
             ));
         } else {
-            $this->bga->notify->all('updateGuardPath', '', array(
+            $this->bga->notify->all(NotifType::UpdateGuardPath->value, '', array(
                 'floor' => $floor,
                 'path' => $this->getPathByLocation($floor, null),
                 'position' => $tile['location_arg']
@@ -1256,12 +1257,12 @@ SQL;
             } else {
                 $this->setStateValue(GameStateValue::StealthDepleted, 1);
             }
-            $action = 'decrementStealth';
+            $notif = NotifType::DecrementStealth;
         } else if($amount < 0) {
             $this->pickTokens(TokenType::Stealth, 'player', $player_id, -$amount);
-            $action = 'message';
+            $notif = NotifType::Message;
         }
-        $this->bga->notify->all($action, clienttranslate( '${player_name} ${action} one stealth' ), array(
+        $this->bga->notify->all($notif->value, clienttranslate( '${player_name} ${action} one stealth' ), array(
             'i18n' => ['action'],
             'action' => $amount < 0 ? clienttranslate('gains') : clienttranslate('loses'),
             'player_name' => $players[$player_id]['player_name'],
@@ -1510,7 +1511,7 @@ SQL;
     }
 
     function notifyPlayerHand($player_id, $discard_ids=array()) {
-        $this->bga->notify->all('playerHand', '', array(
+        $this->bga->notify->all(NotifType::PlayerHand->value, '', array(
             'player_id' => $player_id,
             'hand' => $this->cards->getPlayerHand($player_id),
             'discard_ids' => $discard_ids
@@ -1518,7 +1519,7 @@ SQL;
     }
 
     function notifyTileCards($tile_id) {
-        $this->bga->notify->all('tileCards', '', array(
+        $this->bga->notify->all(NotifType::TileCards->value, '', array(
             'tile_id' => $tile_id,
             'tokens' => $this->getCardTokens($tile_id)
         ));
@@ -1656,7 +1657,7 @@ SQL;
             }
             $this->notifyPlayerHand($current_player_id);
             
-            $this->bga->notify->all('message', clienttranslate('${player_name} cracked the safe on floor ${floor}'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} cracked the safe on floor ${floor}'), [
                 'player_name' => self::getCurrentPlayerName(),
                 'floor' => $floor
             ]);
@@ -1671,11 +1672,11 @@ SQL;
                 if ($die_count < 6) {
                     $next_count = $die_count + 1;
                     $this->setStateValue(GameStateValue::patrolDieCount($lower_floor), $next_count);
-                    $this->bga->notify->all('message', clienttranslate('Guard on floor ${lower_floor} now moves ${next_count} spaces'), [
+                    $this->bga->notify->all(NotifType::Message->value, clienttranslate('Guard on floor ${lower_floor} now moves ${next_count} spaces'), [
                         'lower_floor' => $lower_floor,
                         'next_count' => $next_count,
                     ]);
-                    $this->bga->notify->all('patrolDieIncreased', '', array(
+                    $this->bga->notify->all(NotifType::PatrolDieIncreased->value, '', array(
                         'die_num' => $die_count + 1,
                         'token' => array_values($this->tokensOfType(TokenType::Patrol, $lower_floor))[0],
                         'floor' => $lower_floor
@@ -1683,7 +1684,7 @@ SQL;
                 }
             }
             // Show back current cracked safe floor (because patrolDieIncreased will show the 1st floor)
-            $this->bga->notify->all('showFloor', '', [
+            $this->bga->notify->all(NotifType::ShowFloor->value, '', [
                 'floor' => $this->tileFloor($safe_tile),
                 'delay' => false,
             ]);
@@ -1716,8 +1717,8 @@ SQL;
 
     function moveTokens($ids, $location, $location_arg=0, $synchronous=FALSE) {
         $this->tokens->moveCards($ids, $location, $location_arg);
-        $name = $synchronous ? 'tokensPickedSync' : 'tokensPicked';
-        $this->bga->notify->all($name, '', array(
+        $notif = $synchronous ? NotifType::TokensPickedSync : NotifType::TokensPicked;
+        $this->bga->notify->all($notif->value, '', array(
             'tokens' => $this->getTokens($ids)
         ));
     }
@@ -1728,7 +1729,7 @@ SQL;
         if (TokenType::of($token) === TokenType::Patrol) {
             $tile = $this->tiles->getCard($token['location_arg']);
             $floor = $this->tileFloor($tile);
-            $this->bga->notify->all('createGuardPath', '', array(
+            $this->bga->notify->all(NotifType::CreateGuardPath->value, '', array(
                 'floor' => $floor,
                 'path' => $this->getPathByLocation($floor, null)
             ));
@@ -1778,7 +1779,7 @@ SQL;
                 }
             }
         }
-        $this->bga->notify->all('diceRolled', clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
+        $this->bga->notify->all(NotifType::DiceRolled->value, clienttranslate( '${player_name} rolled ${roll} for ${for}' ), array(
             'i18n' => ['for'],
             'player_name' => $this->getActivePlayerNameCustom(),
             'roll' => implode(',', $roll_list),
@@ -1931,7 +1932,7 @@ SQL;
         }
         $patrol_names = $this->patrolNames();
         $players = $this->loadPlayersInfos();
-        $this->bga->notify->all('message', $msg, [
+        $this->bga->notify->all(NotifType::Message->value, $msg, [
             'player_name' => $players[$player_id]['player_name'],
             'tile_name' => $patrol_names[$tile['location_arg']]['name'],
             'floor' => $this->tileFloor($tile),
@@ -2131,7 +2132,7 @@ SQL;
         $patrol_token = array_values($this->tokensOfType(TokenType::Patrol, $floor))[0];
         $this->moveToken($patrol_token['id'], 'tile', $tile['id']);
         $this->pickTokensForTile(TokenType::Alarm, $tile['id']);
-        $this->bga->notify->all('message', clienttranslate( 'An alarm was triggered' ), array());
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate( 'An alarm was triggered' ), array());
         self::incStat(1, 'alarm_triggered');
         // Let player choose the closest alarm if relevant
         return $this->nextPatrol($floor);
@@ -2650,7 +2651,7 @@ SQL;
                 $special_choice = $this->nextPatrol($floor);
             }
             // Notify players to remove wall
-            $this->bga->notify->all('removeWall', '', array(
+            $this->bga->notify->all(NotifType::RemoveWall->value, '', array(
                 'wall_id' => $selected_id,
             ));
         } elseif($type == 'go-with-your-gut') {
@@ -2771,14 +2772,14 @@ SQL;
                 $event_card = $this->cards->getCard($event_card_id);
                 $card_names_displayed[] = $this->getDisplayedCardName($this->getCardType($event_card));
             }
-            $this->bga->notify->all('message', clienttranslate('Crystal Ball: ${player_name} changed order of upcoming events to ${card_names_displayed}'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('Crystal Ball: ${player_name} changed order of upcoming events to ${card_names_displayed}'), [
                 'player_name' => self::getCurrentPlayerName(),
                 'card_names_displayed' => implode(', ', array_reverse($card_names_displayed)),
             ]);
         } elseif ($type == 'stethoscope') {
             [$old_value, $new_value] = $selected_id;
             self::DbQuery("UPDATE token SET card_type_arg=$new_value WHERE card_type='die' AND card_type_arg=$old_value LIMIT 1");
-            $this->bga->notify->all('message', clienttranslate('Stethoscope: ${player_name} changed one die from ${old_value} to ${new_value}'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('Stethoscope: ${player_name} changed one die from ${old_value} to ${new_value}'), [
                 'player_name' => self::getCurrentPlayerName(),
                 'old_value' => $old_value,
                 'new_value' => $new_value
@@ -2839,7 +2840,7 @@ SQL;
                 $to_move = array_values($this->getPlacedTokens(array(TokenType::Hack), 'card'))[0][0];
             }
             $this->moveToken($to_move, 'deck');
-            $this->bga->notify->all('message', clienttranslate('${player_name} used a hack token'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used a hack token'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
         } elseif($selected == 2) { // Extra action
@@ -2849,7 +2850,7 @@ SQL;
             $gemstone_penalty = $this->getGemstonePenalty($player_id, $tile, TRUE);
             // Take an extra 1 (or 2 for gemstone). Another 1 is always taken
             $this->incStateValue(GameStateValue::ActionsRemaining, -1 - $gemstone_penalty);
-            $this->bga->notify->all('message', clienttranslate('${player_name} used an extra action'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used an extra action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
         }
@@ -2888,7 +2889,7 @@ SQL;
         $message = $variant == 'effect' ? 
             clienttranslate('${player_name} reveal tile ${tile_name} (${tile_type}) on floor ${floor}') : 
             clienttranslate('${player_name} peeked tile ${tile_name} (${tile_type}) on floor ${floor}');
-        $this->bga->notify->all('message', $message, [
+        $this->bga->notify->all(NotifType::Message->value, $message, [
             'i18n' => ['tile_type'],
             'player_name' => $players[$current_player_id]['player_name'],
             'tile_name' => $tile_name,
@@ -2981,12 +2982,12 @@ SQL;
             $this->moveToken($safe_token['id'], 'tile', $tile['id']);
         }
         $this->setSafeDie(++$die_num, $tile['id']);
-        $this->bga->notify->all('safeDieIncreased', '', array(
+        $this->bga->notify->all(NotifType::SafeDieIncreased->value, '', array(
             'die_num' => $die_num,
             'token' => $safe_token,
             'floor' => $floor
         ));
-        $this->bga->notify->all('message', clienttranslate('${player_name} added a die to the safe on floor ${floor}'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} added a die to the safe on floor ${floor}'), [
             'player_name' => self::getCurrentPlayerName(),
             'floor' => $floor
         ]);
@@ -3083,7 +3084,7 @@ SQL;
             $other_tile = $this->getTile($tmp_location);
             $players = $this->loadPlayersInfos();
             $patrol_names = $this->patrolNames();
-            $this->bga->notify->all('message', clienttranslate('The Rook Advanced: ${player_name} (${rook_tile_name} on floor ${rook_tile_floor}) trades places with ${other_player_name} (${other_tile_name} on floor ${other_tile_floor})'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('The Rook Advanced: ${player_name} (${rook_tile_name} on floor ${rook_tile_floor}) trades places with ${other_player_name} (${other_tile_name} on floor ${other_tile_floor})'), [
                 'player_name' => self::getActivePlayerName(),
                 'rook_tile_name' => $patrol_names[$rook_tile['location_arg']]['name'],
                 'rook_tile_floor' => $this->tileFloor($rook_tile),
@@ -3137,7 +3138,7 @@ SQL;
                 $this->setStateValue(GameStateValue::CurrentPlayer, $active_player_id);
                 $player_name = self::getActivePlayerName();
             }
-            $this->bga->notify->all('message', clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
                 'player_name' => $player_name,
                 'other_name' => $players[$choice_arg]['player_name'],
             ]);      
@@ -3365,7 +3366,7 @@ SQL;
         } else {
             $msg = clienttranslate('Guard on floor ${floor} is moving ${movement} spaces');
         }
-        $this->bga->notify->all('message', $msg, [
+        $this->bga->notify->all(NotifType::Message->value, $msg, [
             'floor' => $floor,
             'movement' => $movement,
             'alarms' => $alarms,
@@ -3398,12 +3399,12 @@ SQL;
         self::DbQuery("UPDATE tile SET card_location='floor$floor_2', card_location_arg=$location_arg_2 WHERE card_id=$tile_id_1" );
         self::DbQuery("UPDATE tile SET card_location='floor$floor_1', card_location_arg=$location_arg_1 WHERE card_id=$tile_id_2" );
 
-        $this->bga->notify->all('tileFlipped', '', array(
+        $this->bga->notify->all(NotifType::TileFlipped->value, '', array(
             'tile' => $this->findTileOnFloor($floor_1, $location_arg_1),
             'floor' => $floor_1,
             'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
         ));
-        $this->bga->notify->all('tileFlipped', '', array(
+        $this->bga->notify->all(NotifType::TileFlipped->value, '', array(
             'tile' => $this->findTileOnFloor($floor_2, $location_arg_2),
             'floor' => $floor_2,
             'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
@@ -3447,7 +3448,7 @@ SQL;
             for ($i=1; $i <= $max_floor; $i++) { 
                 $tiles["floor$i"] = $this->getTiles($i);
             }
-            $this->bga->notify->all('updateWalls', $msg, [
+            $this->bga->notify->all(NotifType::UpdateWalls->value, $msg, [
                 'floor' => $floor,
                 'walls' => $this->getWalls(),
                 'tiles' => $tiles,
@@ -3545,7 +3546,7 @@ SQL;
             throw new BgaUserException(clienttranslate("Only 6 hack tokens can be added to this tile"));
         }
         $this->pickTokensForTile(TokenType::Hack, $player_token['location_arg']);
-        $this->bga->notify->all('message', clienttranslate('${player_name} added a hack token'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} added a hack token'), [
             'player_name' => self::getCurrentPlayerName()
         ]);
         $this->endAction();
@@ -3582,7 +3583,7 @@ SQL;
             // Update player hand and discard the other character card
             $discard_ids = array_keys($this->cards->getCardsInLocation(DeckType::Characters->deckName()));
             $this->notifyPlayerHand($current_player_id, array_merge($discard_ids, array($other_side_id)));
-            $this->bga->notify->all('characterChosen', clienttranslate('${player_name} chooses to play ${character_name}'), [
+            $this->bga->notify->all(NotifType::CharacterChosen->value, clienttranslate('${player_name} chooses to play ${character_name}'), [
                 'i18n' => ['character_name'],
                 'player_name' => self::getCurrentPlayerName(),
                 'player_id' => $current_player_id,
@@ -3602,14 +3603,14 @@ SQL;
                     // Activate next player and enter state again
                     $human_player_id = self::getCurrentPlayerId();
                     $this->setStateValue(GameStateValue::CurrentPlayer, $human_player_id);
-                    $this->bga->notify->all('activatePlayer', '', [
+                    $this->bga->notify->all(NotifType::ActivatePlayer->value, '', [
                         'player_id' => $human_player_id,
                     ]);
                     $this->gamestate->nextState('chooseCharacter');
                 } else {
                     // Activate next player and enter state again
                     $this->setStateValue(GameStateValue::CurrentPlayer, $current_player_id);
-                    $this->bga->notify->all('activatePlayer', '', [
+                    $this->bga->notify->all(NotifType::ActivatePlayer->value, '', [
                         'player_id' => $current_player_id,
                     ]);
                     $this->gamestate->nextState('nextPlayer');
@@ -3638,7 +3639,7 @@ SQL;
                 $this->cards->moveCard($card['id'], DeckType::Tools->discardName());
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
                 $type = $this->getCardType($card);
-                $this->bga->notify->all('message', clienttranslate('${player_name} played the ${title} card (${tooltip})'), [
+                $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} played the ${title} card (${tooltip})'), [
                     'i18n' => ['title', 'tooltip'],
                     'card_id' => $card['id'],
                     'player_name' => self::getCurrentPlayerName(),
@@ -3673,7 +3674,7 @@ SQL;
                 $this->gamestate->nextState('endTurn');    
             } elseif ($card['type'] == CardType::Character->value) {
                 $type = $this->getCardType($card);
-                $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
+                $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used their character action'), [
                     'player_name' => self::getCurrentPlayerName()
                 ]);
                 $this->setStateValue(GameStateValue::CharacterAbilityUsed, 1);
@@ -3695,7 +3696,7 @@ SQL;
                 // $this->cards->moveCard($card['id'], DeckType::Tools->discardName());
                 $current_player_id = $this->getCurrentPlayerIdCustom();
                 $this->notifyPlayerHand($current_player_id, array($card['id']));
-                $this->bga->notify->all('message', clienttranslate('${player_name} played the ${title} card (${tooltip}'), [
+                $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} played the ${title} card (${tooltip}'), [
                     'i18n' => ['title', 'tooltip'],
                     'card_id' => $card['id'],
                     'player_name' => self::getCurrentPlayerName(),
@@ -3781,7 +3782,7 @@ SQL;
                 throw new BgaUserException(clienttranslate('You already have a hack token'));
             }
             $this->pickTokens(TokenType::Hack, 'card', $character['id']);
-            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
@@ -3814,14 +3815,14 @@ SQL;
             }
             $this->setStateValue(GameStateValue::CharacterAbilityUsed, 1);
             self::incStat(1, 'special_ability_use', $human_player_id);
-            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
         } else if($type == 'raven2') {
             $crow = array_values($this->tokensOfType(TokenType::Crow))[0];
             $player_tile = $this->getPlayerTile($current_player_id);
             $this->moveToken($crow['id'], 'tile', $player_tile['id']);
-            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
@@ -3832,7 +3833,7 @@ SQL;
             }
             $this->decrementPlayerStealth($current_player_id);
             $this->setStateValue(GameStateValue::DrawToolsPlayer, $current_player_id);
-            $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
@@ -3936,7 +3937,7 @@ SQL;
         }
         // $players = self::loadPlayersBasicInfos();
         $players = $this->loadPlayersInfos();
-        $this->bga->notify->all('message', clienttranslate('${player_name} proposed a trade to ${other_name}'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} proposed a trade to ${other_name}'), [
             'player_name' => $players[$trade['current_player']]['player_name'],
             'other_name' => $players[$trade['other_player']]['player_name'],
         ]);
@@ -3961,7 +3962,7 @@ SQL;
         $this->notifyPlayerHand($trade['other_player'], $p1_cards);
         // $players = self::loadPlayersBasicInfos();
         $players = $this->loadPlayersInfos();
-        $this->bga->notify->all('message', clienttranslate('${player_name} agreed to ${current_name}\'s trade'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} agreed to ${current_name}\'s trade'), [
             'player_name' => $players[$trade['other_player']]['player_name'],
             'current_name' => $players[$trade['current_player']]['player_name'],
         ]);
@@ -3984,7 +3985,7 @@ SQL;
         self::checkAction('cancelTrade');
         $stateName = $this->gamestate->getCurrentMainState()->name;
         if ($stateName == 'confirmTrade') {
-            $this->bga->notify->all('message', clienttranslate('${player_name} cancelled the trade'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} cancelled the trade'), [
                 'player_name' => self::getActivePlayerName()
             ]);
             $this->gamestate->nextState('endTradeOtherPlayer');
@@ -4100,7 +4101,7 @@ SQL;
         $this->cards->moveCards($r_ids, 'hand', $current_player_id);
         $this->notifyPlayerHand($current_player_id);
         $this->notifyTileCards($player_tile['id']);
-        $this->bga->notify->all('message', clienttranslate('${player_name} picked up ${card_count} cards in their tile'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} picked up ${card_count} cards in their tile'), [
             'player_name' => $this->getActivePlayerNameCustom(),
             'card_count' => count($r_ids)
         ]);
@@ -4120,7 +4121,7 @@ SQL;
             $rook_player_id = self::getCurrentPlayerId();
         } else {
             $current_player_id =  self::getCurrentPlayerId();
-            $this->bga->notify->all('message', clienttranslate('${player_name} accepts the move'), [
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} accepts the move'), [
                 'player_name' => self::getActivePlayerName(),
             ]);
             $rook_player_id = $this->stateValue(GameStateValue::CurrentPlayer);
@@ -4145,7 +4146,7 @@ SQL;
 
     function cancelRookMove() {
         self::checkAction('cancelRookMove');
-        $this->bga->notify->all('message', clienttranslate('${player_name} cancels the move'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} cancels the move'), [
             'player_name' => self::getActivePlayerName(),
         ]);
         $this->setStateValue(GameStateValue::RookDestinationTile, -1);
@@ -4170,7 +4171,7 @@ SQL;
             $this->notifyPlayerHand($current_player_id);
             $this->notifyPlayerHand($kitty_owner, array($kitty_card['id']));
         }
-        $this->bga->notify->all('catPicked', clienttranslate('${player_name} picks up the cat token'), [
+        $this->bga->notify->all(NotifType::CatPicked->value, clienttranslate('${player_name} picks up the cat token'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         $this->endAction(0);
@@ -4189,7 +4190,7 @@ SQL;
             // $event_card = array_values($this->cards->getCardsOfType(CardType::Event->value,$type_arg))[0];
             self::incStat(1, 'event_cards');
             if ($event_card) {
-                $this->bga->notify->all('eventCard', clienttranslate('Event Card: ${title} (${tooltip})'), array(
+                $this->bga->notify->all(NotifType::EventCard->value, clienttranslate('Event Card: ${title} (${tooltip})'), array(
                     'card_id' => $event_card['id'],
                     'card' => $event_card,
                     'title' => $this->getCardTitle($event_card),
@@ -4248,7 +4249,7 @@ SQL;
             throw new BgaUserException(clienttranslate('You must open all the safes and get all the loots before you escape (especially the Persian Kitty)'));
         }
         $this->moveToken($player_token['id'], 'roof');
-        $this->bga->notify->all('playerEscape', clienttranslate('${player_name} escapes to the roof'), [
+        $this->bga->notify->all(NotifType::PlayerEscape->value, clienttranslate('${player_name} escapes to the roof'), [
             'player_id' => $current_player_id,
             'player_name' => $this->getActivePlayerNameCustom(),
             'token_id' => $player_token['id'],
@@ -4490,7 +4491,7 @@ SQL;
                 $card_name = $this->getCardType($card);
                 $human_player_id = $this->getActivePlayerId();
                 self::incStat( 1, 'tools_drawn', $human_player_id );
-                $this->bga->notify->all('addTooltipToLog', clienttranslate('${player_name} draws ${title} (${tooltip})'), [
+                $this->bga->notify->all(NotifType::AddTooltipToLog->value, clienttranslate('${player_name} draws ${title} (${tooltip})'), [
                     'i18n' => ['title', 'tooltip'],
                     'card_id' => $card['id'],
                     'card' => $card,
@@ -4538,7 +4539,7 @@ SQL;
             // $this->decrementPlayerStealth($current_player_id);
         }
         $this->resetGlobalVars();
-        $this->bga->notify->all('message', clienttranslate('${player_name} ended their turn'), [
+        $this->bga->notify->all(NotifType::Message->value, clienttranslate('${player_name} ended their turn'), [
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         if ($special_choice) {
@@ -4621,7 +4622,7 @@ SQL;
         if ($jump_the_gun) {
             $players = $this->loadPlayersInfos();
             $player_id = $this->skipEscapedPlayers($player_id);
-            $this->bga->notify->all('message', clienttranslate( 'Skipped ${player_name}\'s turn' ), array(
+            $this->bga->notify->all(NotifType::Message->value, clienttranslate( 'Skipped ${player_name}\'s turn' ), array(
                 'player_name' => $players[$player_id]['player_name'],
             ));
             $this->cards->moveCard($jump_the_gun['id'], DeckType::Events->discardName());
@@ -4672,7 +4673,7 @@ SQL;
                 $this->notifyRoll($rolls, 'persian-kitty');
                 if (isset($rolls[1]) || isset($rolls[2])) {
                     $this->moveCatToken($player_id);
-                    $this->bga->notify->all('catEscaped', clienttranslate('${player_name} must pick up the cat token before escaping'), [
+                    $this->bga->notify->all(NotifType::CatEscaped->value, clienttranslate('${player_name} must pick up the cat token before escaping'), [
                         'player_name' => $this->getActivePlayerNameCustom()
                     ]);
                 }
@@ -4680,7 +4681,7 @@ SQL;
         }
 
         $player_tile = $this->getPlayerTile($player_id);
-        $this->bga->notify->all('showFloor', '', [
+        $this->bga->notify->all(NotifType::ShowFloor->value, '', [
             'floor' => $this->tileFloor($player_tile),
             'delay' => true,
         ]);
@@ -4758,7 +4759,7 @@ SQL;
         $tiles_unflipped = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg FROM tile WHERE flipped=0 AND NOT card_location IN ('deck','oop')");
         self::setStat( count($tiles_unflipped), 'tiles_unflipped' );
         foreach ($tiles_unflipped as $tile_id => $tile) {
-            $this->bga->notify->all('tileFlipped', '', array(
+            $this->bga->notify->all(NotifType::TileFlipped->value, '', array(
                 'tile' => $tile,
                 'floor' => $this->tileFloor($tile),
                 'undo_allowed' => 0,

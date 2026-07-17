@@ -20,14 +20,15 @@ define([
     "ebg/core/gamegui",
     "ebg/counter",
     "ebg/stock",
-    "ebg/zone"
+    "ebg/zone",
+    g_gamethemeurl + 'modules/burglebros.constants.js' // sets globalThis.BBCONST (generated from the PHP enums)
 ],
 function (dojo, declare) {
-    // card.type values (keys of gamedatas.card_types / card_info)
-    const CHARACTER_CARD = 0;
-    const TOOL_CARD = 1;
-    const LOOT_CARD = 2;
-    const EVENT_CARD = 3;
+    // card.type values (keys of gamedatas.card_types / card_info), from the PHP CardType enum
+    const CHARACTER_CARD = BBCONST.CARD_TYPE.Character;
+    const TOOL_CARD = BBCONST.CARD_TYPE.Tool;
+    const LOOT_CARD = BBCONST.CARD_TYPE.Loot;
+    const EVENT_CARD = BBCONST.CARD_TYPE.Event;
     // Stock item id of the patrol card back in img/patrol.jpg
     const PATROL_CARD_BACK = 51;
 
@@ -2074,29 +2075,29 @@ function (dojo, declare) {
         setupNotifications: function()
         {
             console.log( 'notifications subscriptions setup' );
-            dojo.subscribe('characterChosen', this, 'notif_characterChosen');
-            dojo.subscribe('activatePlayer', this, 'notif_activatePlayer');
-            dojo.subscribe('tokensPicked', this, 'notif_tokensPicked');
-            dojo.subscribe('tokensPickedSync', this, 'notif_tokensPicked');
-            dojo.subscribe('catEscaped', this, 'notif_catEscaped');
-            dojo.subscribe('catPicked', this, 'notif_catPicked');
-            this.notifqueue.setSynchronous( 'tokensPickedSync', 750 );
-            dojo.subscribe('decrementStealth', this, 'notif_decrementStealth');
-            dojo.subscribe('tileFlipped', this, 'notif_tileFlipped');
-            dojo.subscribe('nextPatrol', this, 'notif_nextPatrol');
-            dojo.subscribe('createGuardPath', this, 'notif_createGuardPath');
-            dojo.subscribe('updateGuardPath', this, 'notif_updateGuardPath');
-            dojo.subscribe('playerHand', this, 'notif_playerHand');
-            dojo.subscribe('addTooltipToLog', this, 'notif_addTooltipToLog');
-            dojo.subscribe('eventCard', this, 'notif_eventCard');
-            dojo.subscribe('safeDieIncreased', this, 'notif_safeDieIncreased');
-            dojo.subscribe('diceRolled', this, 'notif_diceRolled');
-            dojo.subscribe('patrolDieIncreased', this, 'notif_patrolDieIncreased');
-            dojo.subscribe('tileCards', this, 'notif_tileCards');
-            dojo.subscribe('showFloor', this, 'notif_showFloor');
-            dojo.subscribe('updateWalls', this, 'notif_updateWalls');
-            dojo.subscribe('removeWall', this, 'notif_removeWall');
-            dojo.subscribe('playerEscape', this, 'notif_playerEscape');
+            dojo.subscribe(BBCONST.NOTIF.CharacterChosen, this, 'notif_characterChosen');
+            dojo.subscribe(BBCONST.NOTIF.ActivatePlayer, this, 'notif_activatePlayer');
+            dojo.subscribe(BBCONST.NOTIF.TokensPicked, this, 'notif_tokensPicked');
+            dojo.subscribe(BBCONST.NOTIF.TokensPickedSync, this, 'notif_tokensPicked');
+            dojo.subscribe(BBCONST.NOTIF.CatEscaped, this, 'notif_catEscaped');
+            dojo.subscribe(BBCONST.NOTIF.CatPicked, this, 'notif_catPicked');
+            this.notifqueue.setSynchronous( BBCONST.NOTIF.TokensPickedSync, 750 );
+            dojo.subscribe(BBCONST.NOTIF.DecrementStealth, this, 'notif_decrementStealth');
+            dojo.subscribe(BBCONST.NOTIF.TileFlipped, this, 'notif_tileFlipped');
+            dojo.subscribe(BBCONST.NOTIF.NextPatrol, this, 'notif_nextPatrol');
+            dojo.subscribe(BBCONST.NOTIF.CreateGuardPath, this, 'notif_createGuardPath');
+            dojo.subscribe(BBCONST.NOTIF.UpdateGuardPath, this, 'notif_updateGuardPath');
+            dojo.subscribe(BBCONST.NOTIF.PlayerHand, this, 'notif_playerHand');
+            dojo.subscribe(BBCONST.NOTIF.AddTooltipToLog, this, 'notif_addTooltipToLog');
+            dojo.subscribe(BBCONST.NOTIF.EventCard, this, 'notif_eventCard');
+            dojo.subscribe(BBCONST.NOTIF.SafeDieIncreased, this, 'notif_safeDieIncreased');
+            dojo.subscribe(BBCONST.NOTIF.DiceRolled, this, 'notif_diceRolled');
+            dojo.subscribe(BBCONST.NOTIF.PatrolDieIncreased, this, 'notif_patrolDieIncreased');
+            dojo.subscribe(BBCONST.NOTIF.TileCards, this, 'notif_tileCards');
+            dojo.subscribe(BBCONST.NOTIF.ShowFloor, this, 'notif_showFloor');
+            dojo.subscribe(BBCONST.NOTIF.UpdateWalls, this, 'notif_updateWalls');
+            dojo.subscribe(BBCONST.NOTIF.RemoveWall, this, 'notif_removeWall');
+            dojo.subscribe(BBCONST.NOTIF.PlayerEscape, this, 'notif_playerEscape');
         },
 
         /** Override this function to inject html into log items. This is a built-in BGA method.
