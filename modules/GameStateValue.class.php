@@ -63,7 +63,7 @@ enum GameStateValue: string
             self::TileChoice => 25,
             self::MotionTileExitChoice => 26,
             self::PlayerChoice => 27,
-            self::PlayerChoiceArg => 36, // BUG (pre-existing): aliases UndoAllowed's id
+            self::PlayerChoiceArg => 43,
             self::SpecialChoice => 28,
             self::SpecialChoiceArg => 29,
             self::FirstAction => 30,
