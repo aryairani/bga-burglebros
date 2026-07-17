@@ -24,6 +24,7 @@ require_once("modules/BurgleBrosBoard.class.php");
 require_once("modules/BurgleBrosWallLayouts.class.php");
 require_once("modules/CardType.class.php");
 require_once("modules/TileType.class.php");
+require_once("modules/GameStateValue.class.php");
 require_once("modules/DeckType.class.php");
 require_once("modules/CardFace.class.php");
 require_once("modules/CardInfo.class.php");
@@ -80,50 +81,7 @@ class burglebros extends Table
         // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
         parent::__construct();
 
-        self::initGameStateLabels( array( 
-            'actionsRemaining' => 10,
-            'entranceTile' => 11,
-            'safeDieCount1' => 12,
-            'safeDieCount2' => 13,
-            'safeDieCount3' => 14,
-            'motionTileEntered' => 15,
-            'patrolDieCount1' => 16,
-            'patrolDieCount2' => 17,
-            'patrolDieCount3' => 18,
-            'laboratoryTileEntered' => 19,
-            'invisibleSuitActive' => 20, 
-            'empPlayer' => 21,
-            'cardChoice' => 22,
-            'characterAbilityUsed' => 23,
-            'acrobatEnteredGuardTile' => 24,
-            'tileChoice' => 25,
-            'motionTileExitChoice' => 26,
-            'playerChoice' => 27,
-            'playerChoiceArg' => 36,
-            'specialChoice' => 28,
-            'specialChoiceArg' => 29,
-            'firstAction' => 30,
-            'drawToolsPlayer' => 31,
-            'drawToolsNextPlayer' => 32,
-            'stealthDepleted' => 33,
-            'playerPass' => 34,
-            'dropLoot' => 35,
-            'undoAllowed' => 36,
-            'rookDestinationTile' => 37,
-            'currentPlayer' => 38,
-            'remainingMoves' => 39,
-            'stateAfterAlarm' => 40,
-            'moveDecreaseAfterAlarm' => 41,
-            'donutsDropped' => 42,
-
-            // Options
-            'characterAssignment' => GameOption::CharacterAssignment->value,
-            'level' => GameOption::Level->value,
-            'scenario' => GameOption::Scenario->value,
-            'randomWalls' => GameOption::Walls->value,
-            'soloMultiCharacters' => GameOption::SoloMultiCharacters->value,
-            'deadboltDistribution' => GameOption::DeadboltDistribution->value,
-        ) ); 
+        self::initGameStateLabels(GameStateValue::labels());
 
         // Initialize module classes
         $this->board = new BurgleBrosBoard($this);
@@ -195,39 +153,39 @@ class burglebros extends Table
         /************ Start the game initialization *****/
 
         // Init global values with their initial values
-        self::setGameStateInitialValue( 'actionsRemaining', 4 );
-        self::setGameStateInitialValue( 'safeDieCount1', 0 );
-        self::setGameStateInitialValue( 'safeDieCount2', 0 );
-        self::setGameStateInitialValue( 'safeDieCount3', 0 );
-        self::setGameStateInitialValue( 'motionTileEntered', 0x000 ); // Bit vector
+        $this->initStateValue(GameStateValue::ActionsRemaining, 4 );
+        $this->initStateValue(GameStateValue::SafeDieCount1, 0 );
+        $this->initStateValue(GameStateValue::SafeDieCount2, 0 );
+        $this->initStateValue(GameStateValue::SafeDieCount3, 0 );
+        $this->initStateValue(GameStateValue::MotionTileEntered, 0x000 ); // Bit vector
         // Fort Knox starts guard die at 3 on floor 1
-        $intial_guard_die = $this->getGameStateValue('scenario') == Scenario::FortKnox->value ? 3 : 2;
-        self::setGameStateInitialValue( 'patrolDieCount1', $intial_guard_die++ );
-        self::setGameStateInitialValue( 'patrolDieCount2', $intial_guard_die++ );
-        self::setGameStateInitialValue( 'patrolDieCount3', $intial_guard_die );
-        self::setGameStateInitialValue( 'laboratoryTileEntered', 0x000 ); // Bit vector
-        self::setGameStateInitialValue( 'invisibleSuitActive', 0 );
-        self::setGameStateInitialValue( 'empPlayer', 0 );
-        self::setGameStateInitialValue( 'cardChoice', 0 );
-        self::setGameStateInitialValue( 'characterAbilityUsed', 0 );
-        self::setGameStateInitialValue( 'acrobatEnteredGuardTile', 0 );
-        self::setGameStateInitialValue( 'tileChoice', 0 );
-        self::setGameStateInitialValue( 'motionTileExitChoice', 0 );
-        self::setGameStateInitialValue( 'playerChoice', PlayerChoice::None->value );
-        self::setGameStateInitialValue( 'playerChoiceArg', 0 );
-        self::setGameStateInitialValue( 'firstAction', 1 );
-        self::setGameStateInitialValue( 'drawToolsPlayer', 0 );
-        self::setGameStateInitialValue( 'drawToolsNextPlayer', 0 );
-        self::setGameStateInitialValue( 'stealthDepleted', 0 );
-        self::setGameStateInitialValue( 'playerPass', 0 );
-        self::setGameStateInitialValue( 'dropLoot', 0 );
-        self::setGameStateInitialValue( 'undoAllowed', 0 );
-        self::setGameStateInitialValue( 'rookDestinationTile', 0 );
-        self::setGameStateInitialValue( 'currentPlayer', $current_player_id );
-        self::setGameStateInitialValue( 'remainingMoves', 0 );
-        self::setGameStateInitialValue( 'stateAfterAlarm', 0 );
-        self::setGameStateInitialValue( 'moveDecreaseAfterAlarm', 0 );
-        self::setGameStateInitialValue( 'donutsDropped', 0 );
+        $intial_guard_die = $this->scenario() === Scenario::FortKnox ? 3 : 2;
+        $this->initStateValue(GameStateValue::PatrolDieCount1, $intial_guard_die++ );
+        $this->initStateValue(GameStateValue::PatrolDieCount2, $intial_guard_die++ );
+        $this->initStateValue(GameStateValue::PatrolDieCount3, $intial_guard_die );
+        $this->initStateValue(GameStateValue::LaboratoryTileEntered, 0x000 ); // Bit vector
+        $this->initStateValue(GameStateValue::InvisibleSuitActive, 0 );
+        $this->initStateValue(GameStateValue::EmpPlayer, 0 );
+        $this->initStateValue(GameStateValue::CardChoice, 0 );
+        $this->initStateValue(GameStateValue::CharacterAbilityUsed, 0 );
+        $this->initStateValue(GameStateValue::AcrobatEnteredGuardTile, 0 );
+        $this->initStateValue(GameStateValue::TileChoice, 0 );
+        $this->initStateValue(GameStateValue::MotionTileExitChoice, 0 );
+        $this->initStateValue(GameStateValue::PlayerChoice, PlayerChoice::None->value );
+        $this->initStateValue(GameStateValue::PlayerChoiceArg, 0 );
+        $this->initStateValue(GameStateValue::FirstAction, 1 );
+        $this->initStateValue(GameStateValue::DrawToolsPlayer, 0 );
+        $this->initStateValue(GameStateValue::DrawToolsNextPlayer, 0 );
+        $this->initStateValue(GameStateValue::StealthDepleted, 0 );
+        $this->initStateValue(GameStateValue::PlayerPass, 0 );
+        $this->initStateValue(GameStateValue::DropLoot, 0 );
+        $this->initStateValue(GameStateValue::UndoAllowed, 0 );
+        $this->initStateValue(GameStateValue::RookDestinationTile, 0 );
+        $this->initStateValue(GameStateValue::CurrentPlayer, $current_player_id );
+        $this->initStateValue(GameStateValue::RemainingMoves, 0 );
+        $this->initStateValue(GameStateValue::StateAfterAlarm, 0 );
+        $this->initStateValue(GameStateValue::MoveDecreaseAfterAlarm, 0 );
+        $this->initStateValue(GameStateValue::DonutsDropped, 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -274,7 +232,7 @@ class burglebros extends Table
             $tokens [] = array('type' => 'crack', 'type_arg' => $floor, 'nbr' => 1);    # when a first die is added on the safe
         }
         // Fort Knox, create other tokens for the third safe
-        if ($this->getGameStateValue('scenario') == Scenario::FortKnox->value) {
+        if ($this->scenario() === Scenario::FortKnox) {
             $tokens [] = array('type' => 'crack', 'type_arg' => 1, 'nbr' => 1);
             $tokens [] = array('type' => 'crack', 'type_arg' => 2, 'nbr' => 1);
         }
@@ -380,7 +338,7 @@ class burglebros extends Table
         $result['solo_characters'] = $this->getSoloMultiCharacters();
         $result['active_player_id'] = $this->getCurrentPlayerIdCustom();
 
-        $result['tile_distribution'] = $this->getGameStateValue('scenario') == Scenario::OfficeJob->value ? $this->tile_distribution_office_job : $this->tile_distribution;
+        $result['tile_distribution'] = $this->scenario() === Scenario::OfficeJob ? $this->tile_distribution_office_job : $this->tile_distribution;
         $result['flipped_tiles'] = $this->getFlippedTiles();
 
         $tokens = array();
@@ -413,12 +371,12 @@ class burglebros extends Table
         $tiles = self::getCollectionFromDB("SELECT card_id id, card_location_arg location_arg FROM tile");
         foreach ($patrol_tokens as $id => &$value) {
             $floor = $value['type_arg'];
-            $value['die_num'] = self::getGameStateValue("patrolDieCount$floor");
+            $value['die_num'] = $this->stateValue(GameStateValue::patrolDieCount($floor));
             $guard_paths["floor$floor"] = $value['location'] == 'deck' ? null : $this->getPathByLocation($floor, $tiles);
         }
         $result['patrol_tokens'] = $patrol_tokens;
         $result['guard_paths'] = $guard_paths;
-        $result['undo_allowed'] = self::getGameStateValue('undoAllowed');
+        $result['undo_allowed'] = $this->stateValue(GameStateValue::UndoAllowed);
 
         return $result;
     }
@@ -435,7 +393,7 @@ class burglebros extends Table
     */
     function getGameProgression()
     {
-        if (self::getGameStateValue('stealthDepleted') || $this->allPlayersEscaped()) {
+        if ($this->stateValue(GameStateValue::StealthDepleted) || $this->allPlayersEscaped()) {
             return 100;
         } else {
             return $this->openSafes() * 25;
@@ -450,6 +408,29 @@ class burglebros extends Table
     /*
         In this space, you can put any utility methods useful for your game logic
     */
+
+    // Typed accessors for the game state values registered in initGameStateLabels
+    public function stateValue(GameStateValue $v): int {
+        return (int) $this->getGameStateValue($v->value);
+    }
+
+    public function setStateValue(GameStateValue $v, int|BackedEnum $value): void {
+        $this->setGameStateValue($v->value, $value instanceof BackedEnum ? $value->value : $value);
+    }
+
+    public function incStateValue(GameStateValue $v, int $increment): void {
+        $this->incGameStateValue($v->value, $increment);
+    }
+
+    public function initStateValue(GameStateValue $v, int|BackedEnum $value): void {
+        $this->setGameStateInitialValue($v->value, $value instanceof BackedEnum ? $value->value : $value);
+    }
+
+    /** null while the scenario value is still 0 (alpha games created before the option existed) */
+    public function scenario(): ?Scenario {
+        return Scenario::tryFrom($this->stateValue(GameStateValue::Scenario));
+    }
+
     public function getSoloMultiCharacters() {
         return $this->bga->tableOptions->get(GameOption::SoloMultiCharacters->value) ?? 1;
     }
@@ -464,7 +445,7 @@ class burglebros extends Table
 
     public function getCurrentPlayerIdCustom() {
         if ($this->getSoloMultiCharacters() > 1) {
-            return self::getGameStateValue('currentPlayer');
+            return $this->stateValue(GameStateValue::CurrentPlayer);
         } else {
             return self::getCurrentPlayerId();
         }
@@ -512,7 +493,7 @@ class burglebros extends Table
         $multi_characters = $this->getSoloMultiCharacters();
         if ($multi_characters > 1) {
             $next_player_id = $this->getPlayerAfterCustom();
-            self::setGameStateValue('currentPlayer', $next_player_id);
+            $this->setStateValue(GameStateValue::CurrentPlayer, $next_player_id);
             $this->bga->notify->all('activatePlayer', '', [
                 'player_id' => $next_player_id,
             ]);
@@ -553,8 +534,8 @@ class burglebros extends Table
 
     public function getFloorCount() {
         // Return the number of floors (3 for the Bank job, 2 otherwise)
-        // TODO Clean up !== 0 when all the alpha games are done
-        if ($this->getGameStateValue('scenario') !== 0 && $this->getGameStateValue('scenario') != Scenario::BankJob->value) {
+        // TODO Clean up the null check when all the alpha games are done
+        if ($this->scenario() !== null && $this->scenario() !== Scenario::BankJob) {
             return 2;
         } else {
             return 3;
@@ -563,7 +544,7 @@ class burglebros extends Table
 
     public function getSquareSize() {
         // Return the square size of the board (5 for Fort Knox scenario, 4 otherwise)
-        if ($this->getGameStateValue('scenario') == Scenario::FortKnox->value) {
+        if ($this->scenario() === Scenario::FortKnox) {
             return 5;
         } else {
             return 4;
@@ -615,7 +596,7 @@ public function patrolNames(): array {
         $this->performPeek($entrance['id'], 'effect');
 
         // Move first player token to entrance
-        self::setGameStateInitialValue( 'entranceTile', $tile_id );
+        $this->initStateValue(GameStateValue::EntranceTile, $tile_id );
         // $hand = $this->tokens->getPlayerHand(self::getCurrentPlayerId());
         $hand = $this->tokens->getPlayerHand($this->getCurrentPlayerIdCustom());
         $current_player_token = array_shift($hand);
@@ -626,7 +607,7 @@ public function patrolNames(): array {
 
         // Save the first undo restore point
         $this->undoSavepoint();
-        $this->setGameStateValue('undoAllowed', 1);
+        $this->setStateValue(GameStateValue::UndoAllowed, 1);
 
         $this->gamestate->nextState();
     }
@@ -705,7 +686,7 @@ public function patrolNames(): array {
 
     function canEscape($player_tile) {
         $thermal_to_roof = FALSE;
-        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OfficeJob->value ? 2 : 3;
+        $safes_needed = $this->scenario() === Scenario::OfficeJob ? 2 : 3;
         $max_floor = $this->getFloorCount();
         if ($this->tileFloor($player_tile) == $max_floor && $this->tokensInTile('thermal', $player_tile['id'])) {
             $tile_below = $this->findTileOnFloor($max_floor - 1, $player_tile['location_arg']);
@@ -736,7 +717,7 @@ public function patrolNames(): array {
         $players_on_tile = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $player_tile['id']);
         $character = $this->getPlayerCharacter($current_player_id);
         $character['name'] = $this->getCardType($character);
-        $actions_remaining = self::getGameStateValue('actionsRemaining'); 
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining); 
         // $actions_description = $actions_remaining > 0 ?
         //     clienttranslate("${actions_remaining} actions") :
         //     '';
@@ -754,7 +735,7 @@ public function patrolNames(): array {
             'floor' => $this->tileFloor($player_tile),
             'actions_remaining' => $actions_remaining,
             // 'actions_description' => $actions_description,
-            'undo_allowed' => self::getGameStateValue('undoAllowed'),
+            'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
             'kitty_escaped' => $this->isKittyEscaped(),
         );
     }
@@ -901,7 +882,7 @@ SQL;
         
         if ($draw_patrol) {
             // Cannot restart if new Patrol card is drawn or a new floor Guard position is revealed
-            self::setGameStateValue('undoAllowed', 0);
+            $this->setStateValue(GameStateValue::UndoAllowed, 0);
             $patrol = "patrol".$floor;
             do {
                 $count = $this->cards->countCardInLocation($patrol.'_deck');
@@ -913,10 +894,10 @@ SQL;
                     $count = 16;
                     $to_remove = $this->removePatrolPerPlayerCount($patrol);
                     $count -= $to_remove;
-                    $die_count = self::getGameStateValue("patrolDieCount$floor");
+                    $die_count = $this->stateValue(GameStateValue::patrolDieCount($floor));
                     if ($die_count < 6) {
                         $next_count = $die_count + 1;
-                        self::setGameStateValue("patrolDieCount$floor", $die_count + 1);
+                        $this->setStateValue(GameStateValue::patrolDieCount($floor), $die_count + 1);
                         $this->bga->notify->all('message', clienttranslate('The Patrol Deck ran out of cards. The Guard on floor ${floor} now moves ${next_count} spaces'), [
                             'floor' => $floor,
                             'next_count' => $next_count,
@@ -999,30 +980,30 @@ SQL;
         $this->bga->notify->all('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor, $location_arg),
             'floor' => $floor,
-            'undo_allowed' => self::getGameStateValue('undoAllowed'),
+            'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
             'flipped_tiles' => $this->getFlippedTiles(),
         ));
     }
 
     function endAction($action_cost = 1) {
-        $actions_remaining = self::incGameStateValue('actionsRemaining', -$action_cost);
-        self::setGameStateValue('firstAction', 0);
+        $actions_remaining = $this->incStateValue(GameStateValue::ActionsRemaining, -$action_cost);
+        $this->setStateValue(GameStateValue::FirstAction, 0);
         // Force special choice reset to avoid guard infinite move
-        self::setGameStateValue('specialChoiceArg', 0);
+        $this->setStateValue(GameStateValue::SpecialChoiceArg, 0);
         // If irrerversible action, save a new restore point and change state of undo allowed to "last actions only"
-        if (self::getGameStateValue('undoAllowed') == 0) {
+        if ($this->stateValue(GameStateValue::UndoAllowed) == 0) {
             $this->undoSavepoint();
-            self::setGameStateValue('undoAllowed', 2);
+            $this->setStateValue(GameStateValue::UndoAllowed, 2);
         }
         $this->gamestate->nextState('endAction');
     }
 
     function resetGlobalVars() {
-        self::setGameStateValue('invisibleSuitActive', 0);
-        self::setGameStateValue('characterAbilityUsed', 0);
-        self::setGameStateValue('playerPass', 0);
-        self::setGameStateValue('firstAction', 1);
-        self::setGameStateValue('acrobatEnteredGuardTile', 0);
+        $this->setStateValue(GameStateValue::InvisibleSuitActive, 0);
+        $this->setStateValue(GameStateValue::CharacterAbilityUsed, 0);
+        $this->setStateValue(GameStateValue::PlayerPass, 0);
+        $this->setStateValue(GameStateValue::FirstAction, 1);
+        $this->setStateValue(GameStateValue::AcrobatEnteredGuardTile, 0);
     }
 
     function tileAdjacencyDetail(BurgleBrosTilePosition $tile, BurgleBrosTilePosition $other_tile, $walls=null) {
@@ -1142,7 +1123,7 @@ SQL;
     function hawk1IsAdjacent($detail) {
         return $detail['same_floor'] && $detail['adjacent'] && $detail['blocked'] &&
             $this->getPlayerCharacter($this->getActivePlayerIdCustom(), 'hawk1') && 
-            !self::getGameStateValue('characterAbilityUsed');
+            !$this->stateValue(GameStateValue::CharacterAbilityUsed);
     }
 
     function acrobat2IsAdjacent($to, $from) {
@@ -1203,10 +1184,10 @@ SQL;
 
     function moveGuard($floor, $movement) {
         // Force movement reset after chosing the closest alarm
-        $remaining_moves = self::getGameStateValue('specialChoiceArg');
+        $remaining_moves = $this->stateValue(GameStateValue::SpecialChoiceArg);
         if ($remaining_moves > 0) {
             $movement = $remaining_moves;
-            self::setGameStateValue('specialChoiceArg', 0);
+            $this->setStateValue(GameStateValue::SpecialChoiceArg, 0);
         }
         $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
         $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
@@ -1216,7 +1197,7 @@ SQL;
         if ($guard_tile['id'] === $patrol_tile['id']) {
             $this->performGuardMovementEffects($guard_token, $guard_tile['id']);
             if ($this->nextPatrol($floor)) {        // alarm choice on multiple alarms
-                self::setGameStateValue('specialChoiceArg', $movement);
+                $this->setStateValue(GameStateValue::SpecialChoiceArg, $movement);
                 return TRUE;
             }
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $floor))[0];
@@ -1225,7 +1206,7 @@ SQL;
 
         $donut_type_id = $this->getCardTypeForName(CardType::Tool,'donuts');
         $donuts = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,$donut_type_id, 'tile', $guard_tile['id']);
-        if (count($donuts) > 0 && self::getGameStateValue('donutsDropped') == 0) {
+        if (count($donuts) > 0 && $this->stateValue(GameStateValue::DonutsDropped) == 0) {
             $this->cards->moveCard(array_keys($donuts)[0], 'tools_discard');
             $this->notifyTileCards($guard_tile['id']);
             return;
@@ -1239,12 +1220,12 @@ SQL;
                     $movement--;
                 }
                 $this->performGuardMovementEffects($guard_token, $tile_id);
-                if (self::getGameStateValue('stealthDepleted')) {
+                if ($this->stateValue(GameStateValue::StealthDepleted)) {
                     break;
                 }
                 if ($tile_id == $patrol_token['location_arg']) {
                     if ($this->nextPatrol($floor)) {        // tile choice on multiple alarms
-                        self::setGameStateValue('specialChoiceArg', $movement);
+                        $this->setStateValue(GameStateValue::SpecialChoiceArg, $movement);
                         return TRUE;
                     }
                     if ($movement > 0) {
@@ -1271,7 +1252,7 @@ SQL;
             if (count($player_stealth) > 0) {
                 $this->moveToken(array_keys($player_stealth)[0], 'deck', TRUE);
             } else {
-                self::setGameStateValue('stealthDepleted', 1);
+                $this->setStateValue(GameStateValue::StealthDepleted, 1);
             }
             $action = 'decrementStealth';
         } else if($amount < 0) {
@@ -1335,7 +1316,7 @@ SQL;
     }
 
     function handlePlayerEnteredGuardSight($tile, $player_id = null) {
-        $invisible_suit = self::getGameStateValue('invisibleSuitActive') == 1;
+        $invisible_suit = $this->stateValue(GameStateValue::InvisibleSuitActive) == 1;
         if ($invisible_suit) {
             return;
         }
@@ -1592,9 +1573,9 @@ SQL;
             }
             $sql = "INSERT INTO token (card_type, card_type_arg, card_location, card_location_arg) VALUES ".implode(', ', $sql_values);
             self::DbQuery($sql);
-            self::setGameStateValue('cardChoice', $stethoscope['id']);
+            $this->setStateValue(GameStateValue::CardChoice, $stethoscope['id']);
             $drop_loot = $drop_loot > 0 ? $safe_tile['id'] : 0;
-            self::setGameStateValue('dropLoot', $drop_loot);
+            $this->setStateValue(GameStateValue::DropLoot, $drop_loot);
             $this->gamestate->nextState('cardChoice');
             return true;
         } else {
@@ -1619,9 +1600,9 @@ SQL;
             $safe_tile = $this->getPlayerTile($current_player_id, $player_token);
         }
         if ($drop_loot === 0) {
-            $drop_loot = self::getGameStateValue('dropLoot');
+            $drop_loot = $this->stateValue(GameStateValue::DropLoot);
         } else {
-            self::setGameStateValue('dropLoot', $drop_loot);
+            $this->setStateValue(GameStateValue::DropLoot, $drop_loot);
         }
         $floor = $this->tileFloor($safe_tile);
         $tiles = $this->getTiles($floor);
@@ -1650,11 +1631,11 @@ SQL;
         if ($cracked_count - 1 == ($size_sq - 1) * 2) { // remove a safe cracked count
             $this->pickTokensForTile('open', $safe_tile['id']);
             if ($drop_loot > 0) {
-                self::setGameStateValue('drawToolsPlayer', $safe_tile['id']);
+                $this->setStateValue(GameStateValue::DrawToolsPlayer, $safe_tile['id']);
                 $loot = $this->cards->pickCardForLocation('loot_deck', 'tile', $safe_tile['id']);
                 $this->notifyTileCards($safe_tile['id']);
             } else {
-                self::setGameStateValue('drawToolsPlayer', $current_player_id);
+                $this->setStateValue(GameStateValue::DrawToolsPlayer, $current_player_id);
                 $loot = $this->cards->pickCard('loot_deck', $current_player_id);
             }
             $type = $this->getCardType($loot);
@@ -1683,10 +1664,10 @@ SQL;
                 $this->moveToken($safe_token_id, 'deck');
             }
             for ($lower_floor=$floor; $lower_floor >= 1; $lower_floor--) { 
-                $die_count = self::getGameStateValue("patrolDieCount$lower_floor");
+                $die_count = $this->stateValue(GameStateValue::patrolDieCount($lower_floor));
                 if ($die_count < 6) {
                     $next_count = $die_count + 1;
-                    self::setGameStateValue("patrolDieCount$lower_floor", $next_count);
+                    $this->setStateValue(GameStateValue::patrolDieCount($lower_floor), $next_count);
                     $this->bga->notify->all('message', clienttranslate('Guard on floor ${lower_floor} now moves ${next_count} spaces'), [
                         'lower_floor' => $lower_floor,
                         'next_count' => $next_count,
@@ -1773,7 +1754,7 @@ SQL;
     }
 
     function rollDice($dice_count) {
-        self::setGameStateValue('undoAllowed', 0);
+        $this->setStateValue(GameStateValue::UndoAllowed, 0);
         $rolls = array();
         for ($i=0; $i < $dice_count; $i++) { 
             $result = bga_rand(1, 6);
@@ -1830,7 +1811,7 @@ SQL;
             return TRUE;
         }
 
-        if(self::getGameStateValue('actionsRemaining') > 1) {
+        if($this->stateValue(GameStateValue::ActionsRemaining) > 1) {
             $this->pickTokensForTile('keypad', $tile['id']);
         }
         return FALSE;
@@ -1868,7 +1849,7 @@ SQL;
 
     function canUseExtraAction($player_id, $player_tile) {
         $action_penalty = $this->getGemstonePenalty($player_id, $player_tile, TRUE);
-        return TileType::of($player_tile) === TileType::Laser && self::getGameStateValue('actionsRemaining') >= (2 + $action_penalty);
+        return TileType::of($player_tile) === TileType::Laser && $this->stateValue(GameStateValue::ActionsRemaining) >= (2 + $action_penalty);
     }
 
     function hackerDoesNotTrigger($tile) {
@@ -1894,7 +1875,7 @@ SQL;
     function hackOrTrigger($tile) {
         $tile_choice = FALSE;
         $special_choice = FALSE;
-        if ($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || $this->hackerDoesNotTrigger($tile) || self::getGameStateValue('empPlayer') != 0) {
+        if ($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || $this->hackerDoesNotTrigger($tile) || $this->stateValue(GameStateValue::EmpPlayer) != 0) {
             // $tile_choice = FALSE;
             // return FALSE;
         } else {
@@ -1924,13 +1905,13 @@ SQL;
         } elseif ($type === TileType::Laboratory) {
             $this->notifyTileCards($tile['id']);
         }
-        self::setGameStateValue('undoAllowed', 0);
+        $this->setStateValue(GameStateValue::UndoAllowed, 0);
     }
 
-    function setTileBit($state_name, $tile_id) {
+    function setTileBit(GameStateValue $state, $tile_id) {
         $tile_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$tile_id'");
-        $tile_entered = self::getGameStateValue($state_name);
-        self::setGameStateValue($state_name, $tile_entered | $tile_bit);
+        $tile_entered = $this->stateValue($state);
+        $this->setStateValue($state, $tile_entered | $tile_bit);
         return ($tile_entered & $tile_bit) != 0x0;
     }
 
@@ -1956,14 +1937,14 @@ SQL;
     function handleTileMovement($tile, $player_tile, $player_token, $guard_token, $flipped_this_turn, $context) {
         $id = $tile['id'];
         $type = TileType::of($tile);
-        // $actions_remaining = !in_array($context, array('action', 'acrobat2')) ? 1 : self::getGameStateValue('actionsRemaining');
-        $actions_remaining = !in_array($context, array('action')) ? 1 : self::getGameStateValue('actionsRemaining');
+        // $actions_remaining = !in_array($context, array('action', 'acrobat2')) ? 1 : $this->stateValue(GameStateValue::ActionsRemaining);
+        $actions_remaining = !in_array($context, array('action')) ? 1 : $this->stateValue(GameStateValue::ActionsRemaining);
         $cancel_move = false;
         $motion_entered = false;
         $tile_choice = false;
         $tile_choice_id = $id;
         $special_choice = false;
-        $player_id = $context == 'rook1' ? self::getGameStateValue('specialChoiceArg') : $player_token['type_arg'];
+        $player_id = $context == 'rook1' ? $this->stateValue(GameStateValue::SpecialChoiceArg) : $player_token['type_arg'];
         $crowbar = $this->tokensInTile('crowbar', $id);
         $rook1_action = $context == 'rook1';
         $floor = $this->tileFloor($tile);
@@ -1991,7 +1972,7 @@ SQL;
                             throw new BgaUserException(clienttranslate('You do not have enough actions to enter the Deadbolt'));
                         }
                     } else {
-                        self::incGameStateValue('actionsRemaining', -2); // One is deducted already
+                        $this->incStateValue(GameStateValue::ActionsRemaining, -2); // One is deducted already
                     }
                 }
             }
@@ -2013,7 +1994,7 @@ SQL;
                 $special_choice = $result['special_choice'];
             }
         } elseif ($type === TileType::Laser) {
-            if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile) && self::getGameStateValue('empPlayer') == 0) {
+            if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile) && $this->stateValue(GameStateValue::EmpPlayer) == 0) {
                 $this->setupGuardToken($guard_token, $floor);
                 if ($actions_remaining >= (2 + $action_penalty)) {
                     $tile_choice = TRUE;
@@ -2026,18 +2007,18 @@ SQL;
         } elseif ($type === TileType::Motion) {
             if (!$crowbar) {
                 if (TileType::of($player_tile) === TileType::Motion) { // exiting a motion tile
-                    $motion_entered = self::getGameStateValue('motionTileEntered');
+                    $motion_entered = $this->stateValue(GameStateValue::MotionTileEntered);
                 }
-                $this->setTileBit('motionTileEntered', $id);
+                $this->setTileBit(GameStateValue::MotionTileEntered, $id);
             }
         } elseif ($type === TileType::Laboratory) {
-            $prev_value = $this->setTileBit('laboratoryTileEntered', $id);
+            $prev_value = $this->setTileBit(GameStateValue::LaboratoryTileEntered, $id);
             if (!$prev_value) {
-                self::setGameStateValue('drawToolsPlayer', $player_id);
+                $this->setStateValue(GameStateValue::DrawToolsPlayer, $player_id);
                 $this->notifyTileCards($id);
             }
         } elseif ($type === TileType::Detector) {
-            if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
+            if (!$crowbar && $this->stateValue(GameStateValue::EmpPlayer) == 0) {
                 $hand = $this->cards->getPlayerHand($player_id);
                 foreach ($hand as $card_id => $card) {
                     if ($card['type'] == CardType::Tool->value || $card['type'] == CardType::Loot->value) {
@@ -2058,7 +2039,7 @@ SQL;
                 $this->notifyMovement($player_id, $lower_tile, 'walkway');
             }
         } elseif ($type === TileType::Thermo && $this->getPlayerLoot('isotope', $player_id)) {
-            if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
+            if (!$crowbar && $this->stateValue(GameStateValue::EmpPlayer) == 0) {
                 $this->setupGuardToken($guard_token, $floor);
                 $this->triggerAlarm($tile);
             }
@@ -2073,13 +2054,13 @@ SQL;
             if (TileType::of($player_tile) === TileType::Motion && !$rook1_action) {
                 $exit_id = $player_tile['id'];
                 $motion_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$exit_id'");
-                $motion_entered = $motion_entered !== false ? $motion_entered : self::getGameStateValue('motionTileEntered');
+                $motion_entered = $motion_entered !== false ? $motion_entered : $this->stateValue(GameStateValue::MotionTileEntered);
                 if ($motion_entered && $motion_bit) {
                     $result = $this->hackOrTrigger($player_tile);
                     $exiting_choice = $result['tile_choice'];
                     $special_choice = $result['special_choice'];
                     if ($tile_choice && $exiting_choice) {
-                        self::setGameStateValue('motionTileExitChoice', $tile_choice_id);
+                        $this->setStateValue(GameStateValue::MotionTileExitChoice, $tile_choice_id);
                     }
                     if ($exiting_choice) {
                         $tile_choice = $exiting_choice;
@@ -2091,7 +2072,7 @@ SQL;
             $this->moveToken($player_token['id'], 'tile', $id);
         }
         if ( (!$tile_choice && $action_penalty) || $context == 'acrobat2' ) {
-            self::incGameStateValue('actionsRemaining', -$action_penalty);
+            $this->incStateValue(GameStateValue::ActionsRemaining, -$action_penalty);
         }
         if (!$cancel_move) {
             $this->notifyMovement($player_id, $tile);
@@ -2105,7 +2086,7 @@ SQL;
 
     function checkCameras($params) {
         $video_loop = $this->getActiveEvent('video-loop');
-        if ($video_loop || self::getGameStateValue('empPlayer') != 0) {
+        if ($video_loop || $this->stateValue(GameStateValue::EmpPlayer) != 0) {
             return;
         }
         $player_clause = '';
@@ -2137,7 +2118,7 @@ SQL;
 
     function triggerAlarm($tile, $skip_token_checks=FALSE, $skip_hacker_checks=FALSE) {
         if (!$skip_token_checks) {
-            if ($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || self::getGameStateValue('empPlayer') != 0 && (!$skip_hacker_checks && $this->hackerDoesNotTrigger($tile))) {
+            if ($this->tokensInTile('guard', $tile['id']) || $this->tokensInTile('alarm', $tile['id']) || $this->stateValue(GameStateValue::EmpPlayer) != 0 && (!$skip_hacker_checks && $this->hackerDoesNotTrigger($tile))) {
                 return;
             }
         }
@@ -2160,7 +2141,7 @@ SQL;
         $card = array_values($this->cards->getCardsOfType(CardType::Tool->value,$type_arg))[0];
         $choice = $this->handleToolEffect($current_player_id, $card);
         if ($choice) {
-            self::setGameStateValue('cardChoice', $card['id']);
+            $this->setStateValue(GameStateValue::CardChoice, $card['id']);
             $this->gamestate->nextState('cardChoice');
         }
     }
@@ -2169,11 +2150,11 @@ SQL;
         $type = $this->getCardType($card);
         $choice = FALSE;
         if ($type == 'emp') {
-            self::setGameStateValue('empPlayer', $player_id);
+            $this->setStateValue(GameStateValue::EmpPlayer, $player_id);
             $this->clearTileTokens('alarm');
         } elseif($type == 'invisible-suit') {
-            self::setGameStateValue('invisibleSuitActive', 1);
-            self::incGameStateValue('actionsRemaining', 1);
+            $this->setStateValue(GameStateValue::InvisibleSuitActive, 1);
+            $this->incStateValue(GameStateValue::ActionsRemaining, 1);
         } elseif ($type == 'makeup-kit') {
             $tile = $this->getPlayerTile($player_id);
             $player_tokens = $this->tokens->getCardsOfTypeInLocation('player', null, 'tile', $tile['id']);
@@ -2181,14 +2162,14 @@ SQL;
                 $this->decrementPlayerStealth($token['type_arg'], -1); // Give them back one
             }
         } elseif($type == 'rollerskates') {
-            self::incGameStateValue('actionsRemaining', 2);
+            $this->incStateValue(GameStateValue::ActionsRemaining, 2);
         } elseif ($type == 'smoke-bomb') {
             $tile = $this->getPlayerTile($player_id);
             $this->pickTokensForTile('stealth', $tile['id'], 3);
         } elseif ($type == 'stethoscope') {
             throw new BgaUserException(clienttranslate("You must roll dice before using the stethoscope"));
         } elseif ($type == 'crystal-ball') {
-            self::setGameStateValue('undoAllowed', 0);
+            $this->setStateValue(GameStateValue::UndoAllowed, 0);
             $choice = TRUE;
         } else {
             $choice = TRUE;
@@ -2232,7 +2213,7 @@ SQL;
                 $this->notifyTileCards($location_arg);
             }
         } else {
-            self::setGameStateValue('drawToolsPlayer', $current_player_id);
+            $this->setStateValue(GameStateValue::DrawToolsPlayer, $current_player_id);
             $this->gamestate->nextState('endAction');
         }
         
@@ -2269,7 +2250,7 @@ SQL;
     }
 
     function addActionDebug() {
-        self::setGameStateValue('actionsRemaining', 10);
+        $this->setStateValue(GameStateValue::ActionsRemaining, 10);
     }
 
     function handleEventEffectDebug($name) {
@@ -2279,7 +2260,7 @@ SQL;
         $card = array_values($this->cards->getCardsOfType(CardType::Event->value,$type_arg))[0];
         $event_result = $this->handleEventEffect($current_player_id, $card);
         if ($event_result['card_choice']) {
-            self::setGameStateValue('cardChoice', $card['id']);
+            $this->setStateValue(GameStateValue::CardChoice, $card['id']);
             $this->gamestate->nextState('cardChoice');
         } elseif ($event_result['tile_choice']) {
             $this->gamestate->nextState('tileChoice');
@@ -2362,7 +2343,7 @@ SQL;
             $this->cards->moveCard($card['id'], 'hand', $next_player);
             $this->notifyPlayerHand($next_player);
         } elseif ($type == 'jury-rig') {
-            self::setGameStateValue('drawToolsPlayer', $player_id);
+            $this->setStateValue(GameStateValue::DrawToolsPlayer, $player_id);
         } elseif ($type == 'keycode-change') {
             $safes = $this->tiles->getCardsOfType(TileType::Keypad->value);
             foreach ($safes as $tile_id => $safe) {
@@ -2409,7 +2390,7 @@ SQL;
             }
         } elseif($type == 'shoplifting') {
             $laboratories = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg, safe_die FROM tile WHERE card_type = 'laboratory'");
-            $tile_entered = self::getGameStateValue('laboratoryTileEntered');
+            $tile_entered = $this->stateValue(GameStateValue::LaboratoryTileEntered);
             foreach ($laboratories as $tile_id => $tile) {
                 $tile_bit = 1 << $tile['safe_die'];
                 if (($tile_entered & $tile_bit) != 0x0) {
@@ -2429,7 +2410,7 @@ SQL;
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
             $donut_type_id = $this->getCardTypeForName(CardType::Tool,'donuts');
             $donuts = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,$donut_type_id, 'tile', $guard_tile['id']);
-            if (count($donuts) > 0 && self::getGameStateValue('donutsDropped') == 0) {
+            if (count($donuts) > 0 && $this->stateValue(GameStateValue::DonutsDropped) == 0) {
                 $patrol_tile = $this->tiles->getCard($patrol_token['location_arg']);
                 $this->cards->moveCard(array_keys($donuts)[0], 'tile', $patrol_tile['id']);
                 $this->notifyTileCards($guard_tile['id']);
@@ -2493,7 +2474,7 @@ SQL;
                 }
             } else {
                 $player_choice = 4;
-                self::setGameStateValue('playerChoiceArg', $shortest_path_length);
+                $this->setStateValue(GameStateValue::PlayerChoiceArg, $shortest_path_length);
             }
         } elseif ($type == 'throw-voice') {
             $card_choice = TRUE;
@@ -2661,7 +2642,7 @@ SQL;
 
             $wall = self::getObjectFromDB("SELECT * FROM wall WHERE id = '$selected_id'");
             $cells = $grid->cellsSeparatedBy($wall);
-            if ($this->getGameStateValue('scenario') == Scenario::FortKnox->value &&
+            if ($this->scenario() === Scenario::FortKnox &&
                     in_array($this->board->getShaftPosition(), $cells, true)) {
                 throw new BgaUserException(clienttranslate('You cannot blow up a wall of the pillar'));
             }
@@ -2721,12 +2702,12 @@ SQL;
             $other_tile = $this->findTileOnFloor($floor, $tile['location_arg']);
             $add_or_roll = floor($selected_id / 10);
             if ($add_or_roll == 0) {
-                $actions_remaining = self::getGameStateValue('actionsRemaining');
+                $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
                 if ($actions_remaining < 2) {
                     throw new BgaUserException(clienttranslate("Adding a die requires 2 actions"));
                 }
                 $this->performAddSafeDie($other_tile);
-                self::incGameStateValue('actionsRemaining', -1);
+                $this->incStateValue(GameStateValue::ActionsRemaining, -1);
             } else {
                 $this->performSafeDiceRoll($other_tile, $other_tile['id']);
             }
@@ -2773,7 +2754,7 @@ SQL;
                 $other_tile = $this->findTileOnFloor($selected_id, $tile['location_arg']);
                 $this->pickTokensForTile('thermal', $other_tile['id']);
             }
-            if (self::getGameStateValue('empPlayer') == 0) {
+            if ($this->stateValue(GameStateValue::EmpPlayer) == 0) {
                 $special_choice = $this->triggerAlarm($tile, FALSE, TRUE);
             }
         } elseif ($type == 'virus') {
@@ -2809,7 +2790,7 @@ SQL;
                 'new_value' => $new_value
             ]);
             $this->applyDieRoll();
-            self::incGameStateValue('actionsRemaining', -1);
+            $this->incStateValue(GameStateValue::ActionsRemaining, -1);
         } elseif ($type == 'throw-voice') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
@@ -2845,7 +2826,7 @@ SQL;
     function handleSelectTileChoice($selected) {
         // $player_id = self::getCurrentPlayerId();
         $player_id = $this->getCurrentPlayerIdCustom();
-        $tile = $this->tiles->getCard(self::getGameStateValue('tileChoice'));
+        $tile = $this->tiles->getCard($this->stateValue(GameStateValue::TileChoice));
         $type = TileType::of($tile);
         $special_choice = FALSE;
         if ($selected == 0) { // trigger
@@ -2873,7 +2854,7 @@ SQL;
             }
             $gemstone_penalty = $this->getGemstonePenalty($player_id, $tile, TRUE);
             // Take an extra 1 (or 2 for gemstone). Another 1 is always taken
-            self::incGameStateValue('actionsRemaining', -1 - $gemstone_penalty);
+            $this->incStateValue(GameStateValue::ActionsRemaining, -1 - $gemstone_penalty);
             $this->bga->notify->all('message', clienttranslate('${player_name} used an extra action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
@@ -2956,9 +2937,9 @@ SQL;
         }
         $move_result = $this->handleTileMovement($to_move, $player_tile, $player_token, $guard_token, $flipped_this_turn, $context);
         $this->flipTile( $floor, $to_move['location_arg'] );
-        $invisible_suit = self::getGameStateValue('invisibleSuitActive') == 1;
+        $invisible_suit = $this->stateValue(GameStateValue::InvisibleSuitActive) == 1;
         if ($move_result['perform_move']) {
-            self::setGameStateValue('acrobatEnteredGuardTile', $acrobat_entered);
+            $this->setStateValue(GameStateValue::AcrobatEnteredGuardTile, $acrobat_entered);
             if (!$invisible_suit && !$acrobat_entered) {
                 $this->handlePlayerEnteredGuardSight($to_move, $current_player_id);
             }
@@ -2979,7 +2960,7 @@ SQL;
     }
 
     function checkWin() {
-        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OfficeJob->value ? 2 : 3;
+        $safes_needed = $this->scenario() === Scenario::OfficeJob ? 2 : 3;
         $all_safes_opened = $this->openSafes() == $safes_needed;
         $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(CardType::Loot->value,null, 'tile')) == 0 &&
             !$this->isKittyEscaped();
@@ -3083,8 +3064,8 @@ SQL;
             if ($meeple['type_arg'] == $current_player_id) {
                 throw new BgaUserException(clienttranslate('You cannot choose yourself'));
             }
-            self::setGameStateValue('specialChoice', SpecialChoice::Rook1->value);
-            self::setGameStateValue('specialChoiceArg', $meeple['type_arg']); // Rook 1
+            $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::Rook1);
+            $this->setStateValue(GameStateValue::SpecialChoiceArg, $meeple['type_arg']); // Rook 1
             $this->gamestate->nextState('specialChoice');
         } else if ($type == 'rook2') {
             $meeple = $this->tokens->getCard($selected);
@@ -3133,7 +3114,7 @@ SQL;
             $guard_token = array_values($this->tokens->getCardsOfType('guard', $floor))[0];
             $guard_tile = $this->tiles->getCard($guard_token['location_arg']);
             $path = $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $selected_player_tile['location_arg']);
-            if (count($path) > self::getGameStateValue("playerChoiceArg"))
+            if (count($path) > $this->stateValue(GameStateValue::PlayerChoiceArg))
                 throw new BgaUserException(clienttranslate("You must choose one of the closest players"));
             // If guard and players are on the same tile, do not move players
             if (count($path) > 1) {
@@ -3154,12 +3135,12 @@ SQL;
             $players = $this->loadPlayersInfos();
             $active_player_id = $this->getCurrentPlayerIdCustom();
             // Must store tile_choice destination
-            self::setGameStateValue('rookDestinationTile', $selected);
+            $this->setStateValue(GameStateValue::RookDestinationTile, $selected);
             if ($multi_characters > 1) {
                 $player_name = $players[$active_player_id]['player_name'];
             } else {
                 // Must switch to another state to ask chosen player confirmation
-                self::setGameStateValue('currentPlayer', $active_player_id);
+                $this->setStateValue(GameStateValue::CurrentPlayer, $active_player_id);
                 $player_name = self::getActivePlayerName();
             }
             $this->bga->notify->all('message', clienttranslate('The Rook: ${player_name} wants to move ${other_name}'), [
@@ -3181,10 +3162,10 @@ SQL;
                 throw new BgaUserException(clienttranslate("You must choose one of the closest alarms"));
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $selected_floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
-            self::setGameStateValue('specialChoice', SpecialChoice::None->value);    
+            $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::None);    
             // Resume to the expected state
-            $expected_state = $this->state_after_alarms[self::getGameStateValue('stateAfterAlarm')];
-            self::setGameStateValue('stateAfterAlarm', 0);
+            $expected_state = $this->state_after_alarms[$this->stateValue(GameStateValue::StateAfterAlarm)];
+            $this->setStateValue(GameStateValue::StateAfterAlarm, 0);
             $this->gamestate->nextState( $expected_state );
         } elseif ($type == 'rigger') {
             $tool = $this->cards->getCard($choice_arg);
@@ -3234,8 +3215,8 @@ SQL;
 
     function characterActionEnabled($current_player_id, $character) {
         $type = $character['name'];
-        $used = self::getGameStateValue('characterAbilityUsed');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $used = $this->stateValue(GameStateValue::CharacterAbilityUsed);
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 1 && in_array($type, array('hacker2', 'peterman1', 'peterman2', 'rook1', 'rook2', 'spotter1', 'spotter2'))) {
             return FALSE;
         } else if ($used && in_array($type, array('hawk1', 'hawk2', 'juicer2', 'rook1', 'spotter1', 'spotter2'))) {
@@ -3286,7 +3267,7 @@ SQL;
             if ($plan->isInteriorCell($player_tile['location_arg'])) {
                 return FALSE;
             }
-            if(self::getGameStateValue('actionsRemaining') < 3) {
+            if($this->stateValue(GameStateValue::ActionsRemaining) < 3) {
                 return FALSE;
             }
         } else if($type == 'hacker2') {
@@ -3341,7 +3322,7 @@ SQL;
                 return FALSE;
             }
         } else if($type == 'rook2') {
-            if (self::getGameStateValue('firstAction') != 1) {
+            if ($this->stateValue(GameStateValue::FirstAction) != 1) {
                 return FALSE;
             }
         }
@@ -3366,7 +3347,7 @@ SQL;
         }
         // Add token on unused but flipped Laboratories
         $laboratories = self::getCollectionFromDB("SELECT card_id id, card_type type, card_type_arg type_arg, card_location location, card_location_arg location_arg, safe_die, flipped FROM tile WHERE card_type='laboratory'");
-        $tile_entered = self::getGameStateValue('laboratoryTileEntered');
+        $tile_entered = $this->stateValue(GameStateValue::LaboratoryTileEntered);
         foreach ($laboratories as $lab_tile_id => $tile) {
             $tile_bit = 1 << $tile['safe_die'];
             if (($tile_entered & $tile_bit) == 0x0 && ($tile['flipped'] == 1 || $lab_tile_id == $tile_id)) {
@@ -3426,12 +3407,12 @@ SQL;
         $this->bga->notify->all('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor_1, $location_arg_1),
             'floor' => $floor_1,
-            'undo_allowed' => self::getGameStateValue('undoAllowed'),
+            'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
         ));
         $this->bga->notify->all('tileFlipped', '', array(
             'tile' => $this->findTileOnFloor($floor_2, $location_arg_2),
             'floor' => $floor_2,
-            'undo_allowed' => self::getGameStateValue('undoAllowed'),
+            'undo_allowed' => $this->stateValue(GameStateValue::UndoAllowed),
         ));
     }
 
@@ -3441,7 +3422,7 @@ SQL;
 
     public function activatePlayer() {
         // Set current player for multiplayer game
-        self::setGameStateValue('currentPlayer', 2318200);
+        $this->setStateValue(GameStateValue::CurrentPlayer, 2318200);
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3482,7 +3463,7 @@ SQL;
 
     function peek( $tile_id ) {
         self::checkAction('peek');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 1) {
             throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
@@ -3492,14 +3473,14 @@ SQL;
 
     function move( $tile_id, $context='action' ) {
         self::checkAction('move');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         $tile_choice = FALSE;
         if ($context == 'acrobat1') {
             $current_player_id = self::getCurrentPlayerIdCustom();
             $character = $this->getPlayerCharacter($current_player_id);
             if ($this->getCardType($character) != 'acrobat1')
                 throw new BgaUserException(clienttranslate("You are not the Acrobat"));
-            self::setGameStateValue('cardChoice', $character['id']);
+            $this->setStateValue(GameStateValue::CardChoice, $character['id']);
             $this->selectCardChoice('tile', [$tile_id], FALSE);
             $this->endAction(0);
         } elseif ($actions_remaining < 1) {
@@ -3508,16 +3489,16 @@ SQL;
             $result = $this->performMove($tile_id, $context);
             $tile_choice = $result['tile_choice'];
             $special_choice = $result['special_choice'];
-            if (self::getGameStateValue('stealthDepleted')) {
+            if ($this->stateValue(GameStateValue::StealthDepleted)) {
                 $this->gamestate->nextState('gameOver');
             } elseif ($tile_choice) {
-                self::setGameStateValue('moveDecreaseAfterAlarm', 1);
-                self::setGameStateValue('tileChoice', $tile_choice);
+                $this->setStateValue(GameStateValue::MoveDecreaseAfterAlarm, 1);
+                $this->setStateValue(GameStateValue::TileChoice, $tile_choice);
                 $this->gamestate->nextState('tileChoice');
             } elseif ($special_choice) {
-                self::incGameStateValue('actionsRemaining', -1);
-                self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-                self::setGameStateValue('stateAfterAlarm', State::EndAction->value);
+                $this->incStateValue(GameStateValue::ActionsRemaining, -1);
+                $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+                $this->setStateValue(GameStateValue::StateAfterAlarm, State::EndAction);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
                 $this->endAction();
@@ -3527,7 +3508,7 @@ SQL;
 
     function addSafeDie() {
         self::checkAction('addSafeDie');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 2) {
             throw new BgaUserException(clienttranslate("Adding a die requires 2 actions"));
         }
@@ -3541,7 +3522,7 @@ SQL;
 
     function rollSafeDice() {
         self::checkAction('rollSafeDice');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 1) {
             throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
@@ -3555,7 +3536,7 @@ SQL;
 
     function hack() {
         self::checkAction('hack');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 1) {
             throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
@@ -3626,14 +3607,14 @@ SQL;
                 if (++$current_player_id >= self::getCurrentPlayerId() + $multi_characters) {
                     // Activate next player and enter state again
                     $human_player_id = self::getCurrentPlayerId();
-                    self::setGameStateValue('currentPlayer', $human_player_id);
+                    $this->setStateValue(GameStateValue::CurrentPlayer, $human_player_id);
                     $this->bga->notify->all('activatePlayer', '', [
                         'player_id' => $human_player_id,
                     ]);
                     $this->gamestate->nextState('chooseCharacter');
                 } else {
                     // Activate next player and enter state again
-                    self::setGameStateValue('currentPlayer', $current_player_id);
+                    $this->setStateValue(GameStateValue::CurrentPlayer, $current_player_id);
                     $this->bga->notify->all('activatePlayer', '', [
                         'player_id' => $current_player_id,
                     ]);
@@ -3657,7 +3638,7 @@ SQL;
 
             $choice = $this->handleToolEffect($current_player_id, $card);
             if ($choice) {
-                self::setGameStateValue('cardChoice', $card['id']);
+                $this->setStateValue(GameStateValue::CardChoice, $card['id']);
                 $this->gamestate->nextState('cardChoice');
             } else {
                 $this->cards->moveCard($card['id'], 'tools_discard');
@@ -3679,19 +3660,19 @@ SQL;
     function selectCardChoice($type, $id, $check_action = TRUE) {
         if ($check_action)
             self::checkAction('selectCardChoice');
-        $card_choice = self::getGameStateValue('cardChoice');
+        $card_choice = $this->stateValue(GameStateValue::CardChoice);
         $card = $card_choice > 0 ? $this->cards->getCard($card_choice) : null;
         $result = $this->handleSelectCardChoice($card, $type, $id);
         $tile_choice = $result['tile_choice'];
         $special_choice = $result['special_choice'];
-        if (self::getGameStateValue('stealthDepleted')) {
+        if ($this->stateValue(GameStateValue::StealthDepleted)) {
             $this->gamestate->nextState('gameOver');
         } elseif ($tile_choice) {
-            self::setGameStateValue('tileChoice', $tile_choice);
+            $this->setStateValue(GameStateValue::TileChoice, $tile_choice);
             $this->gamestate->nextState('tileChoice');
         } elseif ($special_choice) {
-            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-            self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
+            $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+            $this->setStateValue(GameStateValue::StateAfterAlarm, State::PlayerTurn);
             $this->gamestate->nextState('chooseAlarm');
         } else {
             if ($card['type'] == CardType::Event->value) {
@@ -3701,7 +3682,7 @@ SQL;
                 $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                     'player_name' => self::getCurrentPlayerName()
                 ]);
-                self::setGameStateValue('characterAbilityUsed', 1);
+                $this->setStateValue(GameStateValue::CharacterAbilityUsed, 1);
                 $human_player_id = self::getCurrentPlayerId();
                 self::incStat(1, 'special_ability_use', $human_player_id);
                 if (in_array($type, array('hacker2', 'spotter1', 'spotter2'))) {
@@ -3709,7 +3690,7 @@ SQL;
                 } else if ($type == 'peterman2') {
                     $this->endAction($id < 10 ? 2 : 1); // Spent 1 or 2 actions
                 } else if ($type == 'acrobat2') {
-                    self::setGameStateValue('actionsRemaining', 0);
+                    $this->setStateValue(GameStateValue::ActionsRemaining, 0);
                     $this->endAction(0);
                 } else {
                     $this->endAction(0); // Free action
@@ -3734,7 +3715,7 @@ SQL;
 
     function cancelCardChoice() {
         self::checkAction('cancelCardChoice');
-        $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
+        $card = $this->cards->getCard($this->stateValue(GameStateValue::CardChoice));
         if ($card['type'] == CardType::Loot->value) {
             throw new BgaUserException(clienttranslate('You may not cancel event effects'));
         } elseif ($this->getCardType($card) == 'stethoscope') {
@@ -3751,29 +3732,29 @@ SQL;
         $result = $this->handleSelectTileChoice($selected);
         $tile = $result['tile'];
         // Check if this is a Rook move
-        $rook_destination_tile = self::getGameStateValue('rookDestinationTile');
+        $rook_destination_tile = $this->stateValue(GameStateValue::RookDestinationTile);
         if ($rook_destination_tile > 0) {
-            self::setGameStateValue('rookDestinationTile', 0);
+            $this->setStateValue(GameStateValue::RookDestinationTile, 0);
             $this->gamestate->nextState('switchRookMove');
         } else {
-            $motion_exit = self::getGameStateValue('motionTileExitChoice');
+            $motion_exit = $this->stateValue(GameStateValue::MotionTileExitChoice);
             if (TileType::of($tile) === TileType::Motion && $motion_exit > 0) {
-                self::setGameStateValue('tileChoice', $motion_exit);
+                $this->setStateValue(GameStateValue::TileChoice, $motion_exit);
                 $this->gamestate->nextState('tileChoice');
             } elseif ($result['special_choice']) {
-                $move_decrease = self::getGameStateValue('moveDecreaseAfterAlarm');
+                $move_decrease = $this->stateValue(GameStateValue::MoveDecreaseAfterAlarm);
                 if ($move_decrease > 0) {
-                    self::incGameStateValue('actionsRemaining', -$move_decrease);
-                    self::setGameStateValue('moveDecreaseAfterAlarm', 0);
+                    $this->incStateValue(GameStateValue::ActionsRemaining, -$move_decrease);
+                    $this->setStateValue(GameStateValue::MoveDecreaseAfterAlarm, 0);
                 }
-                self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-                self::setGameStateValue('stateAfterAlarm', State::EndAction->value);
+                $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+                $this->setStateValue(GameStateValue::StateAfterAlarm, State::EndAction);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
-                self::setGameStateValue('tileChoice', 0);
+                $this->setStateValue(GameStateValue::TileChoice, 0);
                 $this->endAction();
             }
-            self::setGameStateValue('motionTileExitChoice', 0);
+            $this->setStateValue(GameStateValue::MotionTileExitChoice, 0);
         }
     }
 
@@ -3783,9 +3764,9 @@ SQL;
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $character = $this->getPlayerCharacter($current_player_id);
         $type = $this->getCardType($character);
-        $used = self::getGameStateValue('characterAbilityUsed');
+        $used = $this->stateValue(GameStateValue::CharacterAbilityUsed);
 
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 1 && in_array($type, array('hacker2', 'rook1', 'spotter1', 'spotter2'))) {
             throw new BgaUserException(clienttranslate("You have no actions remaining"));
         } else if ($used && in_array($type, array('hawk1', 'hawk2', 'juicer2', 'rook1', 'spotter1', 'spotter2'))) {
@@ -3796,10 +3777,10 @@ SQL;
             if ($plan->isInteriorCell($player_tile['location_arg'])) {
                 throw new BgaUserException(clienttranslate('Must be on an outer tile'));
             }
-            if (self::getGameStateValue('actionsRemaining') < 3) {
+            if ($this->stateValue(GameStateValue::ActionsRemaining) < 3) {
                 throw new BgaUserException(clienttranslate('Must have at least 3 actions'));
             }
-            self::setGameStateValue('cardChoice', $character['id']);
+            $this->setStateValue(GameStateValue::CardChoice, $character['id']);
             $this->gamestate->nextState('cardChoice');
         } else if($type == 'hacker2') {   
             if (count($this->tokens->getCardsOfTypeInLocation('hack', null, 'card', $character['id'])) > 0) {
@@ -3822,8 +3803,8 @@ SQL;
                 }
                 $this->moveToken(array_values($character_alarms)[0]['id'], 'deck');
                 if ($this->triggerAlarm($player_tile)) {
-                    self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-                    self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
+                    $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+                    $this->setStateValue(GameStateValue::StateAfterAlarm, State::PlayerTurn);
                     $this->gamestate->nextState('chooseAlarm');
                 }
             } else {
@@ -3832,12 +3813,12 @@ SQL;
                 }
                 $this->moveToken(array_values($tile_alarms)[0]['id'], 'card', $character['id']);
                 if ($this->nextPatrol($this->tileFloor($player_tile))) {
-                    self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-                    self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
+                    $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+                    $this->setStateValue(GameStateValue::StateAfterAlarm, State::PlayerTurn);
                     $this->gamestate->nextState('chooseAlarm');
                 }
             }
-            self::setGameStateValue('characterAbilityUsed', 1);
+            $this->setStateValue(GameStateValue::CharacterAbilityUsed, 1);
             self::incStat(1, 'special_ability_use', $human_player_id);
             $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
@@ -3856,20 +3837,20 @@ SQL;
                 throw new BgaUserException(clienttranslate('You cannot lose any more stealth'));
             }
             $this->decrementPlayerStealth($current_player_id);
-            self::setGameStateValue('drawToolsPlayer', $current_player_id);
+            $this->setStateValue(GameStateValue::DrawToolsPlayer, $current_player_id);
             $this->bga->notify->all('message', clienttranslate('${player_name} used their character action'), [
                 'player_name' => self::getCurrentPlayerName()
             ]);
             self::incStat(1, 'special_ability_use', $human_player_id);
             $this->endAction(0);
         } else if($type == 'rook1') {
-            self::setGameStateValue('playerChoice', PlayerChoice::Rook1->value);
+            $this->setStateValue(GameStateValue::PlayerChoice, PlayerChoice::Rook1);
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'rook2') {
-            if (self::getGameStateValue('firstAction') != 1) {
+            if ($this->stateValue(GameStateValue::FirstAction) != 1) {
                 throw new BgaUserException(clienttranslate('You may only use this ability as your first action'));
             }
-            self::setGameStateValue('playerChoice', PlayerChoice::Rook2->value);
+            $this->setStateValue(GameStateValue::PlayerChoice, PlayerChoice::Rook2);
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'spotter1') {
             $player_tile = $this->getPlayerTile($current_player_id);
@@ -3879,8 +3860,8 @@ SQL;
                 throw new BgaUserException(clienttranslate('Patrol deck is empty'));
             }
             self::incStat(1, 'special_ability_use', $human_player_id);
-            self::setGameStateValue('cardChoice', $character['id']);
-            self::setGameStateValue('undoAllowed', 0);
+            $this->setStateValue(GameStateValue::CardChoice, $character['id']);
+            $this->setStateValue(GameStateValue::UndoAllowed, 0);
             $this->gamestate->nextState('cardChoice');
         } else if($type == 'spotter2') {
             $top_card = $this->cards->getCardOnTop("events_deck");
@@ -3888,11 +3869,11 @@ SQL;
                 throw new BgaUserException(clienttranslate('Event deck is empty'));
             }
             self::incStat(1, 'special_ability_use', $human_player_id);
-            self::setGameStateValue('cardChoice', $character['id']);
-            self::setGameStateValue('undoAllowed', 0);
+            $this->setStateValue(GameStateValue::CardChoice, $character['id']);
+            $this->setStateValue(GameStateValue::UndoAllowed, 0);
             $this->gamestate->nextState('cardChoice');
         } else if (in_array($type, array('acrobat1', 'hawk1', 'hawk2', 'juicer1', 'peterman2', 'raven1', 'spotter1', 'spotter2'))) {
-            self::setGameStateValue('cardChoice', $character['id']);
+            $this->setStateValue(GameStateValue::CardChoice, $character['id']);
             $this->gamestate->nextState('cardChoice');
         } else {
             throw new BgaUserException(clienttranslate('Character does not have a special action'));
@@ -3917,7 +3898,7 @@ SQL;
             }
             $this->gamestate->nextState('proposeTrade');
         } else {
-            self::setGameStateValue('playerChoice', PlayerChoice::Trade->value);
+            $this->setStateValue(GameStateValue::PlayerChoice, PlayerChoice::Trade);
             $this->gamestate->nextState('playerChoice');
         }
     }
@@ -3925,7 +3906,7 @@ SQL;
     function selectPlayerChoice($selected) {
         self::checkAction('selectPlayerChoice');
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $player_choice = self::getGameStateValue('playerChoice');
+        $player_choice = $this->stateValue(GameStateValue::PlayerChoice);
         $player_choice_type = $this->player_choices[$player_choice];
         $this->handleSelectPlayerChoice($current_player_id, $player_choice_type, $selected);
     }
@@ -4001,7 +3982,7 @@ SQL;
 
     function cancelPlayerChoice() {
         self::checkAction('cancelPlayerChoice');
-        self::setGameStateValue('playerChoice', PlayerChoice::None->value);
+        $this->setStateValue(GameStateValue::PlayerChoice, PlayerChoice::None);
         $this->gamestate->nextState('nextAction');
     }
 
@@ -4017,21 +3998,21 @@ SQL;
             $this->deleteTrade();
             $this->gamestate->nextState('nextAction');
         }
-        self::setGameStateValue('playerChoice', PlayerChoice::None->value);
+        $this->setStateValue(GameStateValue::PlayerChoice, PlayerChoice::None);
     }
 
     function selectSpecialChoice($selected) {
         self::checkAction('selectSpecialChoice');
-        $special_choice = self::getGameStateValue('specialChoice');
+        $special_choice = $this->stateValue(GameStateValue::SpecialChoice);
         $special_choice_type = $this->special_choices[$special_choice];
-        $special_choice_arg = self::getGameStateValue('specialChoiceArg');
+        $special_choice_arg = $this->stateValue(GameStateValue::SpecialChoiceArg);
         $this->handleSelectSpecialChoice($special_choice_type, $special_choice_arg, $selected);
     }
 
     function cancelSpecialChoice() {
         self::checkAction('cancelSpecialChoice');
-        self::setGameStateValue('specialChoice', SpecialChoice::None->value);
-        self::setGameStateValue('specialChoiceArg', 0);
+        $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::None);
+        $this->setStateValue(GameStateValue::SpecialChoiceArg, 0);
         $this->gamestate->nextState('nextAction');
     }
 
@@ -4041,17 +4022,17 @@ SQL;
         $tools = $this->cards->getCardsOfTypeInLocation(CardType::Tool->value,null, 'choice');
         foreach ($tools as $tool_id => $tool) {
             if ($tool_id == $selected) {
-                $drop_loot = self::getGameStateValue('dropLoot');
-                $draw_tools_player_id = self::getGameStateValue('drawToolsPlayer');
+                $drop_loot = $this->stateValue(GameStateValue::DropLoot);
+                $draw_tools_player_id = $this->stateValue(GameStateValue::DrawToolsPlayer);
                 if ($drop_loot > 0 && $drop_loot == $draw_tools_player_id) {
                     $this->cards->moveCard($selected, 'tile', $drop_loot);
                     $type = $this->getCardType($tool);
                     // Store that donuts was dropped and not used
                     if ($type == "donuts") {
-                        self::setGameStateValue('donutsDropped', 1);
+                        $this->setStateValue(GameStateValue::DonutsDropped, 1);
                     }
                     $this->notifyTileCards($drop_loot);
-                    self::setGameStateValue('dropLoot', 0);
+                    $this->setStateValue(GameStateValue::DropLoot, 0);
                 } else {
                     $this->cards->moveCard($tool_id, 'hand', $current_player_id);
                     $this->notifyPlayerHand($current_player_id);                    
@@ -4060,14 +4041,14 @@ SQL;
                 $this->cards->moveCard($tool_id, 'tools_discard');
             }
         }
-        self::setGameStateValue('drawToolsPlayer', 0);
-        $draw_tools_next_player = self::getGameStateValue('drawToolsNextPlayer');
+        $this->setStateValue(GameStateValue::DrawToolsPlayer, 0);
+        $draw_tools_next_player = $this->stateValue(GameStateValue::DrawToolsNextPlayer);
         // Save the drawn tools
         $this->undoSavepoint();
         if ($draw_tools_next_player > 0 && $draw_tools_next_player != $current_player_id) {
             $this->gamestate->nextState('drawToolsOtherPlayer');
         } else {
-            if (self::getGameStateValue('playerPass') == 0) {
+            if ($this->stateValue(GameStateValue::PlayerPass) == 0) {
                 $this->gamestate->nextState('nextAction');
             } else {
                 $this->gamestate->nextState('endTurn');
@@ -4119,7 +4100,7 @@ SQL;
         }
         // If picked up cards is the Donuts, reset global variable so it can be used
         if ($this->getCardType($new_card) == 'donuts') {
-            self::setGameStateValue('donutsDropped', 0);
+            $this->setStateValue(GameStateValue::DonutsDropped, 0);
         }
         $this->cards->moveCards($l_ids, 'tile', $player_tile['id']);
         $this->cards->moveCards($r_ids, 'hand', $current_player_id);
@@ -4139,31 +4120,31 @@ SQL;
 
     function confirmRookMove() {
         // Player confirmed the Rook movement
-        self::setGameStateValue('characterAbilityUsed', 1);
+        $this->setStateValue(GameStateValue::CharacterAbilityUsed, 1);
         if ($this->getSoloMultiCharacters() > 1) {
-            $current_player_id =  self::getGameStateValue('currentPlayer');
+            $current_player_id =  $this->stateValue(GameStateValue::CurrentPlayer);
             $rook_player_id = self::getCurrentPlayerId();
         } else {
             $current_player_id =  self::getCurrentPlayerId();
             $this->bga->notify->all('message', clienttranslate('${player_name} accepts the move'), [
                 'player_name' => self::getActivePlayerName(),
             ]);
-            $rook_player_id = self::getGameStateValue('currentPlayer');
+            $rook_player_id = $this->stateValue(GameStateValue::CurrentPlayer);
         }
         self::incStat(1, 'special_ability_use', $rook_player_id);
 
-        $choice_arg = self::getGameStateValue('specialChoiceArg');
-        $selected = self::getGameStateValue('rookDestinationTile');
+        $choice_arg = $this->stateValue(GameStateValue::SpecialChoiceArg);
+        $selected = $this->stateValue(GameStateValue::RookDestinationTile);
         $player_token = $this->getPlayerToken($choice_arg);
         $move_result = $this->performMove($selected, 'rook1', $choice_arg);
-        if (self::getGameStateValue('stealthDepleted')) {
+        if ($this->stateValue(GameStateValue::StealthDepleted)) {
             $this->gamestate->nextState('gameOver');
         } else if ($move_result['tile_choice']) {
-            self::setGameStateValue('tileChoice', $move_result['tile_choice']);
+            $this->setStateValue(GameStateValue::TileChoice, $move_result['tile_choice']);
             $this->gamestate->nextState('tileChoice');
         } else {
-            self::setGameStateValue('specialChoiceArg', 0);
-            self::setGameStateValue('rookDestinationTile', 0);
+            $this->setStateValue(GameStateValue::SpecialChoiceArg, 0);
+            $this->setStateValue(GameStateValue::RookDestinationTile, 0);
             $this->gamestate->nextState('switchRookMove');
         }
     }
@@ -4173,8 +4154,8 @@ SQL;
         $this->bga->notify->all('message', clienttranslate('${player_name} cancels the move'), [
             'player_name' => self::getActivePlayerName(),
         ]);
-        self::setGameStateValue('rookDestinationTile', -1);
-        self::setGameStateValue('specialChoiceArg', 0);
+        $this->setStateValue(GameStateValue::RookDestinationTile, -1);
+        $this->setStateValue(GameStateValue::SpecialChoiceArg, 0);
         $this->gamestate->nextState('switchRookMove');
     }
 
@@ -4203,9 +4184,9 @@ SQL;
 
     function pass() {
         self::checkAction('pass');
-        self::setGameStateValue('playerPass', 1);
+        $this->setStateValue(GameStateValue::PlayerPass, 1);
         $current_player_id = $this->getCurrentPlayerIdCustom();
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         $trigger_action_count = $this->getPlayerLoot( 'stamp', $current_player_id) ? 1 : 2;
         if ($actions_remaining >= $trigger_action_count) {
             $count = $this->cards->countCardInLocation('events_discard');
@@ -4225,22 +4206,22 @@ SQL;
                 $event_result = array('card_choice'=>FALSE,'tile_choice'=>FALSE);
             }
             
-            if (self::getGameStateValue('stealthDepleted')) {
+            if ($this->stateValue(GameStateValue::StealthDepleted)) {
                 $this->gamestate->nextState('gameOver');
             } elseif ($event_result['card_choice']) {
-                self::setGameStateValue('cardChoice', $event_card['id']);
+                $this->setStateValue(GameStateValue::CardChoice, $event_card['id']);
                 $this->gamestate->nextState('cardChoice');
             } elseif ($event_result['tile_choice']) {
-                self::setGameStateValue('tileChoice', $event_result['tile_choice']);
+                $this->setStateValue(GameStateValue::TileChoice, $event_result['tile_choice']);
                 $this->gamestate->nextState('tileChoice');
             } elseif ($event_result['player_choice']) {
-                self::setGameStateValue('playerChoice', $event_result['player_choice']);
+                $this->setStateValue(GameStateValue::PlayerChoice, $event_result['player_choice']);
                 $this->gamestate->nextState('playerChoice');
             } elseif ($event_result['special_choice']) {
-                self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-                self::setGameStateValue('stateAfterAlarm', State::MoveGuard->value);
+                $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+                $this->setStateValue(GameStateValue::StateAfterAlarm, State::MoveGuard);
                 $this->gamestate->nextState('chooseAlarm');
-            } elseif (self::getGameStateValue('drawToolsPlayer') > 0) {
+            } elseif ($this->stateValue(GameStateValue::DrawToolsPlayer) > 0) {
                 $this->gamestate->nextState('endAction');
             } else {
                 $this->gamestate->nextState('endTurn');
@@ -4253,7 +4234,7 @@ SQL;
     function restartTurn() {
         // Restart turn by restoring save point
         self::checkAction('restartTurn');
-        if ($this->getGameStateValue('undoAllowed') == 0)
+        if ($this->stateValue(GameStateValue::UndoAllowed) == 0)
             throw new BgaUserException(clienttranslate("You are not allowed to restart your turn (you uncovered some info or triggered some random events)"));
         $this->undoRestorePoint();
         $this->gamestate->nextState('restartTurn');
@@ -4261,7 +4242,7 @@ SQL;
 
     function escape() {
         self::checkAction('escape');
-        $actions_remaining = self::getGameStateValue('actionsRemaining');
+        $actions_remaining = $this->stateValue(GameStateValue::ActionsRemaining);
         if ($actions_remaining < 1) {
             throw new BgaUserException(clienttranslate("You have no actions remaining"));
         }
@@ -4286,8 +4267,8 @@ SQL;
             $this->gamestate->nextState('gameOver');
         } else {
             $this->resetGlobalVars();
-            if (self::getGameStateValue('empPlayer') == $current_player_id) {
-                self::setGameStateValue('empPlayer', 0);
+            if ($this->stateValue(GameStateValue::EmpPlayer) == $current_player_id) {
+                $this->setStateValue(GameStateValue::EmpPlayer, 0);
             }
             $this->gamestate->nextState('nextPlayer');
         }
@@ -4327,7 +4308,7 @@ SQL;
     }
 
     function argConfirmRookMove() {
-        $destination_id = self::getGameStateValue('rookDestinationTile');
+        $destination_id = $this->stateValue(GameStateValue::RookDestinationTile);
         if ($destination_id > 0) {
             $tile = $this->tiles->getCard($destination_id);
             $patrol_names = $this->patrolNames();
@@ -4346,7 +4327,7 @@ SQL;
     function argCardChoice() {
         $current_player_id = $this->getActivePlayerIdCustom();
         $args = $this->gatherCurrentData($current_player_id);
-        $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
+        $card = $this->cards->getCard($this->stateValue(GameStateValue::CardChoice));
         $card_name = $this->getCardType($card);
         $args['card'] = $card;
         $args['card_name'] = $card_name;
@@ -4386,14 +4367,14 @@ SQL;
     function argTileChoice() {
         $player_id = $this->getActivePlayerIdCustom();
         $player_token = $this->getPlayerToken($player_id);
-        $tile = $this->tiles->getCard(self::getGameStateValue('tileChoice'));
+        $tile = $this->tiles->getCard($this->stateValue(GameStateValue::TileChoice));
         $args = array(
             'escape' => false,
             'peekable' => array(),
             'player_token' => $player_token,
             'tile' => $tile,
             'floor' => $this->tileFloor($tile),
-            'actions_remaining' => self::getGameStateValue('actionsRemaining')
+            'actions_remaining' => $this->stateValue(GameStateValue::ActionsRemaining)
         );
         $args['tile_name'] = $tile['type'];
         $args['can_hack'] = $this->canHack($tile);
@@ -4404,7 +4385,7 @@ SQL;
 
     function argPlayerChoice() {
         $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
-        $player_choice = self::getGameStateValue('playerChoice');
+        $player_choice = $this->stateValue(GameStateValue::PlayerChoice);
         $args['context'] = $this->player_choices[$player_choice];
         return $args;
     }
@@ -4426,9 +4407,9 @@ SQL;
 
     function argSpecialChoice() {
         $args = $this->gatherCurrentData($this->getActivePlayerIdCustom());
-        $special_choice = self::getGameStateValue('specialChoice');
-        $choice_arg = self::getGameStateValue('specialChoiceArg');
-        $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
+        $special_choice = $this->stateValue(GameStateValue::SpecialChoice);
+        $choice_arg = $this->stateValue(GameStateValue::SpecialChoiceArg);
+        $card = $this->cards->getCard($this->stateValue(GameStateValue::CardChoice));
         $type = $this->special_choices[$special_choice];
         $args['i18n'] = ['choice_name', 'choice_description'];
         $args['show_cancel'] = TRUE;
@@ -4488,15 +4469,15 @@ SQL;
     function stEndAction() {
         $current_player_id = $this->getActivePlayerIdCustom();
         $players = $this->loadPlayersInfos();
-        $draw_tools_player_id = self::getGameStateValue('drawToolsPlayer');
+        $draw_tools_player_id = $this->stateValue(GameStateValue::DrawToolsPlayer);
         $draw_two = $this->showRiggerToolSelection();
-        $next_state = self::getGameStateValue('playerPass') == 1 ? 'endTurn' : 'nextAction';
-        $drop_loot = self::getGameStateValue('dropLoot');
+        $next_state = $this->stateValue(GameStateValue::PlayerPass) == 1 ? 'endTurn' : 'nextAction';
+        $drop_loot = $this->stateValue(GameStateValue::DropLoot);
         if ($draw_tools_player_id == 0) {
             $this->gamestate->nextState($next_state);
         } else if ($draw_tools_player_id != 0 && !$draw_two) {
-            self::setGameStateValue('undoAllowed', 0);
-            self::setGameStateValue('drawToolsPlayer', 0);
+            $this->setStateValue(GameStateValue::UndoAllowed, 0);
+            $this->setStateValue(GameStateValue::DrawToolsPlayer, 0);
             $this->reshuffleDeckIfEmpty('tools');
             
             // Check if tool should be dropped on the tile
@@ -4506,9 +4487,9 @@ SQL;
                 $type = $this->getCardType($tool);
                 // Store that donuts was dropped and not used
                 if ($type == "donuts") {
-                    self::setGameStateValue('donutsDropped', 1);
+                    $this->setStateValue(GameStateValue::DonutsDropped, 1);
                 }
-                self::setGameStateValue('dropLoot', 0);
+                $this->setStateValue(GameStateValue::DropLoot, 0);
                 $this->notifyTileCards($safe_tile_id);
             } else {
                 $card = $this->cards->pickCard('tools_deck', $draw_tools_player_id);
@@ -4526,14 +4507,14 @@ SQL;
                 $this->notifyPlayerHand($draw_tools_player_id);
             }
             $this->undoSavepoint();
-            self::setGameStateValue('undoAllowed', 2);
+            $this->setStateValue(GameStateValue::UndoAllowed, 2);
             $this->gamestate->nextState($next_state);
         } else {
-            self::setGameStateValue('undoAllowed', 0);
+            $this->setStateValue(GameStateValue::UndoAllowed, 0);
             $human_player_id = $this->getActivePlayerId();
             self::incStat( 1, 'tools_drawn', $human_player_id );
             if ($draw_tools_player_id != $current_player_id) {
-                self::setGameStateValue('drawToolsNextPlayer', $current_player_id);
+                $this->setStateValue(GameStateValue::DrawToolsNextPlayer, $current_player_id);
                 // var_dump($drop_loot);
                 // var_dump($draw_tools_player_id);
                 if ($drop_loot == 0)
@@ -4544,10 +4525,10 @@ SQL;
             $this->reshuffleDeckIfEmpty('tools');
             $this->cards->pickCardForLocation('tools_deck', 'choice');
             $this->undoSavepoint();
-            self::setGameStateValue('undoAllowed', 2);
+            $this->setStateValue(GameStateValue::UndoAllowed, 2);
             $this->gamestate->nextState('drawTools');
         }
-        self::setGameStateValue('firstAction', 0);
+        $this->setStateValue(GameStateValue::FirstAction, 0);
     }
 
     function stEndTurn() {
@@ -4555,10 +4536,10 @@ SQL;
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
         $special_choice = FALSE;
-        if (TileType::of($player_tile) === TileType::Thermo && self::getGameStateValue('empPlayer') == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
+        if (TileType::of($player_tile) === TileType::Thermo && $this->stateValue(GameStateValue::EmpPlayer) == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
             $special_choice = $this->triggerAlarm($player_tile);
         }
-        if (self::getGameStateValue('acrobatEnteredGuardTile')) {
+        if ($this->stateValue(GameStateValue::AcrobatEnteredGuardTile)) {
             $this->deductTileStealth($player_tile['id'], 'acrobat');
             // $this->decrementPlayerStealth($current_player_id);
         }
@@ -4567,8 +4548,8 @@ SQL;
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         if ($special_choice) {
-            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-            self::setGameStateValue('stateAfterAlarm', State::MoveGuard->value);
+            $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+            $this->setStateValue(GameStateValue::StateAfterAlarm, State::MoveGuard);
             $this->gamestate->nextState( 'chooseAlarm' );
         } else {
             $this->gamestate->nextState( 'moveGuard' );
@@ -4589,7 +4570,7 @@ SQL;
                     $guard_token = array_values($this->tokens->getCardsOfType('guard', $other_floor))[0];;
                     if ($guard_token['location'] == 'tile') {
                         $alarms = count($this->getFloorAlarmTiles($other_floor));
-                        $movement = self::getGameStateValue("patrolDieCount$other_floor") + $alarms;
+                        $movement = $this->stateValue(GameStateValue::patrolDieCount($other_floor)) + $alarms;
                         $this->notifyGuardMovement($other_floor, $movement, $alarms, TRUE);
                         $choose_alarm = $this->moveGuard($other_floor, $movement);
                     }
@@ -4607,7 +4588,7 @@ SQL;
                 $this->moveToken($crow['id'], 'deck');
             } else {
                 $alarms = count($this->getFloorAlarmTiles($floor));
-                $movement = self::getGameStateValue("patrolDieCount$floor") + $alarms;
+                $movement = $this->stateValue(GameStateValue::patrolDieCount($floor)) + $alarms;
                 $has_event = FALSE;
                 $daydreaming = $this->getActiveEvent('daydreaming');
                 if ($daydreaming) {
@@ -4627,11 +4608,11 @@ SQL;
                 $choose_alarm = $this->moveGuard($floor, $movement);
             }
         }
-        if (self::getGameStateValue('stealthDepleted')) {
+        if ($this->stateValue(GameStateValue::StealthDepleted)) {
             $this->gamestate->nextState('gameOver');
         } elseif ($choose_alarm) {
-            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-            self::setGameStateValue('stateAfterAlarm', State::MoveGuard->value);
+            $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+            $this->setStateValue(GameStateValue::StateAfterAlarm, State::MoveGuard);
             $this->gamestate->nextState('chooseAlarm');
         } else {
             $this->gamestate->nextState( 'nextPlayer' );
@@ -4660,17 +4641,17 @@ SQL;
         if ($this->getPlayerLoot('mirror', $player_id)) {
             $actions--;
         }
-        self::setGameStateValue('actionsRemaining', $actions);
-        self::setGameStateValue('motionTileEntered', 0x000);
+        $this->setStateValue(GameStateValue::ActionsRemaining, $actions);
+        $this->setStateValue(GameStateValue::MotionTileEntered, 0x000);
         $hand = $this->tokens->getPlayerHand($player_id);
         $token = array_shift($hand);
         if ($token) {
-            $entrance = self::getGameStateValue('entranceTile');
+            $entrance = $this->stateValue(GameStateValue::EntranceTile);
             $this->moveToken($token['id'], 'tile', $entrance);
         }
-        $emp_player = self::getGameStateValue('empPlayer');
+        $emp_player = $this->stateValue(GameStateValue::EmpPlayer);
         if ($emp_player == $player_id) {
-            self::setGameStateValue('empPlayer', 0);
+            $this->setStateValue(GameStateValue::EmpPlayer, 0);
         }
         // Cleanup round events for a player
         $round_events = array_keys($this->cards->getCardsOfTypeInLocation(CardType::Event->value,null, 'hand', $player_id));
@@ -4714,11 +4695,11 @@ SQL;
         self::incStat(1, 'turns_number', $human_player_id);
 
         $this->undoSavepoint();
-        $this->setGameStateValue('undoAllowed', 1);
+        $this->setStateValue(GameStateValue::UndoAllowed, 1);
 
         if ($special_choice) {
-            self::setGameStateValue('specialChoice', SpecialChoice::ClosestAlarm->value);
-            self::setGameStateValue('stateAfterAlarm', State::PlayerTurn->value);
+            $this->setStateValue(GameStateValue::SpecialChoice, SpecialChoice::ClosestAlarm);
+            $this->setStateValue(GameStateValue::StateAfterAlarm, State::PlayerTurn);
             $this->gamestate->nextState( 'chooseAlarm' );
         } else {
             $this->gamestate->nextState( 'playerTurn' );
@@ -4742,24 +4723,24 @@ SQL;
 
     function stSwitchRookMove() {
         // Switch active player between Rook and chosen player who must accept move / draw tools if laboratory...
-        $destination_tile = self::getGameStateValue('rookDestinationTile');
+        $destination_tile = $this->stateValue(GameStateValue::RookDestinationTile);
         $multi_characters = $this->getSoloMultiCharacters();
         if ($destination_tile > 0) {
             if ($multi_characters > 1) {
                 $this->confirmRookMove();
             } else {
                 // Activate other player
-                $player_id = self::getGameStateValue('specialChoiceArg');
+                $player_id = $this->stateValue(GameStateValue::SpecialChoiceArg);
                 $this->gamestate->changeActivePlayer( $player_id );
                 $this->gamestate->nextState( 'confirmRookMove' );
             }
         } else { // Activate Rook
             if ($multi_characters <= 1) {
-                $player_id = self::getGameStateValue('currentPlayer');
+                $player_id = $this->stateValue(GameStateValue::CurrentPlayer);
                 $this->gamestate->changeActivePlayer( $player_id );
             }
             if ($destination_tile == -1) { // other player cancelled the move
-                self::setGameStateValue('rookDestinationTile', 0);
+                $this->setStateValue(GameStateValue::RookDestinationTile, 0);
                 $this->endAction(0);
             } else {
                 $this->endAction();
@@ -4768,8 +4749,8 @@ SQL;
     }
 
     function stDrawToolsOtherPlayer() {
-        $this->gamestate->changeActivePlayer( self::getGameStateValue('drawToolsNextPlayer') );
-        self::setGameStateValue('drawToolsNextPlayer', 0);
+        $this->gamestate->changeActivePlayer( $this->stateValue(GameStateValue::DrawToolsNextPlayer) );
+        $this->setStateValue(GameStateValue::DrawToolsNextPlayer, 0);
         $this->gamestate->nextState( 'nextAction' );
     }
 
