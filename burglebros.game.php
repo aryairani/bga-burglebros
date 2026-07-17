@@ -424,9 +424,9 @@ class burglebros extends Table
         $this->setGameStateInitialValue($v->value, $value instanceof BackedEnum ? $value->value : $value);
     }
 
-    /** null while the scenario value is still 0 (alpha games created before the option existed) */
-    public function scenario(): ?Scenario {
-        return Scenario::tryFrom($this->stateValue(GameStateValue::Scenario));
+    /** Value 0 (alpha tables created before the scenario option existed) counts as the standard Bank Job. */
+    public function scenario(): Scenario {
+        return Scenario::tryFrom($this->stateValue(GameStateValue::Scenario)) ?? Scenario::BankJob;
     }
 
     // Typed fronts for the token deck
@@ -540,13 +540,8 @@ class burglebros extends Table
     }
 
     public function getFloorCount() {
-        // Return the number of floors (3 for the Bank job, 2 otherwise)
-        // TODO Clean up the null check when all the alpha games are done
-        if ($this->scenario() !== null && $this->scenario() !== Scenario::BankJob) {
-            return 2;
-        } else {
-            return 3;
-        }
+        // Bank Job plays 3 floors; Office Job and Fort Knox play 2
+        return $this->scenario() === Scenario::BankJob ? 3 : 2;
     }
 
     public function getSquareSize() {
