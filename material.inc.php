@@ -20,10 +20,10 @@
  */
 
 $this->card_types = array(
-  CardType::Character->value => new DeckType('characters'),
-  CardType::Tool->value => new DeckType('tools'),
-  CardType::Loot->value => new DeckType('loot'),
-  CardType::Event->value => new DeckType('events'),
+  CardType::Character->value => DeckType::Characters,
+  CardType::Tool->value => DeckType::Tools,
+  CardType::Loot->value => DeckType::Loot,
+  CardType::Event->value => DeckType::Events,
 );
 
 
@@ -444,9 +444,9 @@ $this->card_info = array(
 );
 
 $this->patrol_types = array(
-  CardType::patrol(1)->value => new DeckType('patrol1'),
-  CardType::patrol(2)->value => new DeckType('patrol2'),
-  CardType::patrol(3)->value => new DeckType('patrol3'),
+  CardType::patrol(1)->value => DeckType::Patrol1,
+  CardType::patrol(2)->value => DeckType::Patrol2,
+  CardType::patrol(3)->value => DeckType::Patrol3,
 );
 
 // Patrol card faces are generated per board size: see patrolNames() / patrolInfo() in burglebros.game.php.
