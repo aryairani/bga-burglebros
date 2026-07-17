@@ -225,15 +225,12 @@ class burglebros extends Table
         // Guards
         $tokens = array ();
         $max_floor = $this->getFloorCount();
-        for ($floor=1; $floor <= $max_floor; $floor++) { 
+        // Fort Knox has a third safe that can land on either floor, so stock a spare crack token per floor
+        $cracks_per_floor = $this->scenario() === Scenario::FortKnox ? 2 : 1;
+        for ($floor=1; $floor <= $max_floor; $floor++) {
             $tokens [] = array('type' => TokenType::Guard->value, 'type_arg' => $floor, 'nbr' => 1);
             $tokens [] = array('type' => TokenType::Patrol->value, 'type_arg' => $floor, 'nbr' => 1);
-            $tokens [] = array('type' => TokenType::Crack->value, 'type_arg' => $floor, 'nbr' => 1);    # when a first die is added on the safe
-        }
-        // Fort Knox, create other tokens for the third safe
-        if ($this->scenario() === Scenario::FortKnox) {
-            $tokens [] = array('type' => TokenType::Crack->value, 'type_arg' => 1, 'nbr' => 1);
-            $tokens [] = array('type' => TokenType::Crack->value, 'type_arg' => 2, 'nbr' => 1);
+            $tokens [] = array('type' => TokenType::Crack->value, 'type_arg' => $floor, 'nbr' => $cracks_per_floor);    # when a first die is added on the safe
         }
         $tokens [] = array('type' => TokenType::Hack->value, 'type_arg' => 0, 'nbr' => 19);
         $tokens [] = array('type' => TokenType::Safe->value, 'type_arg' => 0, 'nbr' => 22); # when a tile is validated by a safe roll
