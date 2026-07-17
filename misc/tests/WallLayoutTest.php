@@ -53,11 +53,14 @@ class WallLayoutTest extends TestCase
     }
 
     public function testPlansParseToOriginalArrays() {
-        foreach (array(4 => self::ORIGINAL_SIZE_4, 5 => self::ORIGINAL_SIZE_5) as $size => $original) {
-            $parsed = BurgleBrosWallLayouts::defaults($size);
-            $this->assertSame(array_keys($original), array_keys($parsed), "size $size floors");
+        $pinned = array(
+            'bank job' => array(self::ORIGINAL_SIZE_4, BurgleBrosWallLayouts::bankJob()),
+            'fort knox' => array(self::ORIGINAL_SIZE_5, BurgleBrosWallLayouts::fortKnox()),
+        );
+        foreach ($pinned as $name => [$original, $parsed]) {
+            $this->assertSame(array_keys($original), array_keys($parsed), "$name floors");
             foreach ($original as $floor => $walls) {
-                $this->assertSame(self::normalize($walls), self::normalize($parsed[$floor]), "size $size floor $floor");
+                $this->assertSame(self::normalize($walls), self::normalize($parsed[$floor]), "$name floor $floor");
             }
         }
     }
@@ -93,27 +96,37 @@ class WallLayoutTest extends TestCase
         }
     }
 
+    /* Every plan set the module exposes: name => [size, floor => walls]. */
+    private static function allLayoutSets() {
+        return array(
+            'bank job' => array(4, BurgleBrosWallLayouts::bankJob()),
+            'fort knox' => array(5, BurgleBrosWallLayouts::fortKnox()),
+            'office job' => array(4, BurgleBrosWallLayouts::officeJob()),
+        );
+    }
+
     // Rules p.13, 2nd ed. Mark III v2.05: 8 walls per 4x4 floor, 12 per 5x5 floor.
-    // The Fort Knox layouts carry 4 extra walls per floor: the ones enclosing the
-    // empty space (p.12: "The empty space acts as an outer Wall").
+    // The Office Job also uses 8 per floor (p.11). The Fort Knox layouts carry 4
+    // extra walls per floor: the ones enclosing the empty space (p.12: "The empty
+    // space acts as an outer Wall").
     public function testRulebookWallCounts() {
-        foreach (BurgleBrosWallLayouts::defaults(4) as $floor => $walls) {
-            $this->assertCount(8, array_merge($walls['vertical'], $walls['horizontal']), "4x4 floor $floor");
-        }
-        foreach (BurgleBrosWallLayouts::defaults(5) as $floor => $walls) {
-            $this->assertCount(12 + 4, array_merge($walls['vertical'], $walls['horizontal']), "5x5 floor $floor");
+        foreach (self::allLayoutSets() as $name => [$size, $floors]) {
+            $expected = $size === 4 ? 8 : 12 + 4;
+            foreach ($floors as $floor => $walls) {
+                $this->assertCount($expected, array_merge($walls['vertical'], $walls['horizontal']), "$name floor $floor");
+            }
         }
     }
 
     // Every non-shaft cell must be reachable from every other — the same
     // requirement BurgleBrosBoard::checkLayout enforces on random layouts.
     public function testEveryFloorFullyConnected() {
-        foreach (array(4, 5) as $size) {
-            foreach (BurgleBrosWallLayouts::defaults($size) as $floor => $walls) {
+        foreach (self::allLayoutSets() as $name => [$size, $floors]) {
+            foreach ($floors as $floor => $walls) {
                 $shaft = isset($walls['shaft']) ? $walls['shaft'] : null;
                 $plan = new BurgleBrosFloorPlan($size, self::dbWalls($floor, $walls));
                 $expected = $size * $size - ($shaft === null ? 0 : 1);
-                $this->assertSame($expected, self::reachableCells($plan, $size, $floor, $shaft), "size $size floor $floor");
+                $this->assertSame($expected, self::reachableCells($plan, $size, $floor, $shaft), "$name floor $floor");
             }
         }
     }
@@ -149,25 +162,28 @@ class WallLayoutTest extends TestCase
     // applies it to every floor, so the plans must agree on it. 4x4 boards
     // have no shaft.
     public function testShaftPlacementConsistent() {
-        foreach (BurgleBrosWallLayouts::defaults(4) as $floor => $walls) {
-            $this->assertArrayNotHasKey('shaft', $walls, "4x4 floor $floor");
+        foreach (BurgleBrosWallLayouts::bankJob() as $floor => $walls) {
+            $this->assertArrayNotHasKey('shaft', $walls, "bank job floor $floor");
         }
-        $floors = BurgleBrosWallLayouts::defaults(5);
+        foreach (BurgleBrosWallLayouts::officeJob() as $floor => $walls) {
+            $this->assertArrayNotHasKey('shaft', $walls, "office job floor $floor");
+        }
+        $floors = BurgleBrosWallLayouts::fortKnox();
         foreach ($floors as $floor => $walls) {
-            $this->assertArrayHasKey('shaft', $walls, "5x5 floor $floor");
-            $this->assertSame($floors[1]['shaft'], $walls['shaft'], "5x5 floor $floor");
+            $this->assertArrayHasKey('shaft', $walls, "fort knox floor $floor");
+            $this->assertSame($floors[1]['shaft'], $walls['shaft'], "fort knox floor $floor");
         }
     }
 
     // Rules p.12: "The empty space acts as an outer Wall" — the plan must draw
     // walls on all four sides of the shaft cell.
     public function testShaftFullyEnclosed() {
-        foreach (BurgleBrosWallLayouts::defaults(5) as $floor => $walls) {
+        foreach (BurgleBrosWallLayouts::fortKnox() as $floor => $walls) {
             $plan = new BurgleBrosFloorPlan(5, self::dbWalls($floor, $walls));
             foreach (self::neighbors($walls['shaft'], 5) as $neighbor) {
                 $this->assertTrue(
                     $plan->wallBetween($floor, $walls['shaft'], $neighbor),
-                    "5x5 floor $floor: shaft {$walls['shaft']} vs $neighbor"
+                    "fort knox floor $floor: shaft {$walls['shaft']} vs $neighbor"
                 );
             }
         }

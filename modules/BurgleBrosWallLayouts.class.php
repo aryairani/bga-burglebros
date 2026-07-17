@@ -22,7 +22,7 @@
 
 final class BurgleBrosWallLayouts
 {
-	private const PLANS_SIZE_4 = [
+	private const THE_BANK_JOB = [
 		1 => <<<'PLAN'
 			+---+---+---+---+
 			|   |           |
@@ -58,7 +58,7 @@ final class BurgleBrosWallLayouts
 			PLAN,
 	];
 
-	private const PLANS_SIZE_5 = [
+	private const THE_FORT_KNOX_JOB = [
 		1 => <<<'PLAN'
 			+---+---+---+---+---+
 			|           |   |   |
@@ -87,19 +87,57 @@ final class BurgleBrosWallLayouts
 			PLAN,
 	];
 
+	/* Beginner's Game: The Office Job — Rules p.11, 2nd ed. Mark III v2.05. */
+	private const THE_OFFICE_JOB = [
+		1 => <<<'PLAN'
+			+---+---+---+---+
+			|   |   |       |
+			+   +   +   +---+
+			|   |       |   |
+			+   +   +   +   +
+			|       |       |
+			+   +---+   +---+
+			|               |
+			+---+---+---+---+
+			PLAN,
+		2 => <<<'PLAN'
+			+---+---+---+---+
+			|               |
+			+   +   +   +---+
+			|   |   |   |   |
+			+---+   +   +   +
+			|   |   |       |
+			+   +   +   +---+
+			|               |
+			+---+---+---+---+
+			PLAN,
+	];
+
 	/**
-	 * The default layouts for the given board size, parsed: floor => walls.
+	 * The Bank Job layouts, parsed: floor => walls.
 	 * @return array<int, array{vertical: int[], horizontal: int[], shaft?: int}>
 	 */
-	public static function defaults(int $size): array {
-		static $cache = [];
-		if (!isset($cache[$size])) {
-			$cache[$size] = array_map(
-				self::parse(...),
-				$size === 5 ? self::PLANS_SIZE_5 : self::PLANS_SIZE_4
-			);
-		}
-		return $cache[$size];
+	public static function bankJob(): array {
+		static $cache = null;
+		return $cache ??= array_map(self::parse(...), self::THE_BANK_JOB);
+	}
+
+	/**
+	 * The Fort Knox Job layouts, parsed: floor => walls.
+	 * @return array<int, array{vertical: int[], horizontal: int[], shaft?: int}>
+	 */
+	public static function fortKnox(): array {
+		static $cache = null;
+		return $cache ??= array_map(self::parse(...), self::THE_FORT_KNOX_JOB);
+	}
+
+	/**
+	 * The Office Job beginner layouts, parsed: floor => walls.
+	 * @return array<int, array{vertical: int[], horizontal: int[], shaft?: int}>
+	 */
+	public static function officeJob(): array {
+		static $cache = null;
+		return $cache ??= array_map(self::parse(...), self::THE_OFFICE_JOB);
 	}
 
 	/**

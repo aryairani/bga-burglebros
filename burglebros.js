@@ -1210,7 +1210,7 @@ function (dojo, declare) {
             var tiles = this.gamedatas.tile_distribution;
             for (type in tiles) {
                 var tile = tiles[type];
-                var name = tile['name'];
+                var name = _(tile['name']);
                 // Concatenate all the locations of display_tiles for each floor
                 var floors = {};
                 for (var i = 1; i <= 3; i++) {

@@ -17,7 +17,7 @@ class BurgleBrosBoard
 		$index = 1;
         $values = array();
         // Playing the Office Job should use cards with white circles
-        $tile_types = $this->game->getGameStateValue('scenario') == 2 ? $this->game->tile_types_office_job : $this->game->tile_types;
+        $tile_types = $this->game->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? $this->game->tile_types_office_job : $this->game->tile_types;
         // var_dump($tile_types);
         foreach ( $tile_types as $type => $dice ) {
             foreach ($dice as $die) {
@@ -42,7 +42,7 @@ class BurgleBrosBoard
 	}
 
     function setupTiles(array $options): void {
-    	$option_one_deadbolt = $options[106] == 2;
+    	$option_one_deadbolt = $options[GameOption::DEADBOLT_DISTRIBUTION] == DeadboltDistribution::ONE_PER_FLOOR;
         $safes = $this->game->tiles->getCardsOfType('safe');
         $stairs = $this->game->tiles->getCardsOfType('stairs');
         $shafts = $this->game->tiles->getCardsOfType('shaft');
@@ -52,8 +52,8 @@ class BurgleBrosBoard
         $max_floor = $this->game->getFloorCount();
 		$shaft_location_arg = null;
         if ($size === 5) {
-        	if ($this->game->getGameStateValue('randomWalls') == 1) {
-	        	$shaft_location_arg = BurgleBrosWallLayouts::defaults(5)[1]['shaft'];
+        	if ($this->game->getGameStateValue('randomWalls') == Walls::DEFAULT) {
+	        	$shaft_location_arg = BurgleBrosWallLayouts::fortKnox()[1]['shaft'];
 	        } else {
 	        	$shaft_location_arg = rand(0, $size_sq);
 	        }
@@ -111,8 +111,12 @@ class BurgleBrosBoard
 	}
 
 	function setupWalls(): void {
-		if ($this->game->getGameStateValue('randomWalls') == 1) {
-			$walls = BurgleBrosWallLayouts::defaults($this->game->getSquareSize());
+		if ($this->game->getGameStateValue('randomWalls') == Walls::DEFAULT) {
+			$walls = match ((int) $this->game->getGameStateValue('scenario')) {
+				Scenario::FORT_KNOX => BurgleBrosWallLayouts::fortKnox(),
+				Scenario::OFFICE_JOB => BurgleBrosWallLayouts::officeJob(),
+				default => BurgleBrosWallLayouts::bankJob(),
+			};
 			$max_floor = $this->game->getFloorCount();
 			for ($floor = 1; $floor <= $max_floor; $floor++) {
 				$this->updateWallsDb($walls[$floor], $floor);
@@ -168,7 +172,7 @@ class BurgleBrosBoard
 			}
 			if ($security++ > 200) {
 				$this->game->debug("Couldn't generate a valid wall layout");
-				return BurgleBrosWallLayouts::defaults($size)[1];
+				return $size === 5 ? BurgleBrosWallLayouts::fortKnox()[1] : BurgleBrosWallLayouts::bankJob()[1];
 				break;
 			}
 			if ($this->checkLayout($walls))

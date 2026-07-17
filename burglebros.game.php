@@ -23,7 +23,17 @@ use Bga\GameFramework\VisibleSystemException;
 require_once("modules/BurgleBrosBoard.class.php");
 require_once("modules/BurgleBrosWallLayouts.class.php");
 require_once("modules/CardType.class.php");
+require_once("modules/DeckType.class.php");
+require_once("modules/CardFace.class.php");
+require_once("modules/CardInfo.class.php");
+require_once("modules/Scenario.class.php");
+require_once("modules/State.class.php");
+require_once("modules/PlayerChoice.class.php");
+require_once("modules/SpecialChoice.class.php");
+require_once("modules/GameOption.class.php");
+require_once("modules/BurgleBrosGrid.class.php");
 require_once("modules/BurgleBrosFloorPlan.class.php");
+require_once("modules/BurgleBrosPathfinder.class.php");
 require_once("modules/BurgleBrosTilePosition.class.php");
 
 
@@ -35,20 +45,12 @@ class burglebros extends Table
         public Deck $tokens;     
 
     // Static game material, assigned by material.inc.php (included in the framework constructor).
-    /** @var array<int, array{name: string, nametr: string}> deck descriptors by card type (0-3) */
+    /** @var array<int, DeckType> deck descriptors by card type (0-3) */
     public array $card_types;
-    /** @var array<int, list<array{name: string, title?: string, subhead?: string, ability?: string, tooltip?: string, choice_description?: string, nbr?: int}>> card definitions by card type; list index + 1 == type_arg */
+    /** @var array<int, list<CardInfo>> card definitions by card type; list index + 1 == type_arg */
     public array $card_info;
-    /** @var array<int, array{name: string, nametr: string}> deck descriptors by card type (4-6, one patrol deck per floor) */
+    /** @var array<int, DeckType> deck descriptors by card type (4-6, one patrol deck per floor) */
     public array $patrol_types;
-    /** @var list<array{name: string}> patrol card faces: grid coordinates "A1".."D4" */
-    public array $patrol_names;
-    /** @var list<array{name: string}> patrol card faces: grid coordinates "A1".."E5" */
-    public array $patrol_names_size_5;
-    /** @var array<int, list<array{name: string}>> patrol card faces by card type (4-6) */
-    public array $patrol_info;
-    /** @var array<int, list<array{name: string}>> patrol card faces by card type (4-6) */
-    public array $patrol_info_size_5;
     /** @var array<string, list<int>> tile type => safe die number of each copy */
     public array $tile_types;
     /** @var array<string, list<int|false>> tile type => safe die number of each copy; false = copy not used in the Office Job */
@@ -65,8 +67,6 @@ class burglebros extends Table
     public array $special_choices;
     /** @var array<int, string> state id => state to resume after chooseAlarm */
     public array $state_after_alarms;
-    /** @var array<string, array<string, string>> guard pathfinding tie-break table */
-    public array $clockwise_mappings;
 
 
 	function __construct( )
@@ -116,12 +116,12 @@ class burglebros extends Table
             'donutsDropped' => 42,
 
             // Options
-            'characterAssignment' => 100,
-            'level' => 101,
-            'scenario' => 102,
-            'randomWalls' => 103,
-            'soloMultiCharacters' => 104,
-            'deadboltDistribution' => 106,
+            'characterAssignment' => GameOption::CHARACTER_ASSIGNMENT,
+            'level' => GameOption::LEVEL,
+            'scenario' => GameOption::SCENARIO,
+            'randomWalls' => GameOption::WALLS,
+            'soloMultiCharacters' => GameOption::SOLO_MULTI_CHARACTERS,
+            'deadboltDistribution' => GameOption::DEADBOLT_DISTRIBUTION,
         ) ); 
 
         // Initialize module classes
@@ -152,12 +152,12 @@ class burglebros extends Table
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $option_level = $options[101];
+        $option_level = $options[GameOption::LEVEL];
         switch ($option_level) {
-            case 1:
+            case Level::EASY:
                 $option_stealth_count = 6;
                 break;
-            case 3:
+            case Level::HARD:
                 $option_stealth_count = 1;
                 break;
             default:
@@ -206,7 +206,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'safeDieCount3', 0 );
         self::setGameStateInitialValue( 'motionTileEntered', 0x000 ); // Bit vector
         // Fort Knox starts guard die at 3 on floor 1
-        $intial_guard_die = $this->getGameStateValue('scenario') == 3 ? 3 : 2;
+        $intial_guard_die = $this->getGameStateValue('scenario') == Scenario::FORT_KNOX ? 3 : 2;
         self::setGameStateInitialValue( 'patrolDieCount1', $intial_guard_die++ );
         self::setGameStateInitialValue( 'patrolDieCount2', $intial_guard_die++ );
         self::setGameStateInitialValue( 'patrolDieCount3', $intial_guard_die );
@@ -218,7 +218,7 @@ class burglebros extends Table
         self::setGameStateInitialValue( 'acrobatEnteredGuardTile', 0 );
         self::setGameStateInitialValue( 'tileChoice', 0 );
         self::setGameStateInitialValue( 'motionTileExitChoice', 0 );
-        self::setGameStateInitialValue( 'playerChoice', 0 );
+        self::setGameStateInitialValue( 'playerChoice', PlayerChoice::NONE );
         self::setGameStateInitialValue( 'playerChoiceArg', 0 );
         self::setGameStateInitialValue( 'firstAction', 1 );
         self::setGameStateInitialValue( 'drawToolsPlayer', 0 );
@@ -248,13 +248,19 @@ class burglebros extends Table
         self::initStat( "player", "trade_confirmed", 0 );
         self::initStat( "player", "special_ability_use", 0 );
 
-        $option_character = $options[100];
-        $option_characters_advanced = $option_character == 2 || $option_character == 4;
-        $this->createDecks($this->card_types, $this->card_info, $option_characters_advanced);
-        if ($this->getSquareSize() == 4) {
-            $this->createDecks($this->patrol_types, $this->patrol_info);
-        } else {
-            $this->createDecks($this->patrol_types, $this->patrol_info_size_5);
+        $option_character = $options[GameOption::CHARACTER_ASSIGNMENT];
+        $option_characters_advanced = $option_character == CharacterAssignment::RANDOM_ADVANCED || $option_character == CharacterAssignment::CHOICE_ADVANCED;
+        $card_info = $this->card_info;
+        if (!$option_characters_advanced) {
+            // Drop the advanced character variants (names ending in '2'). array_filter keeps the
+            // original keys, so the surviving cards' type_args still match the full material list.
+            $card_info[CardType::CHARACTER] = array_filter(
+                $card_info[CardType::CHARACTER],
+                function ($card) { return substr($card->name, -1) != '2'; });
+        }
+        $this->createDecks($this->card_types, $card_info);
+        $this->createDecks($this->patrol_types, $this->patrolInfo());
+        if ($this->getSquareSize() != 4) {
             // Move Patrol Cards for shaft position out of play
             $floor_count = $this->getFloorCount();
             $shaft_position = $this->board->getShaftPosition();
@@ -273,7 +279,7 @@ class burglebros extends Table
             $tokens [] = array('type' => 'crack', 'type_arg' => $floor, 'nbr' => 1);    # when a first die is added on the safe
         }
         // Fort Knox, create other tokens for the third safe
-        if ($this->getGameStateValue('scenario') == 3) {
+        if ($this->getGameStateValue('scenario') == Scenario::FORT_KNOX) {
             $tokens [] = array('type' => 'crack', 'type_arg' => 1, 'nbr' => 1);
             $tokens [] = array('type' => 'crack', 'type_arg' => 2, 'nbr' => 1);
         }
@@ -305,9 +311,9 @@ class burglebros extends Table
         foreach ($players as $player_id => $player) {
             $player_token = array('type' => 'player', 'type_arg' => $player_id, 'nbr' => 1);
             $this->tokens->createCards(array($player_token), 'hand', $player_id);
-            if ($option_character == 1 || $option_character == 2) {
+            if ($option_character == CharacterAssignment::RANDOM || $option_character == CharacterAssignment::RANDOM_ADVANCED) {
                 $character = $this->cards->pickCard('characters_deck', $player_id);
-                if ($option_character == 2) {
+                if ($option_character == CharacterAssignment::RANDOM_ADVANCED) {
                     // Move advanced card to player hand so they can choose on the next state
                     $type_arg = $character['type_arg'] % 2 == 0 ? $character['type_arg'] - 1: $character['type_arg'] + 1;
                     $advanced_character_id = key($this->cards->getCardsOfType(CardType::CHARACTER,$type_arg));
@@ -323,7 +329,7 @@ class burglebros extends Table
         }
 
         // Activate table administrator to randomize walls if needed
-        if ($this->bga->tableOptions->get(103) !== 1) {
+        if ($this->bga->tableOptions->get(GameOption::WALLS) !== Walls::DEFAULT) {
             foreach ($players as $id => $player) {
                 if (isset($player['player_is_admin']) && $player['player_is_admin'] == 1) {
                     $admin_id = $id;
@@ -341,7 +347,7 @@ class burglebros extends Table
         $this->setupPatrol($guard_token, 1);
 
         /************ End of the game initialization *****/
-        return 5;
+        return State::RANDOMIZE_WALLS;
     }
 
     /*
@@ -370,16 +376,16 @@ class burglebros extends Table
         }
 
         $result = array_merge($result, $this->gatherCardData('card', $this->card_types, $this->card_info));
-        $result = array_merge($result, $this->gatherCardData('patrol', $this->patrol_types, $this->patrol_info));
+        $result = array_merge($result, $this->gatherCardData('patrol', $this->patrol_types, $this->patrolInfo()));
         $result['card_info'] = $this->card_info;
         $result['floor_count'] = $this->getFloorCount();
         $result['square_size'] = $this->getSquareSize();
         $result['shaft_position'] = $this->board->getShaftPosition();
-        $result['patrol_names'] = $result['square_size'] == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+        $result['patrol_names'] = $this->patrolNames();
         $result['solo_characters'] = $this->getSoloMultiCharacters();
         $result['active_player_id'] = $this->getCurrentPlayerIdCustom();
 
-        $result['tile_distribution'] = $this->getGameStateValue('scenario') == 2 ? $this->tile_distribution_office_job : $this->tile_distribution;
+        $result['tile_distribution'] = $this->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? $this->tile_distribution_office_job : $this->tile_distribution;
         $result['flipped_tiles'] = $this->getFlippedTiles();
 
         $tokens = array();
@@ -391,7 +397,7 @@ class burglebros extends Table
         $max_floor = $this->getFloorCount();
         for ($i=1; $i <= $max_floor; $i++) { 
             $result["floor$i"] = $this->getTiles($i);
-            $result["patrol_counters"][$i] = $this->cards->countCardInLocation("patrol${i}_deck");
+            $result["patrol_counters"][$i] = $this->cards->countCardInLocation("patrol{$i}_deck");
         }
         $result['walls'] = $this->getWalls();
 
@@ -450,7 +456,7 @@ class burglebros extends Table
         In this space, you can put any utility methods useful for your game logic
     */
     public function getSoloMultiCharacters() {
-        return $this->bga->tableOptions->get(104) ?? 1;
+        return $this->bga->tableOptions->get(GameOption::SOLO_MULTI_CHARACTERS) ?? 1;
     }
 
     public function loadPlayersInfos() {
@@ -553,7 +559,7 @@ class burglebros extends Table
     public function getFloorCount() {
         // Return the number of floors (3 for the Bank job, 2 otherwise)
         // TODO Clean up !== 0 when all the alpha games are done
-        if ($this->getGameStateValue('scenario') !== 0 && $this->getGameStateValue('scenario') != 1) {
+        if ($this->getGameStateValue('scenario') !== 0 && $this->getGameStateValue('scenario') != Scenario::BANK_JOB) {
             return 2;
         } else {
             return 3;
@@ -562,18 +568,44 @@ class burglebros extends Table
 
     public function getSquareSize() {
         // Return the square size of the board (5 for Fort Knox scenario, 4 otherwise)
-        if ($this->getGameStateValue('scenario') == 3) {
+        if ($this->getGameStateValue('scenario') == Scenario::FORT_KNOX) {
             return 5;
         } else {
             return 4;
         }
     }
 
+    /** @return list<array{name: string}> patrol card faces in row-major order ("A1".."D4" or "A1".."E5" per square size) */
+public function patrolNames(): array {
+        static $cache = array();
+        $width = $this->getSquareSize();
+        if (!isset($cache[$width])) {
+            $names = array();
+            for ($row = 1; $row <= $width; $row++) {
+                for ($col = 0; $col < $width; $col++) {
+                    $names[] = array('name' => chr(ord('A') + $col) . $row);
+                }
+            }
+            $cache[$width] = $names;
+        }
+        return $cache[$width];
+    }
+
+    /** @return array<int, list<CardFace>> patrol card faces by card type (4-6) */
+    public function patrolInfo(): array {
+        $faces = array_map(fn($face) => new CardFace($face['name']), $this->patrolNames());
+        return array(
+            CardType::patrol(1) => $faces,
+            CardType::patrol(2) => $faces,
+            CardType::patrol(3) => $faces,
+        );
+    }
+
     function moveCardsOutOfPlay($deck, $name) {
         $type_id = $this->getDeckTypeForName($deck);
         $type_arg = $this->getCardTypeForName($type_id, $name);
         $oop = $this->cards->getCardsOfType($type_id, $type_arg);
-        $this->cards->moveCards(array_keys($oop), "${deck}_oop");
+        $this->cards->moveCards(array_keys($oop), "{$deck}_oop");
     }
 
     function chooseStartingTile($tile_id) {
@@ -604,20 +636,25 @@ class burglebros extends Table
         $this->gamestate->nextState();
     }
 
-    function createDecks($types, $info, $characters_advanced = true) {
-        // Create cards
+    /**
+     * Create and shuffle one deck in the `cards` Deck component per card type.
+     *
+     * card_type: a CardType constant — 0 character, 1 tool, 2 loot, 3 event, 4-6 patrol deck for floor 1-3.
+     * card_type_arg: which card of that type — its 1-based key in the type's material list
+     * ($card_info[$type], or patrolNames() for patrol types). For patrol cards, type_arg - 1 is
+     * therefore the board position (tile location_arg) named on the card.
+     *
+     * @param array<int, DeckType> $types
+     * @param array<int, list<CardFace>> $info
+     */
+    function createDecks(array $types, array $info): void {
         foreach ( $types as $type => $desc ) {
             $cards = array ();
             foreach ( $info[$type] as $index => $value ) {
-                if (!$characters_advanced && substr($value['name'], -1) == '2')
-                    continue;
-                $nbr = isset($value['nbr']) ? $value['nbr'] : 1;
-                $cards [] = array('type' => $type, 'type_arg' => $index + 1, 'nbr' => $nbr);
+                $cards [] = array('type' => $type, 'type_arg' => $index + 1, 'nbr' => $value->nbr);
             }
-            $deck_name = $desc['name'].'_deck';
+            $deck_name = $desc->deckName();
             $this->cards->createCards( $cards, $deck_name );
-
-            // Shuffle deck
             $this->cards->shuffle($deck_name);
         }
     }
@@ -628,13 +665,13 @@ class burglebros extends Table
         foreach ( $types as $type => $desc ) {
             $card_info = array();
             foreach ($info[$type] as $index => $value) {
-                $card_info [] = array('type' => $type, 'index' => $index + 1, 'name' => $value['name']);
+                $card_info [] = array('type' => $type, 'index' => $index + 1, 'name' => $value->name);
             }
 
-            $deck_name = $desc['name'].'_deck';
+            $deck_name = $desc->deckName();
             $result[$deck_name] = $this->cards->getCardsInLocation( $deck_name );
-            $result[$prefix.'_types'][$type] = array('name' => $desc['name'], 'deck' => $deck_name, 'cards' => $card_info);
-            $discard_name = $desc['name'].'_discard';
+            $result[$prefix.'_types'][$type] = array('name' => $desc->name, 'deck' => $deck_name, 'cards' => $card_info);
+            $discard_name = $desc->discardName();
             $result[$discard_name] = $this->cards->getCardsInLocation( $discard_name );
             $result[$discard_name.'_top'] = $this->cards->getCardOnTop( $discard_name );
         }
@@ -673,7 +710,7 @@ class burglebros extends Table
 
     function canEscape($player_tile) {
         $thermal_to_roof = FALSE;
-        $safes_needed = $this->getGameStateValue('scenario') == 2 ? 2 : 3;
+        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? 2 : 3;
         $max_floor = $this->getFloorCount();
         if ($this->tileFloor($player_tile) == $max_floor && $this->tokensInTile('thermal', $player_tile['id'])) {
             $tile_below = $this->findTileOnFloor($max_floor - 1, $player_tile['location_arg']);
@@ -729,15 +766,15 @@ class burglebros extends Table
 
     function getCardType($card) {
         $info = $this->card_info[$card['type']];
-        return $info[$card['type_arg'] - 1]['name'];
+        return $info[$card['type_arg'] - 1]->name;
     }
     function getCardTitle($card) {
         $info = $this->card_info[$card['type']];
-        return $info[$card['type_arg'] - 1]['title'];
+        return $info[$card['type_arg'] - 1]->title;
     }
     function getCardTooltip($card) {
         $info = $this->card_info[$card['type']];
-        $tooltip = $info[$card['type_arg'] - 1]['tooltip'];
+        $tooltip = $info[$card['type_arg'] - 1]->tooltip;
         return rtrim($tooltip,'.');
     }
     function getDisplayedCardName($card_name) {
@@ -753,7 +790,7 @@ class burglebros extends Table
     }
     function getCardChoiceDescription($card) {
         $info = $this->card_info[$card['type']];
-        return $info[$card['type_arg'] - 1]['choice_description'];
+        return $info[$card['type_arg'] - 1]->choice_description;
     }
 
     function getWalls() {
@@ -901,7 +938,7 @@ SQL;
                     'floor' => $floor,
                     'cards' => $this->cards->getCardsInLocation($patrol.'_discard'),
                     'top' => $patrol_entrance,
-                    'deck_count' => $this->cards->countCardInLocation("patrol${floor}_deck")
+                    'deck_count' => $this->cards->countCardInLocation("patrol{$floor}_deck")
                 ));
                 $tile_id = $this->findTileOnFloor($floor, $patrol_entrance['type_arg'] - 1)['id'];
             } while($tile_id == $guard_token['location_arg']);
@@ -1362,15 +1399,6 @@ SQL;
         }
     }
 
-    function manhattanDistance($left, $right) {
-        $size_sq = $this->getSquareSize();
-        $lcol = $left % $size_sq;
-        $lrow = floor($left / $size_sq);
-        $rcol = $right % $size_sq;
-        $rrow = floor($right / $size_sq);
-        return abs($lcol - $rcol) + abs($lrow - $rrow);
-    }
-
     function findShortestPathDebug($floor, $start, $end) {
         // Inputs $floor as int (1,2,3), $start and $end are tiles id
         var_dump($this->findShortestPathClockwise(intval($floor),intval($start),intval($end)));
@@ -1398,6 +1426,7 @@ SQL;
     function findShortestPath($floor, $start, $end) {
         $tiles = array_values($this->tiles->getCardsInLocation("floor$floor", null, 'location_arg'));
         $walls = $this->getWalls();
+        $grid = new BurgleBrosGrid($this->getSquareSize());
 
         // An implementation of https://en.wikipedia.org/wiki/A*_search_algorithm
         // Returned path contains tile ids
@@ -1405,7 +1434,7 @@ SQL;
         $came_from = array();
 
         $g_score = array($start=>0);
-        $f_score = array($start=>$this->manhattanDistance($start, $end));
+        $f_score = array($start=>$grid->manhattanDistance($start, $end));
         $iterations = 0;
         while (count($open_set) > 0) {
             $current = $this->lowestIn($f_score, $open_set);
@@ -1426,7 +1455,7 @@ SQL;
                 if (!isset($g_score[$index]) || $g < $g_score[$index]) {
                     $came_from[$neighbor['id']] = $current_tile['id'];
                     $g_score[$index] = $g;
-                    $f_score[$index] = $g + $this->manhattanDistance($current, $index);
+                    $f_score[$index] = $g + $grid->manhattanDistance($current, $index);
                     if (!isset($open_set[$index])) {
                         $open_set[$index] = $index;
                     }
@@ -1465,128 +1494,15 @@ SQL;
         return $this->findShortestPathClockwise($floor, $guard_tile['location_arg'], $patrol_tile['location_arg']);
     }
 
-    function directions($left, $right) {
-        $size_sq = $this->getSquareSize();
-        $ly = floor($left / $size_sq);
-        $lx = $left % $size_sq;
-        $ry = floor($right / $size_sq);
-        $rx = $right % $size_sq;
-        $dx = $lx - $rx;
-        $dy = $ry - $ly;
-
-        // Keep alphabetical
-        $dirs = "";
-        if ($dy > 0) {
-            $dirs .= 'D';
-        }
-        if ($dx > 0) {
-            $dirs .= 'L';
-        }
-        if ($dx < 0) {
-            $dirs .= 'R';
-        }
-        if ($dy < 0) {
-            $dirs .= 'U';
-        }
-        return $dirs;
-    }
-
-    function clockwiseDebug($current, $end, $left, $right) {
-        var_dump($this->clockwise($current, $end, $left, $right));
-    }
-
-    function clockwise($current, $end, $left, $right) {
-        $orientation = $this->directions($current, $end);
-        $ldir = $this->directions($current, $left);
-        $rdir = $this->directions($current, $right);
-        $dirs = $ldir < $rdir ? $ldir.$rdir : $rdir.$ldir;
-        $mappings = $this->clockwise_mappings[$orientation];
-        $result = $mappings[$dirs];
-        if ($result[0] == $ldir) {
-            return $left;
-        } else {
-            return $right;
-        }
-    }
-
-    function neighbors($tiles, $walls, $current_tile, $except=array()) {
-        return array_filter($tiles, function($tile) use ($current_tile, $walls, $except) {
-            return !in_array($tile['location_arg'], $except) && $this->isTileAdjacent($tile, $current_tile, $walls, 'guard');
-        });
-    }
-
-    function breakTie($end, $paths) {
-        if (count($paths) == 1) {
-            return $paths[0];
-        }
-
-        sort($paths);
-
-        if (count($paths[0]) != count($paths[1])) {
-            return $paths[0];
-        } else {
-            $path1 = $paths[0];
-            $path2 = $paths[1];
-            $idx = 0;
-            while($path1 != null && $path2 != null && $path1[$idx] == $path2[$idx]) $idx++;
-            // self::dump("*** clockwise", $path1[$idx-1]);
-            // self::dump("*** clockwise end", $end);
-            // self::dump("*** clockwise path1", $path1[$idx]);
-            // self::dump("*** clockwise path2", $path2[$idx]);
-            // Must check $end because $end can be far far away and create a bias for the clockwise analysis
-            // Check $end on the next common tile of $paths
-            $temp_end = $end;
-            for ($i=$idx; $i <= count($path1); $i++) {
-                if ($path1[$i] == $path2[$i]) {
-                    $temp_end = $path1[$i];
-                    break;
-                }
-            }
-            // self::dump("*** clockwise temp_end", $temp_end);
-            $most_cw = $this->clockwise($path1[$idx-1], $temp_end, $path1[$idx], $path2[$idx]);
-            // $most_cw = $this->clockwise($path1[$idx-1], $end, $path1[$idx], $path2[$idx]);
-            return $most_cw == $path1[$idx] ? $path1 : $path2;
-        }
-    }
-
     function findShortestPathClockwise($floor, $start, $end) {
-        // Find the shortest path from $start to $end that are tiles_id
+        // Shortest guard path between the cells $start and $end, ties broken
+        // most-clockwise; returns tile ids, both endpoints included.
         $tiles = array_values($this->tiles->getCardsInLocation("floor$floor", null, 'location_arg'));
-        $walls = $this->getWalls();
-
-        $path = array($start);
-        $avail = array($start=>$this->neighbors($tiles, $walls, $tiles[$start]));
-        $paths = array();
-        while (count($path) > 0) {
-            $current = $path[count($path) - 1];
-            $current_tile = $tiles[$current];
-            $opts = $avail[$current];
-            if ($current == $end) {
-                $paths [] = $path;
-                array_pop($path);
-                if (count($path) > 0) {
-                    $last_avail = &$avail[$path[count($path) - 1]];
-                    unset($last_avail[$current]);
-                }
-            } else if(count($opts) == 0) {
-                array_pop($path);
-                if (count($path) > 0) {
-                    $last_avail = &$avail[$path[count($path) - 1]];
-                    unset($last_avail[$current]);
-                }
-            } else {
-                $next = array_keys($opts)[0];
-                if (!isset($avail[$next]) || count($avail[$next]) == 0) {
-                    $avail[$next] = $this->neighbors($tiles, $walls, $tiles[$next], $path);
-                }
-                $path [] = $next;
-            }
-        }
-
-        // Return an array of tile_ids of the shortest path
-        return array_map(function($idx) use ($tiles) {
-            return $tiles[$idx]['id'];
-        }, $this->breakTie($end, $paths));
+        $plan = new BurgleBrosFloorPlan($this->getSquareSize(), $this->getWalls());
+        $finder = new BurgleBrosPathfinder($plan, intval($floor));
+        return array_map(function($cell) use ($tiles) {
+            return $tiles[$cell]['id'];
+        }, $finder->shortestPathClockwise(intval($start), intval($end)));
     }
 
     function getGenericTokens() {
@@ -1715,12 +1631,13 @@ SQL;
         $floor = $this->tileFloor($safe_tile);
         $tiles = $this->getTiles($floor);
         $placed_tokens = $this->getPlacedTokens(array('safe'));
-        $safe_row = floor($safe_tile['location_arg'] / $size_sq);
-        $safe_col = $safe_tile['location_arg'] % $size_sq;
+        $grid = new BurgleBrosGrid($size_sq);
+        $safe_row = $grid->rowOf($safe_tile['location_arg']);
+        $safe_col = $grid->colOf($safe_tile['location_arg']);
         $cracked_count = 0;
         foreach ($tiles as $tile) {
-            $row = floor($tile['location_arg'] / $size_sq);
-            $col = $tile['location_arg'] % $size_sq;
+            $row = $grid->rowOf($tile['location_arg']);
+            $col = $grid->colOf($tile['location_arg']);
             if (($row == $safe_row || $col == $safe_col)) {
                 if (!isset($placed_tokens[$tile['id']])) {
                     if ($tile['type'] != 'safe' && isset($rolls[intval($tile['safe_die'])])) {
@@ -2033,7 +1950,7 @@ SQL;
         } else {
             $msg = clienttranslate('${player_name} moves to ${tile_name} on floor ${floor}');
         }
-        $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+        $patrol_names = $this->patrolNames();
         $players = $this->loadPlayersInfos();
         $this->bga->notify->all('message', $msg, [
             'player_name' => $players[$player_id]['player_name'],
@@ -2288,7 +2205,7 @@ SQL;
 
     function getDeckTypeForName($name) {
         foreach ($this->card_types as $type_id => $value) {
-            if ($value['name'] == $name) {
+            if ($value->name == $name) {
                 return $type_id;
             }
         }
@@ -2298,7 +2215,7 @@ SQL;
     function getCardTypeForName($type_id, $name) {
         $type_arg = null;
         foreach ($this->card_info[$type_id] as $index => $value) {
-            if ($value['name'] == $name) {
+            if ($value->name == $name) {
                 $type_arg = $index + 1;
             }
         }
@@ -2745,58 +2662,29 @@ SQL;
             $discard = FALSE;
         } elseif($type == 'dynamite') {
             $this->validateSelection('wall', $selected_type);
-            // $player_tile = $this->getPlayerTile(self::getCurrentPlayerId());
             $player_tile = $this->getPlayerTile($this->getCurrentPlayerIdCustom());
             $floor = $this->tileFloor($player_tile);
-            $walls = $this->getWalls();
-
-            $tindex = $player_tile['location_arg'];
-            $size_sq = $this->getSquareSize();
-            $trow = floor($tindex / $size_sq);
-            $tcol = $tindex % $size_sq;
+            $grid = new BurgleBrosGrid($this->getSquareSize());
 
             $wall = self::getObjectFromDB("SELECT * FROM wall WHERE id = '$selected_id'");
-            $exit = FALSE;
-            $size = $this->getSquareSize();
-            $dec = $size - 1;
-            for ($prow=$trow - 1; !$exit && $prow <= $trow + 1; $prow++) { 
-                for ($pcol=$tcol - 1; !$exit && $pcol <= $tcol + 1; $pcol++) {
-                    if ($prow >= 0 && $pcol >= 0 && $prow <= $dec && $pcol <= $dec &&
-                            ($prow != $trow || $pcol != $tcol)) {
-                        $wrow = $wall['vertical'] == 1 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
-                        $wcol = $wall['vertical'] == 0 ? floor($wall['position'] / $dec) : $wall['position'] % $dec;
-                        $vertical = ($trow == $prow && $trow == $wrow && abs($tcol - $pcol) == 1) && min($tcol, $pcol) == $wcol;
-                        $horizontal = ($tcol == $pcol && $tcol == $wcol && abs($trow - $prow) == 1) && min($trow, $prow) == $wrow;
-                        // Check this is not a shaft wall
-                        $shaft = $this->board->getShaftPosition();
-                        $srow = floor($shaft / $size_sq);
-                        $scol = $shaft % $size_sq;
-                        if ( $this->getGameStateValue('scenario') == 3 &&
-                            (($wall['vertical'] == 1 && $wrow == $srow && 
-                                ($wcol == $scol || $wcol == $scol - 1)) || 
-                             ($wall['vertical'] == 0 && $wcol == $scol && 
-                                ($wrow == $srow || $wrow == $srow - 1))) ) {
-                            throw new BgaUserException(clienttranslate('You cannot blow up a wall of the pillar'));
-                        }
-                        if (($wall['vertical'] == 1 && $vertical) || ($wall['vertical'] == 0 && $horizontal)) {
-                            self::DbQuery("DELETE FROM wall WHERE id = '$selected_id'");
-                            $special_choice = $this->triggerAlarm($player_tile);
-                            // Force refresh of Guard path if there was already an alarm on the tile
-                            if (!$special_choice) {
-                                $special_choice = $this->nextPatrol($floor);
-                            }
-                            // Notify players to remove wall
-                            $this->bga->notify->all('removeWall', '', array(
-                                'wall_id' => $selected_id,
-                            ));
-                            $exit = TRUE;
-                        }
-                    }
-                }
+            $cells = $grid->cellsSeparatedBy($wall);
+            if ($this->getGameStateValue('scenario') == Scenario::FORT_KNOX &&
+                    in_array($this->board->getShaftPosition(), $cells, true)) {
+                throw new BgaUserException(clienttranslate('You cannot blow up a wall of the pillar'));
             }
-            if (!$exit) {
+            if ($wall['floor'] != $floor || !in_array((int) $player_tile['location_arg'], $cells, true)) {
                 throw new BgaUserException(clienttranslate('This wall is not adjacent'));
             }
+            self::DbQuery("DELETE FROM wall WHERE id = '$selected_id'");
+            $special_choice = $this->triggerAlarm($player_tile);
+            // Force refresh of Guard path if there was already an alarm on the tile
+            if (!$special_choice) {
+                $special_choice = $this->nextPatrol($floor);
+            }
+            // Notify players to remove wall
+            $this->bga->notify->all('removeWall', '', array(
+                'wall_id' => $selected_id,
+            ));
         } elseif($type == 'go-with-your-gut') {
             $this->validateSelection('tile', $selected_type);
             $tile = $this->tiles->getCard($selected_id);
@@ -3010,7 +2898,7 @@ SQL;
         $to_peek = $this->tiles->getCard($tile_id);
         $floor = $this->tileFloor($to_peek);
         $flipped = $this->getFlippedTiles($floor);
-        $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+        $patrol_names = $this->patrolNames();
         if (isset($flipped[$to_peek['id']])) {
             if ($variant == 'effect') {
                 // Tile is already flipped, do nothing
@@ -3098,7 +2986,7 @@ SQL;
     }
 
     function checkWin() {
-        $safes_needed = $this->getGameStateValue('scenario') == 2 ? 2 : 3;
+        $safes_needed = $this->getGameStateValue('scenario') == Scenario::OFFICE_JOB ? 2 : 3;
         $all_safes_opened = $this->openSafes() == $safes_needed;
         $all_loot_escaped = count($this->cards->getCardsOfTypeInLocation(CardType::LOOT,null, 'tile')) == 0 &&
             !$this->isKittyEscaped();
@@ -3202,7 +3090,7 @@ SQL;
             if ($meeple['type_arg'] == $current_player_id) {
                 throw new BgaUserException(clienttranslate('You cannot choose yourself'));
             }
-            self::setGameStateValue('specialChoice', 1); // Rook 1
+            self::setGameStateValue('specialChoice', SpecialChoice::ROOK1);
             self::setGameStateValue('specialChoiceArg', $meeple['type_arg']); // Rook 1
             $this->gamestate->nextState('specialChoice');
         } else if ($type == 'rook2') {
@@ -3226,7 +3114,7 @@ SQL;
             $rook_tile = $this->getTile($player_token['location_arg']);
             $other_tile = $this->getTile($tmp_location);
             $players = $this->loadPlayersInfos();
-            $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+            $patrol_names = $this->patrolNames();
             $this->bga->notify->all('message', clienttranslate('The Rook Advanced: ${player_name} (${rook_tile_name} on floor ${rook_tile_floor}) trades places with ${other_player_name} (${other_tile_name} on floor ${other_tile_floor})'), [
                 'player_name' => self::getActivePlayerName(),
                 'rook_tile_name' => $patrol_names[$rook_tile['location_arg']]['name'],
@@ -3300,7 +3188,7 @@ SQL;
                 throw new BgaUserException(clienttranslate("You must choose one of the closest alarms"));
             $patrol_token = array_values($this->tokens->getCardsOfType('patrol', $selected_floor))[0];
             $this->moveToken($patrol_token['id'], 'tile', $selected, TRUE);
-            self::setGameStateValue('specialChoice', 0);    
+            self::setGameStateValue('specialChoice', SpecialChoice::NONE);    
             // Resume to the expected state
             $expected_state = $this->state_after_alarms[self::getGameStateValue('stateAfterAlarm')];
             self::setGameStateValue('stateAfterAlarm', 0);
@@ -3401,8 +3289,8 @@ SQL;
             }
         } else if($type == 'acrobat2') {
             $player_tile = $this->getPlayerTile($current_player_id);
-            $inner_tiles = $this->getGameStateValue('scenario') == 3 ? array(6, 7, 8, 11, 12, 13, 16, 17, 18):array(5, 6, 9, 10);
-            if (in_array($player_tile['location_arg'], $inner_tiles)) {
+            $plan = new BurgleBrosFloorPlan($this->getSquareSize(), $this->getWalls());
+            if ($plan->isInteriorCell($player_tile['location_arg'])) {
                 return FALSE;
             }
             if(self::getGameStateValue('actionsRemaining') < 3) {
@@ -3635,8 +3523,8 @@ SQL;
                 $this->gamestate->nextState('tileChoice');
             } elseif ($special_choice) {
                 self::incGameStateValue('actionsRemaining', -1);
-                self::setGameStateValue('specialChoice', 2);
-                self::setGameStateValue('stateAfterAlarm', 21);
+                self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+                self::setGameStateValue('stateAfterAlarm', State::END_ACTION);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
                 $this->endAction();
@@ -3702,7 +3590,7 @@ SQL;
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $card = $this->cards->getCard($card_id);
         if ($this->gamestate->getCurrentMainState()->name == 'chooseCharacter') {
-            if ($this->bga->tableOptions->get(100) !== 2 &&
+            if ($this->bga->tableOptions->get(GameOption::CHARACTER_ASSIGNMENT) !== CharacterAssignment::RANDOM_ADVANCED &&
                 ($card['location'] == 'hand' || $card['location'] == 'characters_oop') )
                 throw new BgaUserException(clienttranslate("This character is already taken by another player"));
         } elseif ($card['location'] != 'hand' || $card['location_arg'] != $current_player_id) {
@@ -3809,8 +3697,8 @@ SQL;
             self::setGameStateValue('tileChoice', $tile_choice);
             $this->gamestate->nextState('tileChoice');
         } elseif ($special_choice) {
-            self::setGameStateValue('specialChoice', 2);
-            self::setGameStateValue('stateAfterAlarm', 9);
+            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+            self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
             $this->gamestate->nextState('chooseAlarm');
         } else {
             if ($card['type'] == CardType::EVENT) {
@@ -3885,8 +3773,8 @@ SQL;
                     self::incGameStateValue('actionsRemaining', -$move_decrease);
                     self::setGameStateValue('moveDecreaseAfterAlarm', 0);
                 }
-                self::setGameStateValue('specialChoice', 2);
-                self::setGameStateValue('stateAfterAlarm', 21);
+                self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+                self::setGameStateValue('stateAfterAlarm', State::END_ACTION);
                 $this->gamestate->nextState('chooseAlarm');
             } else {
                 self::setGameStateValue('tileChoice', 0);
@@ -3911,8 +3799,8 @@ SQL;
             throw new BgaUserException(clienttranslate('Character action can be used once per turn'));
         } else if($type == 'acrobat2') {
             $player_tile = $this->getPlayerTile($current_player_id);
-            $inner_tiles = $this->getGameStateValue('scenario') == 3 ? array(6, 7, 8, 11, 12, 13, 16, 17, 18):array(5, 6, 9, 10);
-            if (in_array($player_tile['location_arg'], $inner_tiles) ) {
+            $plan = new BurgleBrosFloorPlan($this->getSquareSize(), $this->getWalls());
+            if ($plan->isInteriorCell($player_tile['location_arg'])) {
                 throw new BgaUserException(clienttranslate('Must be on an outer tile'));
             }
             if (self::getGameStateValue('actionsRemaining') < 3) {
@@ -3941,8 +3829,8 @@ SQL;
                 }
                 $this->moveToken(array_values($character_alarms)[0]['id'], 'deck');
                 if ($this->triggerAlarm($player_tile)) {
-                    self::setGameStateValue('specialChoice', 2);
-                    self::setGameStateValue('stateAfterAlarm', 9);
+                    self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+                    self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
                     $this->gamestate->nextState('chooseAlarm');
                 }
             } else {
@@ -3951,8 +3839,8 @@ SQL;
                 }
                 $this->moveToken(array_values($tile_alarms)[0]['id'], 'card', $character['id']);
                 if ($this->nextPatrol($this->tileFloor($player_tile))) {
-                    self::setGameStateValue('specialChoice', 2);
-                    self::setGameStateValue('stateAfterAlarm', 9);
+                    self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+                    self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
                     $this->gamestate->nextState('chooseAlarm');
                 }
             }
@@ -3982,13 +3870,13 @@ SQL;
             self::incStat(1, 'special_ability_use', $human_player_id);
             $this->endAction(0);
         } else if($type == 'rook1') {
-            self::setGameStateValue('playerChoice', 2); // Rook 1
+            self::setGameStateValue('playerChoice', PlayerChoice::ROOK1);
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'rook2') {
             if (self::getGameStateValue('firstAction') != 1) {
                 throw new BgaUserException(clienttranslate('You may only use this ability as your first action'));
             }
-            self::setGameStateValue('playerChoice', 3); // Rook 2
+            self::setGameStateValue('playerChoice', PlayerChoice::ROOK2);
             $this->gamestate->nextState('playerChoice');
         } else if($type == 'spotter1') {
             $player_tile = $this->getPlayerTile($current_player_id);
@@ -4036,7 +3924,7 @@ SQL;
             }
             $this->gamestate->nextState('proposeTrade');
         } else {
-            self::setGameStateValue('playerChoice', 1); // Trade
+            self::setGameStateValue('playerChoice', PlayerChoice::TRADE);
             $this->gamestate->nextState('playerChoice');
         }
     }
@@ -4120,7 +4008,7 @@ SQL;
 
     function cancelPlayerChoice() {
         self::checkAction('cancelPlayerChoice');
-        self::setGameStateValue('playerChoice', 0);
+        self::setGameStateValue('playerChoice', PlayerChoice::NONE);
         $this->gamestate->nextState('nextAction');
     }
 
@@ -4136,7 +4024,7 @@ SQL;
             $this->deleteTrade();
             $this->gamestate->nextState('nextAction');
         }
-        self::setGameStateValue('playerChoice', 0);
+        self::setGameStateValue('playerChoice', PlayerChoice::NONE);
     }
 
     function selectSpecialChoice($selected) {
@@ -4149,7 +4037,7 @@ SQL;
 
     function cancelSpecialChoice() {
         self::checkAction('cancelSpecialChoice');
-        self::setGameStateValue('specialChoice', 0);
+        self::setGameStateValue('specialChoice', SpecialChoice::NONE);
         self::setGameStateValue('specialChoiceArg', 0);
         $this->gamestate->nextState('nextAction');
     }
@@ -4356,8 +4244,8 @@ SQL;
                 self::setGameStateValue('playerChoice', $event_result['player_choice']);
                 $this->gamestate->nextState('playerChoice');
             } elseif ($event_result['special_choice']) {
-                self::setGameStateValue('specialChoice', 2);
-                self::setGameStateValue('stateAfterAlarm', 11);
+                self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+                self::setGameStateValue('stateAfterAlarm', State::MOVE_GUARD);
                 $this->gamestate->nextState('chooseAlarm');
             } elseif (self::getGameStateValue('drawToolsPlayer') > 0) {
                 $this->gamestate->nextState('endAction');
@@ -4449,7 +4337,7 @@ SQL;
         $destination_id = self::getGameStateValue('rookDestinationTile');
         if ($destination_id > 0) {
             $tile = $this->tiles->getCard($destination_id);
-            $patrol_names = $this->getSquareSize() == 4 ? $this->patrol_names : $this->patrol_names_size_5;
+            $patrol_names = $this->patrolNames();
             $destination_name = $patrol_names[$tile['location_arg']]['name'];
             return array(
                 'destination_id' => $destination_id,
@@ -4471,6 +4359,7 @@ SQL;
         $args['card_name'] = $card_name;
         $args['card_name_displayed'] = $this->getDisplayedCardName($card_name);
         $args['choice_description'] = $this->getCardChoiceDescription($card);
+        $args['i18n'] = ['choice_description'];
         if ($card_name == 'peterman2') {
             $player_tile = $this->getPlayerTile($current_player_id);
             $peterman2_detail = [];
@@ -4548,6 +4437,7 @@ SQL;
         $choice_arg = self::getGameStateValue('specialChoiceArg');
         $card = $this->cards->getCard(self::getGameStateValue('cardChoice'));
         $type = $this->special_choices[$special_choice];
+        $args['i18n'] = ['choice_name', 'choice_description'];
         $args['show_cancel'] = TRUE;
         if ($type == 'rook1') {
             $args['choice_name'] = clienttranslate('Orders');
@@ -4589,14 +4479,14 @@ SQL;
     */
     function stRandomizeWalls() {
         // Move on if the game use default walls
-        if ($this->bga->tableOptions->get(103) == 1) {
+        if ($this->bga->tableOptions->get(GameOption::WALLS) == Walls::DEFAULT) {
             $this->gamestate->nextState('');
         }
     }
 
     function stChooseCharacter() {
         // Move on if the game only use basic characters
-        if ($this->bga->tableOptions->get(100) == 1) {
+        if ($this->bga->tableOptions->get(GameOption::CHARACTER_ASSIGNMENT) == CharacterAssignment::RANDOM) {
             $this->gamestate->nextState('chooseCharacter');
         }
         $this->gamestate->setAllPlayersMultiactive();
@@ -4685,8 +4575,8 @@ SQL;
             'player_name' => $this->getActivePlayerNameCustom()
         ]);
         if ($special_choice) {
-            self::setGameStateValue('specialChoice', 2);
-            self::setGameStateValue('stateAfterAlarm', 11);
+            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+            self::setGameStateValue('stateAfterAlarm', State::MOVE_GUARD);
             $this->gamestate->nextState( 'chooseAlarm' );
         } else {
             $this->gamestate->nextState( 'moveGuard' );
@@ -4748,8 +4638,8 @@ SQL;
         if (self::getGameStateValue('stealthDepleted')) {
             $this->gamestate->nextState('gameOver');
         } elseif ($choose_alarm) {
-            self::setGameStateValue('specialChoice', 2);  // refer to $this->special_choices in material.inc
-            self::setGameStateValue('stateAfterAlarm', 11);
+            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+            self::setGameStateValue('stateAfterAlarm', State::MOVE_GUARD);
             $this->gamestate->nextState('chooseAlarm');
         } else {
             $this->gamestate->nextState( 'nextPlayer' );
@@ -4835,8 +4725,8 @@ SQL;
         $this->setGameStateValue('undoAllowed', 1);
 
         if ($special_choice) {
-            self::setGameStateValue('specialChoice', 2);
-            self::setGameStateValue('stateAfterAlarm', 9);
+            self::setGameStateValue('specialChoice', SpecialChoice::CLOSEST_ALARM);
+            self::setGameStateValue('stateAfterAlarm', State::PLAYER_TURN);
             $this->gamestate->nextState( 'chooseAlarm' );
         } else {
             $this->gamestate->nextState( 'playerTurn' );
