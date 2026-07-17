@@ -43,10 +43,10 @@ class BurgleBrosBoard
 
     function setupTiles(array $options): void {
     	$option_one_deadbolt = $options[GameOption::DeadboltDistribution->value] == DeadboltDistribution::OnePerFloor->value;
-        $safes = $this->game->tiles->getCardsOfType('safe');
-        $stairs = $this->game->tiles->getCardsOfType('stairs');
-        $shafts = $this->game->tiles->getCardsOfType('shaft');
-        $deadbolts = $this->game->tiles->getCardsOfType('deadbolt');
+        $safes = $this->game->tiles->getCardsOfType(TileType::Safe->value);
+        $stairs = $this->game->tiles->getCardsOfType(TileType::Stairs->value);
+        $shafts = $this->game->tiles->getCardsOfType(TileType::Shaft->value);
+        $deadbolts = $this->game->tiles->getCardsOfType(TileType::Deadbolt->value);
         $size = $this->game->getSquareSize();
         $size_sq = $size * $size - 1;
         $max_floor = $this->game->getFloorCount();
@@ -86,7 +86,7 @@ class BurgleBrosBoard
             // Reset shaft positions by switching tiles
             if (count($shafts) > 0) {
 	            $card = array_values($this->game->tiles->getCardsInLocation("floor$floor", $shaft_location_arg))[0];
-	            $shaft = array_values($this->game->tiles->getCardsOfTypeInLocation("shaft", null, "floor$floor"))[0];
+	            $shaft = array_values($this->game->tiles->getCardsOfTypeInLocation(TileType::Shaft->value, null, "floor$floor"))[0];
 	            $this->game->tiles->moveCard($card['id'], "floor$floor", $shaft['location_arg']);
 	            $this->game->tiles->moveCard($shaft['id'], "floor$floor", $card['location_arg']);
 	        }
@@ -287,7 +287,7 @@ class BurgleBrosBoard
 
 	function getShaftPosition(): ?int {
 		// Return shaft position (on floor 1 because shaft is on the same position on each floor)
-		$shaft = $this->game->tiles->getCardsOfTypeInLocation('shaft', null, "floor1");
+		$shaft = $this->game->tiles->getCardsOfTypeInLocation(TileType::Shaft->value, null, "floor1");
 		if ($shaft) {
 			$shaft = reset($shaft);
 			return (int) $shaft['location_arg'];

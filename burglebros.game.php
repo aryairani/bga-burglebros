@@ -23,6 +23,7 @@ use Bga\GameFramework\VisibleSystemException;
 require_once("modules/BurgleBrosBoard.class.php");
 require_once("modules/BurgleBrosWallLayouts.class.php");
 require_once("modules/CardType.class.php");
+require_once("modules/TileType.class.php");
 require_once("modules/DeckType.class.php");
 require_once("modules/CardFace.class.php");
 require_once("modules/CardInfo.class.php");
@@ -608,7 +609,7 @@ public function patrolNames(): array {
         if ($floor != 1) {
             throw new BgaUserException(clienttranslate("Starting tile must be on the first floor"));
         }
-        if ($entrance['type'] == 'shaft') {
+        if (TileType::of($entrance) === TileType::Shaft) {
             throw new BgaUserException(clienttranslate("You cannot start on the shaft, this room is empty"));
         }
         $this->performPeek($entrance['id'], 'effect');
@@ -679,7 +680,7 @@ public function patrolNames(): array {
         for ($floor=1; $floor <= $max_floor; $floor++) { 
             $tiles = $this->getTiles($floor);
             foreach ($tiles as $tile) {
-                if($tile['id'] != $player_tile['id'] && $tile['type'] == 'back' && $this->isTileAdjacent($tile, $player_tile, $walls, $variant)) {
+                if($tile['id'] != $player_tile['id'] && TileType::of($tile) === TileType::Back && $this->isTileAdjacent($tile, $player_tile, $walls, $variant)) {
                     $peekable [] = $tile;
                 }
             }
@@ -688,7 +689,7 @@ public function patrolNames(): array {
     }
 
     function openSafes() {
-        $safes = $this->tiles->getCardsOfType('safe');
+        $safes = $this->tiles->getCardsOfType(TileType::Safe->value);
         $open = 0;
         foreach ($safes as $tile_id => $tile) {
             if ($tile['location'] == 'oop')
@@ -710,7 +711,7 @@ public function patrolNames(): array {
             $tile_below = $this->findTileOnFloor($max_floor - 1, $player_tile['location_arg']);
             $thermal_to_roof = $this->tokensInTile('thermal', $tile_below['id']) == null;
         }
-        return ($player_tile['type'] == 'stairs' || $thermal_to_roof) &&
+        return (TileType::of($player_tile) === TileType::Stairs || $thermal_to_roof) &&
             $this->tileFloor($player_tile) == $max_floor && $this->openSafes() == $safes_needed;
     }
 
@@ -806,7 +807,7 @@ public function patrolNames(): array {
         if ($stateName !== 'gameEnd') {
             foreach ($tiles as &$tile) {
                 if (!isset($flipped[$tile['id']])) {
-                    $tile['type'] = 'back'; // face-down
+                    $tile['type'] = TileType::Back->value; // face-down
                     $tile['type_arg'] = 0;
                     $tile['safe_die'] = 0;
                 } else {
@@ -1045,7 +1046,7 @@ SQL;
             return ($same_floor && $adjacent && !$blocked);
         } elseif($variant == 'acrobat1_enabled') {
             $flipped = $this->getFlippedTiles($tile_pos->floor);
-            $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
+            $secret_door = $same_floor && $adjacent && TileType::of($tile) === TileType::SecretDoor && isset($flipped[$tile['id']]);
             return ($same_floor && $adjacent && !$blocked) || 
                     $secret_door;
         } elseif($variant == 'peek') {
@@ -1070,8 +1071,8 @@ SQL;
             // Check destination tile is flipped to avoid disclosing the other service duct card
             // Check tiles are not "standard" adjacent
             $flipped = $this->getFlippedTiles($tile_pos->floor);
-            $service_duct = $tile['type'] == 'service-duct' && $other_tile['type'] == 'service-duct' && $tile['id'] != $other_tile['id'] && isset($flipped[$tile['id']]) && !($adjacent && !$blocked) ;
-            $secret_door = $same_floor && $adjacent && $tile['type'] == 'secret-door' && isset($flipped[$tile['id']]);
+            $service_duct = TileType::of($tile) === TileType::ServiceDuct && TileType::of($other_tile) === TileType::ServiceDuct && $tile['id'] != $other_tile['id'] && isset($flipped[$tile['id']]) && !($adjacent && !$blocked) ;
+            $secret_door = $same_floor && $adjacent && TileType::of($tile) === TileType::SecretDoor && isset($flipped[$tile['id']]);
             if ($painting && !($variant == 'hawk2') && (($secret_door && $blocked) || $service_duct)) {
                 if ($throw_exception) {
                     throw new BgaUserException(clienttranslate('Cannot move this way while holding the Painting'));
@@ -1093,14 +1094,14 @@ SQL;
         if ($time_lock && $variant != 'peek') {
             return FALSE;
         }
-        return $to['type'] == 'stairs' &&
+        return TileType::of($to) === TileType::Stairs &&
             $this->tileFloor($to) + 1 == $this->tileFloor($from) &&
             $to['location_arg'] == $from['location_arg'];
     }
 
     function atriumIsAdjacent($to, $from) {
         // Same tile position (location_arg) but one floor up or down
-        return $from['type'] == 'atrium' &&
+        return TileType::of($from) === TileType::Atrium &&
             $to['location_arg'] == $from['location_arg'] &&
             (abs($this->tileFloor($to) - $this->tileFloor($from)) == 1 || abs($this->tileFloor($to) - $this->tileFloor($from)) == 1);
     }
@@ -1120,15 +1121,15 @@ SQL;
         $gymnastics = $this->getActiveEvent('gymnastics');
         if ($gymnastics) {
             $gymnastics_adjacent = 
-                ($to['type'] == 'walkway' &&
+                (TileType::of($to) === TileType::Walkway &&
                     $this->tileFloor($to) + 1 == $this->tileFloor($from) &&
                     $to['location_arg'] == $from['location_arg']) ||
-                ($from['type'] == 'walkway' &&
+                (TileType::of($from) === TileType::Walkway &&
                     $this->tileFloor($from) + 1 == $this->tileFloor($to) &&
                     $from['location_arg'] == $to['location_arg']);
         }
         return $gymnastics_adjacent ||
-            ($from['type'] == 'walkway' &&
+            (TileType::of($from) === TileType::Walkway &&
                 $this->tileFloor($from) - 1 == $this->tileFloor($to) &&
                 $to['location_arg'] == $from['location_arg']);
     }
@@ -1157,9 +1158,9 @@ SQL;
         for ($floor=1; $floor <= $max_floor; $floor++) { 
             $tiles = $this->getTiles($floor);
             foreach ($tiles as $tile) {
-                if ($tile['id'] == $player_tile['id'] || ($tile['type'] != 'back' && $this->isTileAdjacent($tile, $player_tile, $walls))) {
+                if ($tile['id'] == $player_tile['id'] || (TileType::of($tile) !== TileType::Back && $this->isTileAdjacent($tile, $player_tile, $walls))) {
                     $adjacent_flipped [] = $tile;
-                } else if ($tile['id'] == $target_tile['id'] && $tile['type'] == 'back') {
+                } else if ($tile['id'] == $target_tile['id'] && TileType::of($tile) === TileType::Back) {
                     $face_down = true;
                 }
             }
@@ -1357,13 +1358,13 @@ SQL;
         $tiara = $this->getPlayerLoot('tiara', $current_player_id);
         $is_adjacent = $this->isTileAdjacent($player_tile, $guard_tile, null, 'guard');
         $is_foyer = $is_adjacent &&
-            (($is_guard_tile && $player_tile['type'] == 'foyer') ||
-                ($is_player_tile && ($player_tile['type'] == 'foyer' || $tiara)));
+            (($is_guard_tile && TileType::of($player_tile) === TileType::Foyer) ||
+                ($is_player_tile && (TileType::of($player_tile) === TileType::Foyer || $tiara)));
         if ($is_foyer) {
             $this->deductTileStealth($player_tile['id'], 'player');
             return;
         }
-        if ($player_tile['type'] == 'atrium' && $is_player_tile && $this->atriumGuards($player_tile)) {
+        if (TileType::of($player_tile) === TileType::Atrium && $is_player_tile && $this->atriumGuards($player_tile)) {
             $this->deductTileStealth($player_tile['id'], 'player');
             return;
         }
@@ -1378,7 +1379,7 @@ SQL;
             $player_tile = $this->getPlayerTile($player_token['type_arg'], $player_token);
 
             $is_adjacent = $this->isTileAdjacent($tile, $player_tile, null, 'guard');
-            $is_foyer = $is_adjacent && $player_tile['type'] == 'foyer';
+            $is_foyer = $is_adjacent && TileType::of($player_tile) === TileType::Foyer;
             if ($is_foyer) {
                 $this->deductTileStealth($player_tile['id'], 'guard');
             }
@@ -1386,7 +1387,7 @@ SQL;
             // TODO: Double check Atrium won't deduct twice if guard is also there
             // Deduct stealth if player is on Atrium the floor below or above
             $player_floor = $this->tileFloor($player_tile);
-            if ($player_tile['type'] == 'atrium' && $tile['location_arg'] == $player_tile['location_arg'] 
+            if (TileType::of($player_tile) === TileType::Atrium && $tile['location_arg'] == $player_tile['location_arg'] 
                 && abs($player_floor - $guard_floor) == 1) {
                 $this->deductTileStealth($player_tile['id'], 'guard');
             }
@@ -1540,12 +1541,12 @@ SQL;
     }
 
     function performSafeDiceRollDebug($floor, $dice_count) {
-        $safe_tile = array_values($this->tiles->getCardsOfTypeInLocation('safe', null, "floor$floor"))[0];
+        $safe_tile = array_values($this->tiles->getCardsOfTypeInLocation(TileType::Safe->value, null, "floor$floor"))[0];
         $this->performSafeDiceRoll($safe_tile,intval($dice_count));
     }
 
     function performSafeDiceRoll($safe_tile, $drop_loot=0) {
-        if ($safe_tile['type'] != 'safe') {
+        if (TileType::of($safe_tile) !== TileType::Safe) {
             throw new BgaUserException(clienttranslate("Tile is not a safe"));
         }
         if ($this->tokensInTile('open', $safe_tile['id'])) {
@@ -1634,10 +1635,10 @@ SQL;
             $col = $grid->colOf($tile['location_arg']);
             if (($row == $safe_row || $col == $safe_col)) {
                 if (!isset($placed_tokens[$tile['id']])) {
-                    if ($tile['type'] != 'safe' && isset($rolls[intval($tile['safe_die'])])) {
+                    if (TileType::of($tile) !== TileType::Safe && isset($rolls[intval($tile['safe_die'])])) {
                         $this->pickTokensForTile('safe', $tile['id']);
                         $cracked_count++;
-                    } elseif ($tile['type'] == 'shaft' || $tile['type'] == 'safe') {
+                    } elseif (TileType::of($tile) === TileType::Shaft || TileType::of($tile) === TileType::Safe) {
                         $cracked_count++;
                     }
                 } else {
@@ -1846,12 +1847,11 @@ SQL;
             return TRUE;
         }
 
-        $type = $tile['type'];
         $tokens = $this->getPlacedTokens(array('hack'));
         if (count($tokens) == 0) {
             return FALSE;
         }
-        $tiles = $this->tiles->getCardsOfType("$type-computer");
+        $tiles = $this->tiles->getCardsOfType(TileType::of($tile)->computer()->value);
         $computer_tile = array_values($tiles)[0];
         return isset($tokens[$computer_tile['id']]);
     }
@@ -1868,11 +1868,11 @@ SQL;
 
     function canUseExtraAction($player_id, $player_tile) {
         $action_penalty = $this->getGemstonePenalty($player_id, $player_tile, TRUE);
-        return $player_tile['type'] == 'laser' && self::getGameStateValue('actionsRemaining') >= (2 + $action_penalty);
+        return TileType::of($player_tile) === TileType::Laser && self::getGameStateValue('actionsRemaining') >= (2 + $action_penalty);
     }
 
     function hackerDoesNotTrigger($tile) {
-        if (!in_array($tile['type'], array('fingerprint', 'motion', 'laser'))) {
+        if (!in_array(TileType::of($tile), array(TileType::Fingerprint, TileType::Motion, TileType::Laser), true)) {
             return FALSE;
         }
 
@@ -1911,17 +1911,17 @@ SQL;
     }
 
     function handleTilePeek($tile) {
-        $type = $tile['type'];
-        if ($type == 'stairs') {
+        $type = TileType::of($tile);
+        if ($type === TileType::Stairs) {
             $floor = $this->tileFloor($tile);
             $max_floor = $this->getFloorCount();
             if ($floor < $max_floor) {
                 $upper_tile = $this->findTileOnFloor($floor + 1, $tile['location_arg']);
                 $this->pickTokensForTile('stairs', $upper_tile['id']);
             }
-        } elseif ($type == 'lavatory') {
+        } elseif ($type === TileType::Lavatory) {
             $this->pickTokensForTile('stealth', $tile['id'], 3);
-        } elseif ($type == 'laboratory') {
+        } elseif ($type === TileType::Laboratory) {
             $this->notifyTileCards($tile['id']);
         }
         self::setGameStateValue('undoAllowed', 0);
@@ -1955,7 +1955,7 @@ SQL;
 
     function handleTileMovement($tile, $player_tile, $player_token, $guard_token, $flipped_this_turn, $context) {
         $id = $tile['id'];
-        $type = $tile['type'];
+        $type = TileType::of($tile);
         // $actions_remaining = !in_array($context, array('action', 'acrobat2')) ? 1 : self::getGameStateValue('actionsRemaining');
         $actions_remaining = !in_array($context, array('action')) ? 1 : self::getGameStateValue('actionsRemaining');
         $cancel_move = false;
@@ -1979,7 +1979,7 @@ SQL;
             $action_penalty += 4;
         }
 
-        if ($type == 'deadbolt') {
+        if ($type === TileType::Deadbolt) {
             if (!$crowbar && !$rook1_action) {
                 $people = $this->getPlacedTokens(array('player', 'guard'));
                 if (!isset($people[$id]) || count($people[$id]) == 0) {
@@ -1995,7 +1995,7 @@ SQL;
                     }
                 }
             }
-        } elseif ($type == 'keypad') {
+        } elseif ($type === TileType::Keypad) {
             if (!$crowbar) {
                 $cancel_move = !$this->attemptKeypadRoll($tile);
                 if ($cancel_move) {
@@ -2005,14 +2005,14 @@ SQL;
                     }
                 }
             }
-        } elseif ($type == 'fingerprint') {
+        } elseif ($type === TileType::Fingerprint) {
             if (!$crowbar) {
                 $this->setupGuardToken($guard_token, $floor);
                 $result = $this->hackOrTrigger($tile);
                 $tile_choice = $result['tile_choice'];
                 $special_choice = $result['special_choice'];
             }
-        } elseif ($type == 'laser') {
+        } elseif ($type === TileType::Laser) {
             if (!$crowbar && !$rook1_action && !$this->getPlayerLoot('mirror', $player_id) && !$this->hackerDoesNotTrigger($tile) && self::getGameStateValue('empPlayer') == 0) {
                 $this->setupGuardToken($guard_token, $floor);
                 if ($actions_remaining >= (2 + $action_penalty)) {
@@ -2023,20 +2023,20 @@ SQL;
                     $special_choice = $result['special_choice'];
                 }
             }
-        } elseif ($type == 'motion') {
+        } elseif ($type === TileType::Motion) {
             if (!$crowbar) {
-                if ($player_tile['type'] == 'motion') { // exiting a motion tile
+                if (TileType::of($player_tile) === TileType::Motion) { // exiting a motion tile
                     $motion_entered = self::getGameStateValue('motionTileEntered');
                 }
                 $this->setTileBit('motionTileEntered', $id);
             }
-        } elseif ($type == 'laboratory') {
+        } elseif ($type === TileType::Laboratory) {
             $prev_value = $this->setTileBit('laboratoryTileEntered', $id);
             if (!$prev_value) {
                 self::setGameStateValue('drawToolsPlayer', $player_id);
                 $this->notifyTileCards($id);
             }
-        } elseif ($type == 'detector') {
+        } elseif ($type === TileType::Detector) {
             if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
                 $hand = $this->cards->getPlayerHand($player_id);
                 foreach ($hand as $card_id => $card) {
@@ -2047,7 +2047,7 @@ SQL;
                     }
                 }
             }
-        } elseif ($type == 'walkway' && $flipped_this_turn) {
+        } elseif ($type === TileType::Walkway && $flipped_this_turn) {
             // Fall down
             if ($floor > 1) {
                 $lower_tile = $this->findTileOnFloor($floor - 1, $tile['location_arg']);
@@ -2057,7 +2057,7 @@ SQL;
                 $this->handlePlayerEnteredGuardSight($lower_tile);
                 $this->notifyMovement($player_id, $lower_tile, 'walkway');
             }
-        } elseif ($type == 'thermo' && $this->getPlayerLoot('isotope', $player_id)) {
+        } elseif ($type === TileType::Thermo && $this->getPlayerLoot('isotope', $player_id)) {
             if (!$crowbar && self::getGameStateValue('empPlayer') == 0) {
                 $this->setupGuardToken($guard_token, $floor);
                 $this->triggerAlarm($tile);
@@ -2070,8 +2070,7 @@ SQL;
             $this->setupGuardToken($guard_token, $floor);
 
             // Handle exit
-            $exit_type = $player_tile['type'];
-            if ($exit_type == 'motion' && !$rook1_action) {
+            if (TileType::of($player_tile) === TileType::Motion && !$rook1_action) {
                 $exit_id = $player_tile['id'];
                 $motion_bit = 1 << self::getUniqueValueFromDB("SELECT safe_die FROM tile WHERE card_id = '$exit_id'");
                 $motion_entered = $motion_entered !== false ? $motion_entered : self::getGameStateValue('motionTileEntered');
@@ -2365,7 +2364,7 @@ SQL;
         } elseif ($type == 'jury-rig') {
             self::setGameStateValue('drawToolsPlayer', $player_id);
         } elseif ($type == 'keycode-change') {
-            $safes = $this->tiles->getCardsOfType('keypad');
+            $safes = $this->tiles->getCardsOfType(TileType::Keypad->value);
             foreach ($safes as $tile_id => $safe) {
                 $this->clearTileTokens('open', $tile_id);    
             }
@@ -2390,11 +2389,10 @@ SQL;
                 $this->performPeek($peekable[0]['id'], 'peekhole');
             } 
         } elseif ($type == 'reboot') {
-            $types = array('fingerprint-computer', 'motion-computer', 'laser-computer');
-            for ($floor=1; $floor <= $max_floor; $floor++) { 
+            for ($floor=1; $floor <= $max_floor; $floor++) {
                 $tiles = $this->getTiles($floor);
                 foreach ($tiles as $tile_id => $tile) {
-                    if (in_array($tile['type'], $types)) {
+                    if (TileType::of($tile)->isComputer()) {
                         $hack_tokens = $this->tokens->getCardsOfTypeInLocation('hack', null, 'tile', $tile['id']);
                         if (count($hack_tokens) == 0) {
                             $this->pickTokensForTile('hack', $tile['id']);
@@ -2639,8 +2637,9 @@ SQL;
                 throw new BgaUserException(clienttranslate('Tile is not adjacent'));
             }
             // Check tile type is legitimate for crowbar
-            $available_tiles = ['camera','deadbolt','detector','fingerprint','keypad','laser','motion','thermo'];
-            if (!in_array($tile['type'], $available_tiles)) {
+            $available_tiles = [TileType::Camera, TileType::Deadbolt, TileType::Detector, TileType::Fingerprint,
+                TileType::Keypad, TileType::Laser, TileType::Motion, TileType::Thermo];
+            if (!in_array(TileType::of($tile), $available_tiles, true)) {
                 throw new BgaUserException( sprintf(clienttranslate("There is no point in using the crowbar on a %s tile, please try on another one"), $tile['type']) );
             }
             $this->pickTokensForTile('crowbar', $tile['id']);
@@ -2784,7 +2783,7 @@ SQL;
             if ($tile['flipped'] === '0') {
                 throw new BgaUserException(clienttranslate("You must reveal the tile first"));
             }
-            if (strpos($tile['type'], 'computer') === FALSE) {
+            if (!TileType::of($tile)->isComputer()) {
                 throw new BgaUserException(clienttranslate("Tile is not a computer"));
             }
             $existing = $this->tokensInTile('hack', $tile['id']);
@@ -2828,7 +2827,7 @@ SQL;
                 throw new BgaUserException(clienttranslate("This tile is not adjacent to the guard destination"));
             }
         }
-        if ($card['type'] != 0) {
+        if ($card['type'] != CardType::Character->value) {
             if ($discard) {
                 $this->cards->moveCard($card['id'], $card['type'] == CardType::Tool->value ? 'tools_discard' : 'events_discard');
             }
@@ -2847,7 +2846,7 @@ SQL;
         // $player_id = self::getCurrentPlayerId();
         $player_id = $this->getCurrentPlayerIdCustom();
         $tile = $this->tiles->getCard(self::getGameStateValue('tileChoice'));
-        $type = $tile['type'];
+        $type = TileType::of($tile);
         $special_choice = FALSE;
         if ($selected == 0) { // trigger
             $special_choice = $this->triggerAlarm($tile);
@@ -2856,7 +2855,7 @@ SQL;
                 throw new BgaUserException(clienttranslate('Cannot hack this tile'));
             }
             $tokens = $this->getPlacedTokens(array('hack'));
-            $computer_tile = array_values($this->tiles->getCardsOfType("$type-computer"))[0];
+            $computer_tile = array_values($this->tiles->getCardsOfType($type->computer()->value))[0];
             if (isset($tokens[$computer_tile['id']])) {
                 // Use computer first
                 $to_move = $tokens[$computer_tile['id']][0];
@@ -2988,7 +2987,7 @@ SQL;
     }
 
     function performAddSafeDie($tile) {
-        if ($tile['type'] != 'safe') {
+        if (TileType::of($tile) !== TileType::Safe) {
             throw new BgaUserException(clienttranslate("Tile is not a safe"));
         }
         if ($this->tokensInTile('open', $tile['id'])) {
@@ -3198,7 +3197,7 @@ SQL;
         $tiles = $this->getTiles($floor);
         $shortest_path = null;
         foreach ($tiles as $tile_id => $tile) {
-            if (in_array($tile['type'], array('camera', 'detector', 'fingerprint', 'laser', 'motion', 'thermo'))) {
+            if (in_array(TileType::of($tile), array(TileType::Camera, TileType::Detector, TileType::Fingerprint, TileType::Laser, TileType::Motion, TileType::Thermo), true)) {
                 $path = $this->findShortestPathClockwise($floor, $player_tile['location_arg'], $tile['location_arg']);
                 if (count($path) > 1 && ($shortest_path == null || count($shortest_path) > count($path))) {
                     $shortest_path = $path;
@@ -3269,7 +3268,7 @@ SQL;
                     $this->walkwayIsAdjacent($player_tile, $guard_tile);
             }
             // Check if a guard is on other side of the Service Duct
-            if ($player_tile['type'] == 'service-duct') {
+            if (TileType::of($player_tile) === TileType::ServiceDuct) {
                 $service_ducts = self::getCollectionFromDB("SELECT card_id id, card_type type, card_location location, card_location_arg location_arg FROM tile WHERE flipped=1 AND card_type='service-duct'");
                 foreach ($service_ducts as $id => $service_duct) {
                     if ($id == $player_tile['id'])
@@ -3319,7 +3318,7 @@ SQL;
                 if (abs($floor - $this->tileFloor($player_tile)) == 1) {   
                     $tiles = $this->getTiles($floor);
                     foreach ($tiles as $tile) {
-                        if ($tile['type'] == 'safe' && $tile['location_arg'] == $player_tile['location_arg'] && !$this->tokensInTile('open', $tile['id'])) {
+                        if (TileType::of($tile) === TileType::Safe && $tile['location_arg'] == $player_tile['location_arg'] && !$this->tokensInTile('open', $tile['id'])) {
                             $found = TRUE;
                             break;
                         }
@@ -3563,7 +3562,7 @@ SQL;
         $current_player_id = self::getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
-        if (strpos($player_tile['type'], 'computer') === FALSE) {
+        if (!TileType::of($player_tile)->isComputer()) {
             throw new BgaUserException(clienttranslate("Tile is not a computer"));
         }
         $existing = $this->tokens->getCardsOfTypeInLocation('hack', null, 'tile', $player_token['location_arg']);
@@ -3645,7 +3644,7 @@ SQL;
             }
         } else {
             // Player wants to use a tool
-            if ($card['type'] != 1) {
+            if ($card['type'] != CardType::Tool->value) {
                 throw new BgaUserException(clienttranslate("Card is not a tool"));
             }
 
@@ -3758,7 +3757,7 @@ SQL;
             $this->gamestate->nextState('switchRookMove');
         } else {
             $motion_exit = self::getGameStateValue('motionTileExitChoice');
-            if ($tile['type'] == 'motion' && $motion_exit > 0) {
+            if (TileType::of($tile) === TileType::Motion && $motion_exit > 0) {
                 self::setGameStateValue('tileChoice', $motion_exit);
                 $this->gamestate->nextState('tileChoice');
             } elseif ($result['special_choice']) {
@@ -3938,7 +3937,7 @@ SQL;
         $card_ids = array();
         array_merge($card_ids, $p1_ids, $p2_ids);
         foreach ($this->cards->getCards($card_ids) as $id => $card) {
-            if (in_array($card['type'], array(0, 3))) {
+            if (in_array($card['type'], array(CardType::Character->value, CardType::Event->value))) {
                 throw new BgaUserException(clienttranslate('Card must be a tool or loot'));
             } elseif ($card['location'] != 'hand' || !in_array($card['location'], array($trade['current_player'], $trade['other_player']))) {
                 throw new BgaUserException(clienttranslate('Card does not belong to trading player'));
@@ -4080,7 +4079,7 @@ SQL;
         self::checkAction('takeCards');
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_tile = $this->getPlayerTile($current_player_id);
-        if ($player_tile['type'] != 'safe') {
+        if (TileType::of($player_tile) !== TileType::Safe) {
             throw new BgaUserException(clienttranslate('Cards can only be taken from a safe'));
         }
         $tile_cards = $this->cards->getCardsInLocation('tile', $player_tile['id']);
@@ -4363,7 +4362,7 @@ SQL;
                     $peterman2_detail[$floor] = FALSE;
                     $tiles = $this->getTiles($floor);
                     foreach ($tiles as $tile) {
-                        if ($tile['type'] == 'safe' && $tile['location_arg'] == $player_tile['location_arg'] && !$this->tokensInTile('open', $tile['id'])) {
+                        if (TileType::of($tile) === TileType::Safe && $tile['location_arg'] == $player_tile['location_arg'] && !$this->tokensInTile('open', $tile['id'])) {
                             $peterman2_detail[$floor] = TRUE;
                         }
                     }
@@ -4555,9 +4554,8 @@ SQL;
         $current_player_id = $this->getCurrentPlayerIdCustom();
         $player_token = $this->getPlayerToken($current_player_id);
         $player_tile = $this->getPlayerTile($current_player_id, $player_token);
-        $type = $player_tile['type'];
         $special_choice = FALSE;
-        if ($type == 'thermo' && self::getGameStateValue('empPlayer') == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
+        if (TileType::of($player_tile) === TileType::Thermo && self::getGameStateValue('empPlayer') == 0 && !$this->tokensInTile('crowbar', $player_tile['id'])) {
             $special_choice = $this->triggerAlarm($player_tile);
         }
         if (self::getGameStateValue('acrobatEnteredGuardTile')) {
