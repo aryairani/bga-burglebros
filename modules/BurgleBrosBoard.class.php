@@ -41,61 +41,61 @@ class BurgleBrosBoard
         $this->setupWalls();
 	}
 
-    function setupTiles(array $options): void {
-    	$option_one_deadbolt = $options[GameOption::DeadboltDistribution->value] == DeadboltDistribution::OnePerFloor->value;
-        $safes = $this->game->tiles->getCardsOfType(TileType::Safe->value);
-        $stairs = $this->game->tiles->getCardsOfType(TileType::Stairs->value);
-        $shafts = $this->game->tiles->getCardsOfType(TileType::Shaft->value);
-        $deadbolts = $this->game->tiles->getCardsOfType(TileType::Deadbolt->value);
-        $size = $this->game->getSquareSize();
-        $size_sq = $size * $size - 1;
-        $max_floor = $this->game->getFloorCount();
+	function setupTiles(array $options): void {
+		$option_one_deadbolt = $options[GameOption::DeadboltDistribution->value] == DeadboltDistribution::OnePerFloor->value;
+		$safes = $this->game->tiles->getCardsOfType(TileType::Safe->value);
+		$stairs = $this->game->tiles->getCardsOfType(TileType::Stairs->value);
+		$shafts = $this->game->tiles->getCardsOfType(TileType::Shaft->value);
+		$deadbolts = $this->game->tiles->getCardsOfType(TileType::Deadbolt->value);
+		$size = $this->game->getSquareSize();
+		$size_sq = $size * $size - 1;
+		$max_floor = $this->game->getFloorCount();
 		$shaft_location_arg = null;
-        if ($size === 5) {
-        	if ($this->game->stateValue(GameStateValue::RandomWalls) == Walls::Default->value) {
-	        	$shaft_location_arg = BurgleBrosWallLayouts::fortKnox()[1]['shaft'];
-	        } else {
-	        	$shaft_location_arg = rand(0, $size_sq);
-	        }
-        }
+		if ($size === 5) {
+			if ($this->game->stateValue(GameStateValue::RandomWalls) == Walls::Default->value) {
+				$shaft_location_arg = BurgleBrosWallLayouts::fortKnox()[1]['shaft'];
+			} else {
+				$shaft_location_arg = rand(0, $size_sq);
+			}
+		}
 
-        // Grab a safe and stair for each floor, and move to the floor "deck"
-        $shifted_shafts = $shafts;
-        for ($floor=1; $floor <= $max_floor; $floor++) {
-            $safe = array_shift($safes);
-            $stair = array_shift($stairs);
-            $card_ids = array($safe['id'], $stair['id']);
-            if ($option_one_deadbolt) {
-            	$card_ids[] = array_shift($deadbolts)['id'];
-            }
-            if (count($shifted_shafts) > 0) {
-            	$shaft = array_shift($shifted_shafts);
-            	$card_ids[] = $shaft['id'];
-            }
-            $this->game->tiles->moveCards($card_ids, "floor$floor");
-        }
-        $this->game->tiles->shuffle('deck');
-        // Grab tiles per floor "deck" and shuffle (14 for square size of 4 cards || 22 for square size of 5 cards)
-        $square_size = $this->game->getSquareSize();
-        $cards_to_draw = $square_size === 4 ? 14 : 22;
-        if ($option_one_deadbolt)
-        	--$cards_to_draw;
-        for ($floor=1; $floor <= $max_floor; $floor++) {
-            $this->game->tiles->pickCardsForLocation($cards_to_draw, 'deck', "floor$floor");
-            $this->game->tiles->shuffle("floor$floor");
-            // Reset shaft positions by switching tiles
-            if (count($shafts) > 0) {
-	            $card = array_values($this->game->tiles->getCardsInLocation("floor$floor", $shaft_location_arg))[0];
-	            $shaft = array_values($this->game->tiles->getCardsOfTypeInLocation(TileType::Shaft->value, null, "floor$floor"))[0];
-	            $this->game->tiles->moveCard($card['id'], "floor$floor", $shaft['location_arg']);
-	            $this->game->tiles->moveCard($shaft['id'], "floor$floor", $card['location_arg']);
-	        }
-        }
-        // Flip shaft so they are visible
-        if (count($shafts) > 0) {
-        	Table::DbQuery("UPDATE tile SET flipped=1 WHERE card_type='shaft'");
-        }
-    }
+		// Grab a safe and stair for each floor, and move to the floor "deck"
+		$shifted_shafts = $shafts;
+		for ($floor=1; $floor <= $max_floor; $floor++) {
+				$safe = array_shift($safes);
+				$stair = array_shift($stairs);
+				$card_ids = array($safe['id'], $stair['id']);
+				if ($option_one_deadbolt) {
+					$card_ids[] = array_shift($deadbolts)['id'];
+				}
+				if (count($shifted_shafts) > 0) {
+					$shaft = array_shift($shifted_shafts);
+					$card_ids[] = $shaft['id'];
+				}
+				$this->game->tiles->moveCards($card_ids, "floor$floor");
+		}
+		$this->game->tiles->shuffle('deck');
+		// Grab tiles per floor "deck" and shuffle (14 for square size of 4 cards || 22 for square size of 5 cards)
+		$square_size = $this->game->getSquareSize();
+		$cards_to_draw = $square_size === 4 ? 14 : 22;
+		if ($option_one_deadbolt)
+			--$cards_to_draw;
+		for ($floor=1; $floor <= $max_floor; $floor++) {
+				$this->game->tiles->pickCardsForLocation($cards_to_draw, 'deck', "floor$floor");
+				$this->game->tiles->shuffle("floor$floor");
+				// Reset shaft positions by switching tiles
+				if (count($shafts) > 0) {
+					$card = array_values($this->game->tiles->getCardsInLocation("floor$floor", $shaft_location_arg))[0];
+					$shaft = array_values($this->game->tiles->getCardsOfTypeInLocation(TileType::Shaft->value, null, "floor$floor"))[0];
+					$this->game->tiles->moveCard($card['id'], "floor$floor", $shaft['location_arg']);
+					$this->game->tiles->moveCard($shaft['id'], "floor$floor", $card['location_arg']);
+			}
+		}
+		// Flip shaft so they are visible
+		if (count($shafts) > 0) {
+			Table::DbQuery("UPDATE tile SET flipped=1 WHERE card_type='shaft'");
+		}
+	}
 
 	public function randomizeAllWalls(): void {
 		$max_floor = $this->game->getFloorCount();
