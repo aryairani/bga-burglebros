@@ -54,7 +54,7 @@ class burglebros extends Table
     // Static game material, copied from BurgleBrosMaterial in the constructor.
     /** @var array<int, DeckType> deck descriptors by card type (0-3) */
     public array $card_types;
-    /** @var array<int, list<CardInfo>> card definitions by card type; list index + 1 == type_arg */
+    /** @var array<int, list<CardInfo>> card definitions by card type; type_arg := index + 1 1*/
     public array $card_info;
     /** @var array<int, DeckType> deck descriptors by card type (4-6, one patrol deck per floor) */
     public array $patrol_types;
