@@ -51,8 +51,9 @@ class BurgleBrosFloorPlan extends BurgleBrosGrid
 	}
 
 	public function wallBetween(int $floor, int $cell, int $other_cell): bool {
-		foreach ($this->walls as $wall) {
-			if ($wall['floor'] == $floor && $this->wallSeparates($wall, $cell, $other_cell)) {
+		$walls_on_floor = array_filter($this->walls, fn($wall) => $wall['floor'] == $floor);
+		foreach ($walls_on_floor as $wall) {
+			if ($this->wallSeparates($wall, $cell, $other_cell)) {
 				return true;
 			}
 		}
