@@ -90,4 +90,7 @@ $gameinfos = array(
 //////// Game parameters //////
 'db_undo_support' => true,
 
+// Turn PHP warnings into exceptions so they surface instead of hiding bugs
+'exception_on_warning' => true,
+
 );
