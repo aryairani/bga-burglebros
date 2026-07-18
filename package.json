@@ -1,0 +1,17 @@
+{
+  "name": "burglebros",
+  "version": "1.0.0",
+  "description": "Burgle Bros for Board Game Arena - client build",
+  "private": true,
+  "license": "SEE LICENCE IN LICENCE_BGA",
+  "scripts": {
+    "build:ts": "rollup -c",
+    "watch:ts": "rollup -c -w"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12.3.0",
+    "rollup": "^4.53.3",
+    "tslib": "^2.8.1",
+    "typescript": "^6.0.3"
+  }
+}

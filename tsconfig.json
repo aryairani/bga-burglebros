@@ -1,0 +1,19 @@
+{
+  // Per https://en.doc.boardgamearena.com/Using_Typescript_and_Scss
+  // rootDir must be "." so *.d.ts files in the project root (bga-framework.d.ts) are visible.
+  // strict is off for the initial port of the legacy dojo code; flip on once ported.
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "lib": ["dom", "esnext"],
+    "sourceMap": false,
+    "rootDir": "."
+  },
+  "include": [
+    "*.d.ts",
+    "src/ts/**/*.d.ts",
+    "src/ts/**/*.ts"
+  ]
+}

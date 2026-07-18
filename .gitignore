@@ -3,3 +3,5 @@ misc/tests/phpunit.phar
 misc/tests/.phpunit.cache/
 .phpunit.cache/
 misc/tests/.phpunit.result.cache
+node_modules/
+build/

@@ -50,3 +50,29 @@ $target = "$root/modules/burglebros.constants.js";
 $changed = !file_exists($target) || file_get_contents($target) !== $out;
 file_put_contents($target, $out);
 echo ($changed ? "wrote" : "unchanged") . ": $target\n";
+
+// TypeScript twin for the (not yet deployed) src/ts build. Same values,
+// exported as a module with literal types instead of a frozen global.
+$ts = <<<'TS'
+// GENERATED FILE - do not edit. Regenerate with:  php misc/gen-js-constants.php
+// TypeScript twin of modules/burglebros.constants.js - same enums, same warnings:
+// the values are load-bearing on the client and in the DB of running games,
+// never rename them here or in PHP.
+export const BBCONST = {
+
+TS;
+
+foreach ($exports as $key => $enum) {
+    $ts .= "    // $enum (modules/" . basename((new ReflectionEnum($enum))->getFileName()) . ")\n";
+    $ts .= "    $key: {\n";
+    foreach ($enum::cases() as $case) {
+        $ts .= "        $case->name: " . json_encode($case->value) . ",\n";
+    }
+    $ts .= "    },\n";
+}
+$ts .= "} as const;\n";
+
+$tsTarget = "$root/src/ts/constants.ts";
+$tsChanged = !file_exists($tsTarget) || file_get_contents($tsTarget) !== $ts;
+file_put_contents($tsTarget, $ts);
+echo ($tsChanged ? "wrote" : "unchanged") . ": $tsTarget\n";
