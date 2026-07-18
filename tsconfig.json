@@ -7,6 +7,9 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "strict": false,
+    // BGA's read-only bga-framework.d.ts contains parameter initializers,
+    // which are invalid in ambient declarations; skip checking .d.ts files.
+    "skipLibCheck": true,
     "lib": ["dom", "esnext"],
     "sourceMap": false,
     "rootDir": "."

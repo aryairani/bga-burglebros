@@ -6,7 +6,8 @@
   "license": "SEE LICENCE IN LICENCE_BGA",
   "scripts": {
     "build:ts": "rollup -c",
-    "watch:ts": "rollup -c -w"
+    "watch:ts": "rollup -c -w",
+    "check:ts": "tsc --noEmit"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.3.0",
