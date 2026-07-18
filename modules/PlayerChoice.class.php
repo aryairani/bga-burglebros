@@ -2,7 +2,7 @@
 
 /*
  * PlayerChoice: values of the 'playerChoice' game state value — why the playerChoice
- * state was entered (keys of $player_choices in material.inc.php)
+ * state was entered (keys of $player_choices in BurgleBrosMaterial)
  */
 enum PlayerChoice: int
 {

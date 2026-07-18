@@ -2,7 +2,7 @@
 
 /*
  * TokenType: card_type values in the `token` table. The client uses the same
- * strings for CSS classes; display colors live in $token_types in material.inc.php.
+ * strings for CSS classes; display colors live in $token_types in BurgleBrosMaterial.
  */
 enum TokenType: string
 {

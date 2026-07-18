@@ -1,7 +1,7 @@
 <?php
 
 /*
- * CardType: card_type values in the `card` table (keys of $card_types / $card_info in material.inc.php)
+ * CardType: card_type values in the `card` table (keys of $card_types / $card_info in BurgleBrosMaterial)
  */
 enum CardType: int
 {
@@ -10,7 +10,7 @@ enum CardType: int
     case Loot = 2;
     case Event = 3;
 
-    // The per-floor patrol decks (keys of $patrol_types in material.inc.php)
+    // The per-floor patrol decks (keys of $patrol_types in BurgleBrosMaterial)
     case Patrol1 = 4;
     case Patrol2 = 5;
     case Patrol3 = 6;

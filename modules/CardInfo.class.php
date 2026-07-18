@@ -1,7 +1,7 @@
 <?php
 
 /*
- * CardInfo: one card definition in $card_info (material.inc.php) — the face
+ * CardInfo: one card definition in $card_info (BurgleBrosMaterial) — the face
  * printed on a character/tool/loot/event card. subhead and ability are
  * character-only; choice_description is the prompt shown when playing the
  * card requires picking a target.

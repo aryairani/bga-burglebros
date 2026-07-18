@@ -31,6 +31,7 @@ require_once("modules/TokenType.class.php");
 require_once("modules/DeckType.class.php");
 require_once("modules/CardFace.class.php");
 require_once("modules/CardInfo.class.php");
+require_once("modules/BurgleBrosMaterial.class.php");
 require_once("modules/Scenario.class.php");
 require_once("modules/State.class.php");
 require_once("modules/PlayerChoice.class.php");
@@ -50,7 +51,7 @@ class burglebros extends Table
         public Deck $tiles;
         public Deck $tokens;     
 
-    // Static game material, assigned by material.inc.php (included in the framework constructor).
+    // Static game material, copied from BurgleBrosMaterial in the constructor.
     /** @var array<int, DeckType> deck descriptors by card type (0-3) */
     public array $card_types;
     /** @var array<int, list<CardInfo>> card definitions by card type; list index + 1 == type_arg */
@@ -86,6 +87,18 @@ class burglebros extends Table
         parent::__construct();
 
         self::initGameStateLabels(GameStateValue::labels());
+
+        $this->card_types = BurgleBrosMaterial::cardTypes();
+        $this->card_info = BurgleBrosMaterial::cardInfo();
+        $this->patrol_types = BurgleBrosMaterial::patrolTypes();
+        $this->tile_types = BurgleBrosMaterial::TILE_TYPES;
+        $this->tile_types_office_job = BurgleBrosMaterial::TILE_TYPES_OFFICE_JOB;
+        $this->tile_distribution = BurgleBrosMaterial::tileDistribution();
+        $this->tile_distribution_office_job = BurgleBrosMaterial::tileDistributionOfficeJob();
+        $this->token_types = BurgleBrosMaterial::TOKEN_TYPES;
+        $this->player_choices = BurgleBrosMaterial::playerChoices();
+        $this->special_choices = BurgleBrosMaterial::specialChoices();
+        $this->state_after_alarms = BurgleBrosMaterial::stateAfterAlarms();
 
         // Initialize module classes
         $this->board = new BurgleBrosBoard($this);

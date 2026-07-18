@@ -1,7 +1,7 @@
 <?php
 
 /*
- * CardFace: one entry in a material card list ($card_info in material.inc.php,
+ * CardFace: one entry in a material card list ($card_info in BurgleBrosMaterial,
  * patrolInfo() in burglebros.game.php). A face's 1-based position in its type's
  * list is the card's type_arg in the `card` table. Patrol faces are bare
  * CardFaces whose name is the grid coordinate printed on the card.

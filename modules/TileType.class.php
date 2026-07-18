@@ -2,7 +2,7 @@
 
 /*
  * TileType: card_type values in the `tile` table (keys of $tile_types /
- * $tile_distribution in material.inc.php). The client uses the same strings
+ * $tile_distribution in BurgleBrosMaterial). The client uses the same strings
  * for CSS classes and image filenames.
  */
 enum TileType: string

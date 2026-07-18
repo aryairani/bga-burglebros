@@ -2,7 +2,7 @@
 
 /*
  * SpecialChoice: values of the 'specialChoice' game state value — why the specialChoice
- * state was entered (keys of $special_choices in material.inc.php)
+ * state was entered (keys of $special_choices in BurgleBrosMaterial)
  */
 enum SpecialChoice: int
 {
