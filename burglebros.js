@@ -603,8 +603,15 @@ function (dojo, declare) {
             return parseInt(node.id.slice('floor'.length), 10);
         },
 
-        // Verify `action` is allowed in the current game state, then call its server entry point
+        // Verify `action` is allowed in the current game state, then call its server entry point.
+        // Prefers the framework's bgaPerformAction (locks UI + checkAction itself); falls back to
+        // the legacy checkAction + ajaxcall pair if this table's framework doesn't provide it yet.
         performAction: function(action, params, onSuccess, onError) {
+            if (this.bgaPerformAction) {
+                return this.bgaPerformAction(action, params)
+                    .then(onSuccess || console.log, onError || console.error);
+            }
+            console.debug('bgaPerformAction unavailable; using legacy ajaxcall for', action);
             if (this.checkAction(action)) {
                 this.ajaxcall('/burglebros/burglebros/' + action + '.html', dojo.mixin({ lock: true }, params), this, onSuccess || console.log, onError || console.error);
             }
